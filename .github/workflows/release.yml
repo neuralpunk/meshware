@@ -39,35 +39,6 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: scripts/changelog-entry.sh "${GITHUB_REF_NAME}"
 
-  bench-shipped:
-    name: benchmark the shipped target (ENG-25)
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-unknown-linux-musl
-      - uses: Swatinem/rust-cache@v2
-      # ring's assembly and the allocator both need a C compiler for the
-      # musl target. The `build` job below uses cargo-zigbuild for the
-      # cross-compile; here the native musl toolchain is simpler and the
-      # binary is run on this machine anyway.
-      - name: musl toolchain
-        run: sudo apt-get update && sudo apt-get install -y musl-tools
-      # Releases are static musl, and every published figure used to come
-      # from a glibc test build. This measures the target that ships, and
-      # the number lands beside the artifact rather than in a docs page
-      # nobody re-derives.
-      - name: 100 nodes, submit→complete
-        run: ./scripts/bench-release.sh --compare
-      - name: …and as JSON, for the record
-        run: ./scripts/bench-release.sh --json | tee bench-shipped.json
-      - uses: actions/upload-artifact@v4
-        with:
-          name: bench-shipped
-          path: bench-shipped.json
-
   build:
     name: build (${{ matrix.target }})
     needs: release-notes
