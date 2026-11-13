@@ -59,12 +59,12 @@ jobs:
         run: cargo clippy --workspace --exclude meshware-director --all-targets --features mesh-archive/cli -- -D warnings
       - name: test
         # --no-fail-fast: one run names every failing test, not just the first.
-        # --test-threads=2: each integration test is a whole mesh, and libtest
-        # runs as many at once as the runner has cores. Four meshes on a
-        # four-core runner starved each other into timeouts (saturated
-        # nodes, handshakes, 3.5:1 where 2:1 was measured) that no
-        # developer machine reproduced.
-        run: cargo test --workspace --exclude meshware-director --no-fail-fast -- --test-threads=2
+        # --test-threads=1: each integration test is a whole mesh, and a
+        # private repository's runner has two CPUs. Two meshes side by side
+        # there starved each other into timeouts (handshakes, a rebuilt
+        # op-log's first change never arriving) that pass alone on the same
+        # two CPUs, reproduced with `taskset -c 0,1`.
+        run: cargo test --workspace --exclude meshware-director --no-fail-fast -- --test-threads=1
       # C3 §7.3 P1 — the operational-cost claim's last row, gated.
       #
       # It runs as its own step rather than folding into `test` so the
