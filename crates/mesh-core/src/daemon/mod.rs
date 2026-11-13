@@ -15658,8 +15658,18 @@ impl Node {
                 }
             }
             mesh_proto::GangPlacement::Pack => {
-                for m in ranked {
-                    let room = Self::gang_capacity(m, reqs);
+                // Most room first. `ranked` is the scheduler's order — least
+                // loaded first — and filling it as given put a gang's first
+                // member on an idle four-core node beside a sixteen-core one
+                // that could hold all four, splitting a gang that fits on
+                // one machine. A stable sort keeps the scheduler's order
+                // among nodes with equal room.
+                let mut by_room: Vec<(u32, &mesh_proto::MemberInfo)> = ranked
+                    .iter()
+                    .map(|m| (Self::gang_capacity(m, reqs), m))
+                    .collect();
+                by_room.sort_by_key(|(room, _)| std::cmp::Reverse(*room));
+                for (room, m) in by_room {
                     for _ in 0..room {
                         if out.len() as u32 >= size {
                             break;
