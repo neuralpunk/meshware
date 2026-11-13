@@ -1648,9 +1648,14 @@ meshnode run 'apt-get -y upgrade' --on 'fact.os_id=debian'")]
         /// nodes fetch it from each other instead of from a server
         #[arg(long, value_name = "FILE", conflicts_with_all = ["self_", "on"])]
         publish: Option<String>,
-        /// The .minisig for --publish (default: <FILE>.minisig)
+        /// The .minisig for --publish (default: <FILE>.minisig, and when
+        /// there is none, the binary is signed with your own release key)
         #[arg(long = "publish-sig", value_name = "FILE")]
         publish_sig: Option<String>,
+        /// Print your release key — the one --publish signs with, derived
+        /// from your identity — as a minisign .pub, then stop
+        #[arg(long = "my-release-key", conflicts_with_all = ["self_", "on"])]
+        my_release_key: bool,
         /// Publish a hardware co-signature for --version's release
         ///
         /// The document `ssh-keygen -Y sign -n meshware-release <binary>`
@@ -6454,6 +6459,7 @@ async fn run(cli: Cli) -> Result<i32> {
             status,
             publish,
             publish_sig,
+            my_release_key,
             releases,
             plans,
             trust_key,
@@ -6489,6 +6495,18 @@ async fn run(cli: Cli) -> Result<i32> {
                     bail!("unexpected response to releases");
                 };
                 format::print_releases(&rows)?;
+                return Ok(0);
+            }
+            if my_release_key {
+                let ctx = Ctx::new(&cli.global)?;
+                let Some(signer) = ctx.user.release_signer() else {
+                    bail!(
+                        "your identity is held on a security key, which has no release key to \
+                         derive. Sign releases with `minisign -S` and trust that key with \
+                         `meshnode upgrade --trust-key <file.pub>`."
+                    );
+                };
+                print!("{}", signer.public_key_file());
                 return Ok(0);
             }
             if let Some(binary) = publish {
@@ -11558,21 +11576,20 @@ async fn publish_release(
         );
     }
 
-    let sig_path = sig_path
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| std::path::PathBuf::from(format!("{}.minisig", binary.display())));
-    let minisig = std::fs::read_to_string(&sig_path).with_context(|| {
-        format!(
-            "reading {} — a release must carry its signature, or no node will install it",
-            sig_path.display()
-        )
-    })?;
+    // Named for the binary's architecture, read off its file name, not for
+    // this machine's: publishing an aarch64 build from an x86_64 laptop is
+    // the normal way a mixed fleet gets its second artifact.
+    let arch = binary
+        .file_name()
+        .and_then(|n| mesh_core::deploy::arch_of_artifact(&n.to_string_lossy()).map(str::to_string))
+        .unwrap_or_else(|| std::env::consts::ARCH.to_string());
+    let artifact = mesh_core::deploy::artifact_name(&bare, &arch);
 
     // Verified here too, and against the keys the *fleet* trusts rather
     // than whatever this one machine has in a file: publishing a release
     // no node will install is the failure this check exists to prevent,
     // and it is the fleet's answer that decides that, not the publisher's.
-    let trusted = match ctx.ipc(IpcRequest::ReleaseKeys).await {
+    let mut trusted = match ctx.ipc(IpcRequest::ReleaseKeys).await {
         Ok(IpcResponse::ReleaseKeys(view)) => view
             .keys
             .into_iter()
@@ -11581,6 +11598,73 @@ async fn publish_release(
             .collect::<Vec<_>>(),
         _ => Vec::new(),
     };
+
+    // The signature: the one named, else the `.minisig` beside the binary,
+    // else **the publisher's own release key**. Meshware has no project-wide
+    // key; each mesh's admins vouch for what their fleet installs, so the
+    // common case — a binary you built or downloaded — needs no key
+    // management at all.
+    let named_sig = sig_path.is_some();
+    let sig_path = sig_path
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::path::PathBuf::from(format!("{}.minisig", binary.display())));
+    let minisig = match std::fs::read_to_string(&sig_path) {
+        Ok(text) => text,
+        Err(e) if named_sig => {
+            return Err(anyhow::Error::from(e).context(format!("reading {}", sig_path.display())));
+        }
+        Err(_) => {
+            let signer = ctx.user.release_signer().ok_or_else(|| {
+                anyhow!(
+                    "there is no {} to publish with it, and your identity is held on a security \
+                     key, which has no release key to sign with. Sign the binary with \
+                     `minisign -S -m {}`, trust that key once with `meshnode upgrade \
+                     --trust-key <file.pub>`, and publish again.",
+                    sig_path.display(),
+                    binary.display()
+                )
+            })?;
+            let pubkey = signer.public_key();
+            if let Some(local) = &ctx.config.release.pubkey
+                && local.trim() != pubkey
+            {
+                bail!(
+                    "this machine pins `[release] pubkey = {local}`, which is not your release \
+                     key ({pubkey}), so it would refuse a release you sign. Remove the pin, or \
+                     sign with that key and pass --publish-sig."
+                );
+            }
+            if !trusted.contains(&pubkey) {
+                // Labelled with the person's name where the mesh knows it:
+                // the list is read by people, and a user id is not a name.
+                let who = match ctx.ipc(IpcRequest::WhoAmI).await {
+                    Ok(IpcResponse::WhoAmI(w)) => w.username,
+                    _ => None,
+                }
+                .unwrap_or_else(|| ctx.user_id().to_string());
+                trust_release_key(ctx, &pubkey, Some(&format!("release key of {who}")))
+                    .await
+                    .context(
+                        "trusting your release key mesh-wide (publishing a release needs an \
+                         admin)",
+                    )?;
+                trusted.push(pubkey.clone());
+            }
+            let at = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            println!(
+                "signing {artifact} with your release key {}",
+                signer.key_id()
+            );
+            signer.sign(
+                &bytes,
+                &mesh_core::release::release_trusted_comment(&bare, &artifact, at),
+            )
+        }
+    };
+
     let candidates = match &ctx.config.release.pubkey {
         Some(local) => vec![local.clone()],
         None => trusted,
@@ -11594,14 +11678,6 @@ async fn publish_release(
     // The bundle is one file: the binary under its release artifact name.
     // Staged beside the source, because the *daemon* ingests it and has to
     // be able to read the path this names.
-    // Named for the binary's architecture, read off its file name, not for
-    // this machine's: publishing an aarch64 build from an x86_64 laptop is
-    // the normal way a mixed fleet gets its second artifact.
-    let arch = binary
-        .file_name()
-        .and_then(|n| mesh_core::deploy::arch_of_artifact(&n.to_string_lossy()).map(str::to_string))
-        .unwrap_or_else(|| std::env::consts::ARCH.to_string());
-    let artifact = mesh_core::deploy::artifact_name(&bare, &arch);
     let staging = binary
         .parent()
         .unwrap_or(std::path::Path::new("."))

@@ -2913,15 +2913,17 @@ pub fn print_release_keys(view: &mesh_proto::ReleaseKeyView) -> Result<()> {
         println!();
         if view.embedded_is_placeholder {
             println!(
-                "This build carries the placeholder key, so **no release will install** \
-                 anywhere until one is trusted:"
+                "Nothing has been published yet. Publishing a release signs it with your own \
+                 release key, and trusts that key mesh-wide the first time:"
             );
+            println!("  meshnode upgrade --publish ./meshnode --version <v>");
+            println!();
+            println!("Or trust a key you already sign builds with:");
         } else {
             println!(
                 "Releases verify against the key compiled into each binary. To sign your own:"
             );
         }
-        println!("  minisign -G -p release.pub -s release.key");
         println!("  meshnode upgrade --trust-key release.pub");
         return Ok(());
     }

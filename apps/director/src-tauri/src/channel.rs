@@ -1,15 +1,19 @@
 //! The release channel, from Director.
 //!
 //! Where a new meshnode comes from when nobody built one: the project's
-//! signed releases. Three things happen here and each is a sentence on the
+//! GitHub releases. Three things happen here and each is a sentence on the
 //! Updates screen — *is there a newer version*, *get it into the mesh*,
 //! and *what would verify it*.
 //!
-//! The rules are the ones `meshnode upgrade --self` already lives by
-//! (M7), restated for a desktop: a download is nothing until a key the
-//! fleet trusts has signed for it; the placeholder key compiled into a
-//! development build verifies nothing and says so; and the only test seam
-//! is the same `MESHWARE_RELEASE_BASE` the CLI honours, loudly.
+//! **Meshware has no project-wide release key.** A fleet installs only what
+//! a key *it* trusts has signed, and the usual such key is the publishing
+//! admin's own release key (`mesh_core::release::ReleaseSigner`), derived
+//! from their identity. So a download is checked against the release's
+//! `SHA256SUMS` — which catches a corrupt or altered transfer — and then the
+//! admin who chose to publish it vouches for it with their key. A release
+//! that does carry a `.minisig` from a key the mesh already trusts is
+//! verified against that instead. The only test seam is the same
+//! `MESHWARE_RELEASE_BASE` the CLI honours, loudly.
 
 use std::path::Path;
 
@@ -25,8 +29,9 @@ pub const REPO: &str = "neuralpunk/meshware";
 const DEFAULT_BASE: &str = "https://github.com/neuralpunk/meshware/releases/download";
 /// Body cap for a binary download.
 const MAX_BINARY: usize = 256 * 1024 * 1024;
-/// The pinned release signing key — the same file `meshnode` embeds and
-/// CI asserts `install.sh` carries.
+/// A project release key, if this build was made with one — the same file
+/// `meshnode` embeds. The public tree carries none (a placeholder), and
+/// every mesh signs its own releases instead.
 pub(crate) const EMBEDDED_PUBKEY_FILE: &str = include_str!("../../../../packaging/minisign.pub");
 
 /// `(base, custom)`: an explicit/env base is a test seam — plain `http://`
@@ -134,7 +139,7 @@ fn tag_of(version: &str) -> String {
 }
 
 /// Download one artifact and its signature.
-pub async fn download(tag: &str, arch: &str) -> Result<(Vec<u8>, String), String> {
+pub async fn download(tag: &str, arch: &str) -> Result<(Vec<u8>, Option<String>), String> {
     let (base, _) = release_base();
     let client = client()?;
     let artifact = mesh_core::deploy::artifact_name(tag, arch);
@@ -144,17 +149,20 @@ pub async fn download(tag: &str, arch: &str) -> Result<(Vec<u8>, String), String
         .await
         .map_err(|e| format!("downloading {artifact}: {e}"))?
         .body;
-    let sig = client
-        .get(&format!("{url}.minisig"))
-        .await
-        .map_err(|e| format!("downloading {artifact}.minisig: {e}"))?
-        .body;
-    let sig = String::from_utf8(sig).map_err(|_| "the signature is not text".to_string())?;
+    // A signature is optional: Meshware's own releases carry none, and a
+    // mirror that signs its builds puts one beside them.
+    let sig = match client.get(&format!("{url}.minisig")).await {
+        Ok(r) => String::from_utf8(r.body).ok(),
+        Err(_) => None,
+    };
     Ok((bin, sig))
 }
 
-/// A verified release binary: downloaded, checked against a key the fleet
-/// trusts. `(bytes, minisig, bare version)`.
+/// A checked release binary from the channel: `(bytes, minisig, bare
+/// version)`. `minisig` is `Some` when the release carried a signature by a
+/// key this mesh already trusts and it verified; `None` when it carried none
+/// that the mesh knows, and the bytes were checked against the release's
+/// `SHA256SUMS` instead — the publisher then signs them with their own key.
 ///
 /// `version` empty means this Director's own build first — the version
 /// every other surface shows — and the channel's latest if that tag was
@@ -163,16 +171,7 @@ pub async fn fetch_verified(
     engine: &Engine,
     version: Option<&str>,
     arch: &str,
-) -> Result<(Vec<u8>, String, String), String> {
-    let keys = trusted_keys(engine).await;
-    if keys.is_empty() {
-        return Err(
-            "nothing here could verify a download: this build carries the placeholder release \
-             key and the mesh trusts none yet. Trust your signing key first (Updates → Release \
-             keys), then try again."
-                .into(),
-        );
-    }
+) -> Result<(Vec<u8>, Option<String>, String), String> {
     let tag = match version.map(str::trim).filter(|v| !v.is_empty()) {
         Some(v) => tag_of(v),
         None => tag_of(env!("CARGO_PKG_VERSION")),
@@ -193,9 +192,85 @@ pub async fn fetch_verified(
         }
         Err(e) => return Err(e),
     };
-    mesh_core::release::verify_minisign_any(&bin, &sig, &keys).map_err(|e| e.to_string())?;
     let bare = tag.trim_start_matches(['v', 'V']).to_string();
-    Ok((bin, sig, bare))
+    let keys = trusted_keys(engine).await;
+    if let Some(sig) = sig
+        && !keys.is_empty()
+        && mesh_core::release::verify_minisign_any(&bin, &sig, &keys).is_ok()
+    {
+        return Ok((bin, Some(sig), bare));
+    }
+    // No signature from a key this mesh trusts: check the transfer against
+    // the release's own checksum list, and leave the vouching to the admin.
+    let (base, _) = release_base();
+    let sums = client()?
+        .get(&format!("{base}/{tag}/SHA256SUMS"))
+        .await
+        .map_err(|e| format!("downloading SHA256SUMS for {tag}: {e}"))?
+        .body;
+    let sums = String::from_utf8(sums).map_err(|_| "SHA256SUMS is not text".to_string())?;
+    let artifact = mesh_core::deploy::artifact_name(&tag, arch);
+    mesh_core::release::check_sha256sums(&sums, &artifact, &bin).map_err(|e| e.to_string())?;
+    Ok((bin, None, bare))
+}
+
+/// Sign `bytes` as the release for `version` on `arch` with this person's
+/// own release key, trusting that key mesh-wide first if the mesh does not
+/// already. Publishing needs an admin, and so does trusting a key, so this
+/// asks for nothing publishing did not.
+pub async fn sign_as_publisher(
+    engine: &Engine,
+    bytes: &[u8],
+    version: &str,
+    arch: &str,
+) -> Result<String, String> {
+    let signer = engine.user.release_signer().ok_or_else(|| {
+        "your identity is held on a security key, which has no release key to sign with. Sign \
+         the binary with minisign, trust that key under Release keys, and publish it with its \
+         .minisig beside it."
+            .to_string()
+    })?;
+    let pubkey = signer.public_key();
+    let view = match engine.ipc(IpcRequest::ReleaseKeys).await? {
+        IpcResponse::ReleaseKeys(v) => v,
+        other => return Err(format!("unexpected response to release keys: {other:?}")),
+    };
+    if let Some(local) = view.local_override.as_deref()
+        && local.trim() != pubkey
+    {
+        return Err(format!(
+            "this machine pins [release] pubkey = {local}, which is not your release key \
+             ({pubkey}), so it would refuse a release you sign. Remove the pin first."
+        ));
+    }
+    if !view.keys.iter().any(|k| !k.revoked && k.pubkey == pubkey) {
+        let mut key = mesh_proto::ReleaseKey {
+            pubkey: pubkey.clone(),
+            label: match engine.ipc(IpcRequest::WhoAmI).await {
+                Ok(IpcResponse::WhoAmI(w)) => w.username,
+                _ => None,
+            }
+            .map(|u| format!("release key of {u}"))
+            .unwrap_or_else(|| format!("release key of {}", engine.user.user_id())),
+            added_by: engine.user.user_id(),
+            added_at_micros: mesh_proto::now_micros(),
+            signature: Vec::new(),
+        };
+        key.signature = engine.sign(&key.signing_bytes())?;
+        engine
+            .ipc(IpcRequest::ReleaseKeyAdd { key: Box::new(key) })
+            .await?;
+    }
+    let bare = version.trim().trim_start_matches(['v', 'V']);
+    let artifact = mesh_core::deploy::artifact_name(bare, arch);
+    let at = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    Ok(signer.sign(
+        bytes,
+        &mesh_core::release::release_trusted_comment(bare, &artifact, at),
+    ))
 }
 
 // ---------------------------------------------------------------------------
@@ -359,11 +434,14 @@ pub async fn release_check(state: State<'_, Director>) -> Result<ReleaseCheckVie
     }
     published.sort_by(|a, b| version_cmp(&b.version, &a.version));
 
-    let keys = trusted_keys(&engine).await;
-    let can_verify = !keys.is_empty();
+    // A download is checked against its SHA256SUMS and then signed with the
+    // publishing admin's own release key, so the only identity that cannot
+    // vouch for one is a hardware-held key, which has nothing to derive from.
+    let can_verify =
+        engine.user.release_signer().is_some() || !trusted_keys(&engine).await.is_empty();
     let verify_note = (!can_verify).then(|| {
-        "This build carries the placeholder release key and the mesh trusts none yet, so a \
-         download could not be verified. Trust your signing key under Release keys first."
+        "Your identity is held on a security key, which has no release key to sign a download \
+         with. Sign releases with minisign and trust that key under Release keys first."
             .to_string()
     });
 
@@ -430,10 +508,32 @@ pub async fn release_fetch(
                 }
             };
             version_seen = bare.clone();
-            say(
-                "verifying",
-                format!("{} MB, signature verified", bytes.len() / 1_048_576),
-            );
+            let sig = match sig {
+                Some(sig) => {
+                    say(
+                        "verifying",
+                        format!("{} MB, signature verified", bytes.len() / 1_048_576),
+                    );
+                    sig
+                }
+                None => {
+                    say(
+                        "verifying",
+                        format!(
+                            "{} MB, matches the release's SHA256SUMS — signing it with your \
+                             release key",
+                            bytes.len() / 1_048_576
+                        ),
+                    );
+                    match sign_as_publisher(&engine, &bytes, &bare, &arch).await {
+                        Ok(sig) => sig,
+                        Err(e) => {
+                            let _ = channel.send(ReleaseFetchEvent::Failed { message: e });
+                            return;
+                        }
+                    }
+                }
+            };
             say("publishing", "into the mesh".into());
             match publish_bytes(&engine, &bytes, &sig, &bare, &arch).await {
                 Ok(note) => {

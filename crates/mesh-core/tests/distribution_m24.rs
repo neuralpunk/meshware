@@ -91,15 +91,9 @@ async fn the_definitions_surface_names_what_replicates() {
 
     let rows = definitions(&founder).await;
     let kinds: Vec<&str> = rows.iter().map(|r| r.kind.as_str()).collect();
-    for expected in [
-        "workflows",
-        "services",
-        "collectors",
-        "schedules",
-        "policies",
-        "hosts",
-        "sources",
-    ] {
+    // Workflows, cron schedules, change-control policies and the host
+    // inventory were removed in September 2026; these are what remain.
+    for expected in ["services", "collectors", "session_policies", "sources"] {
         assert!(kinds.contains(&expected), "missing {expected}: {kinds:?}");
     }
 
@@ -110,12 +104,12 @@ async fn the_definitions_surface_names_what_replicates() {
         assert!(!row.what.is_empty(), "{} says nothing", row.kind);
     }
 
-    // Collectors execute unprompted; a workflow does not run until
+    // Collectors execute unprompted; a service does not run until
     // somebody runs it. That difference is the one §3.3 turns on.
     let collectors = rows.iter().find(|r| r.kind == "collectors").unwrap();
-    let workflows = rows.iter().find(|r| r.kind == "workflows").unwrap();
+    let services = rows.iter().find(|r| r.kind == "services").unwrap();
     assert!(collectors.executes);
-    assert!(!workflows.executes);
+    assert!(!services.executes);
 
     founder.node.shutdown();
 }

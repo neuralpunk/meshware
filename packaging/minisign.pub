@@ -1,2 +1,2 @@
-untrusted comment: meshware release signing key 6E459B3A4482E21A (install.sh and `meshnode upgrade --self` both pin this line; CI asserts they match)
-RWQa4oJEOptFbp8PrU2VnyoJqZFG36/x4p1goF965ZvZxsXH7mUYxwux
+untrusted comment: no project-wide release key — every mesh signs its own releases with its admins' keys (docs/operating/upgrade.md). A fork that signs its builds puts its minisign public key on the next line.
+RWTplaceholderplaceholderplaceholderplaceholderplaceho

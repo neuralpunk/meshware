@@ -16,14 +16,15 @@ Nodes are Linux-only by design, and so is Director. See [limits.md](limits.md).
 ### The tarball — any machine, and the one to start with
 
 ```console
-$ minisign -Vm meshnode-v1.0.2-x86_64-unknown-linux-musl.tar.gz -p minisign.pub
+$ gh attestation verify meshnode-v1.0.2-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware
 $ tar xzf meshnode-v1.0.2-x86_64-unknown-linux-musl.tar.gz
 $ sudo install -m755 meshnode /usr/local/bin/
 ```
 
-The tarball carries the binary, the systemd unit (`meshnode.service`) and the man page. Verify it
-first: the signature proves the file is the one Meshware signed, which a checksum served beside it
-cannot — see [security.md](security.md#verifying-a-release). This is the path the
+The tarball carries the binary, the systemd unit (`meshnode.service`), the man page and the
+licences. Verify it first: the build-provenance attestation proves the file was built from this
+repository by its release workflow, which a checksum served beside it cannot — see
+[security.md](security.md#verifying-a-release). This is the path the
 [quickstart](../quickstart.md) follows, and the one to use air-gapped or from your own pipeline.
 
 ### `.deb` / `.rpm` — a fleet you already manage
@@ -60,11 +61,12 @@ $ curl -fsSL https://raw.githubusercontent.com/neuralpunk/meshware/main/packagin
 `/usr/local/bin` (or `~/.local/bin` without root). It does not start anything or write any config.
 `MESHWARE_VERSION` pins a release.
 
-**Be exact about what it verifies.** It checks the minisign signature only when `minisign` is
-installed on the machine (it carries the release key itself). Otherwise it checks the
-download against `SHA256SUMS` — which catches a corrupt download and nothing else, because the
-checksum comes from the same server as the file — and says so in capitals. Set
-`MESHWARE_REQUIRE_SIGNATURE=1` to make a missing signature check a hard failure.
+**Be exact about what it verifies.** It always checks the download against `SHA256SUMS`, which
+catches a corrupt download and nothing else, because the checksum comes from the same server as
+the file. When the [GitHub CLI](https://cli.github.com) is installed and logged in, it also checks
+the build-provenance attestation (`gh attestation verify`), which proves the file was built from
+this repository by its release workflow; when it cannot, it says so in capitals. Set
+`MESHWARE_REQUIRE_SIGNATURE=1` to make a missing provenance check a hard failure.
 `MESHWARE_NO_VERIFY=1` skips even the checksum; do not use it.
 
 ### From source — `make`

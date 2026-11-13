@@ -69,8 +69,9 @@ variables in the section above as it always does; Director keeps only its own wi
 | `MESHWARE_MINISIGN_PUBKEY` | A key to check downloads against, after the keys the mesh trusts |
 | `MESHWARE_PASSPHRASE` · `MESHWARE_AGENT_SOCK` | Unlock your key, as for the CLI |
 
-Four more are read **when Director is built**, not when it runs. They set what **About** shows:
-`MESHWARE_SUPPORT_EMAIL`, `MESHWARE_SALES_EMAIL`, `MESHWARE_DOCS_URL` and `MESHWARE_BUILD_COMMIT`.
+Four more are read **when Director is built**, not when it runs. They set what **About** and the
+help menu point at, so a fork or a downstream build can send people to its own pages:
+`MESHWARE_DOCS_URL`, `MESHWARE_ISSUES_URL`, `MESHWARE_SOURCE_URL` and `MESHWARE_BUILD_COMMIT`.
 
 ### The installer (`install.sh`)
 
@@ -78,7 +79,7 @@ Four more are read **when Director is built**, not when it runs. They set what *
 |---|---|---|
 | `MESHWARE_VERSION` | The release to install, such as `v0.9.0` | the latest |
 | `MESHWARE_BIN_DIR` | Where to put `meshnode` | `/usr/local/bin` if writable, else `~/.local/bin` |
-| `MESHWARE_REQUIRE_SIGNATURE` | Set to `1` to stop unless a signature was actually checked | off |
+| `MESHWARE_REQUIRE_SIGNATURE` | Set to `1` to stop unless the download's provenance (or, for a fork that signs, its signature) was actually checked | off |
 | `MESHWARE_NO_VERIFY` | Set to `1` to skip every check, including the one above. Do not | off |
 
 ## A job sees it

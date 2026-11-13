@@ -1,5 +1,6 @@
 # meshware release pipeline (MASTERPLAN §15, M6): static musl binaries for
-# x86_64 + aarch64, .deb/.rpm packages, SHA256SUMS, minisign signatures
+# x86_64 + aarch64, .deb/.rpm packages, SHA256SUMS, provenance attestations
+# (and minisign signatures, only for a fork that configures a key)
 # (open question #1 → resolved: minisign), and a draft GitHub release.
 #
 # Secrets: MINISIGN_SECRET_KEY — the base64 minisign secret key. Releases
@@ -161,11 +162,20 @@ jobs:
 
       - name: checksums
         run: cd dist && sha256sum meshnode-* meshnode_* meshware-*-sbom.cdx.tar.gz meshware-docs-* > SHA256SUMS
-      - name: minisign
+      # Optional. Meshware has no project-wide release key — every mesh signs
+      # what it installs with its own admins' keys, and a release is proven
+      # by the provenance attestation below, which needs no key at all. A
+      # fork that wants minisign-signed builds sets MINISIGN_SECRET_KEY and
+      # puts its public key in packaging/minisign.pub; without the secret
+      # this step says so and moves on.
+      - name: minisign (only if a signing key is configured)
         env:
           MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
         run: |
-          test -n "$MINISIGN_SECRET_KEY" || { echo "MINISIGN_SECRET_KEY missing"; exit 1; }
+          if [ -z "$MINISIGN_SECRET_KEY" ]; then
+            echo "no MINISIGN_SECRET_KEY: releasing without minisign signatures (provenance attestation still applies)"
+            exit 0
+          fi
           sudo apt-get update && sudo apt-get install -y minisign
           printf '%s' "$MINISIGN_SECRET_KEY" | base64 -d > minisign.key
           # -H: prehashed signatures (what `meshnode upgrade --self` and
@@ -188,10 +198,10 @@ jobs:
       #
       #   gh attestation verify <file> --repo neuralpunk/meshware
       #
-      # This is a *different* claim from the minisign signature and both are
-      # worth having: minisign says "meshware released this", provenance says
-      # "and here is the build that made it". A release key can be stolen; a
-      # provenance attestation additionally names the source it came from.
+      # This is what proves a Meshware release, and it needs no key anybody
+      # has to keep: GitHub signs it through Sigstore with this workflow's
+      # own short-lived identity, and it names the commit and workflow that
+      # built the file. install.sh checks it when the GitHub CLI is present.
       - name: attest build provenance
         uses: actions/attest-build-provenance@v2
         with:

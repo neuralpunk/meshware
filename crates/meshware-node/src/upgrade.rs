@@ -6,7 +6,8 @@
 //! `/usr/local/bin` (the daemon runs as `meshnode` under `ProtectSystem`).
 //!
 //! Refuses package-manager-owned binaries (`dpkg`/`rpm` own the file —
-//! upgrade through them), refuses the placeholder key outside tests, and
+//! upgrade through them), refuses to verify against nothing (the public
+//! tree compiles in no project key: each mesh trusts its own admins'), and
 //! never replaces anything it has not verified *and* executed (`--version`)
 //! first.
 //!
@@ -185,11 +186,12 @@ pub fn release_pubkey(explicit: Option<&str>) -> Result<String> {
         .ok_or_else(|| anyhow!("embedded packaging/minisign.pub has no key line"))?;
     if key.to_ascii_lowercase().contains("placeholder") {
         bail!(
-            "this build carries the placeholder release key (packaging/minisign.pub), so it can \
-             verify nothing on its own. Trust your signing key mesh-wide — Director → Nodes → \
-             Updates → Release keys, or `meshnode upgrade --trust-key <file.pub>` — and every \
-             node uses it, including this one. Or reinstall from \
-             https://github.com/{REPO}/releases."
+            "Meshware has no project-wide release key, so there is nothing to check a download \
+             against until your mesh trusts a key. Publish the new meshnode into the mesh \
+             instead — `meshnode upgrade --publish ./meshnode --version <v>` signs it with your \
+             own release key — then roll it out with `meshnode upgrade --on <selector> --to \
+             <v>`. Or reinstall this machine with install.sh or a package \
+             (https://github.com/{REPO}/releases)."
         );
     }
     Ok(key.to_string())
@@ -359,7 +361,14 @@ pub async fn run(
             let sig = client
                 .get(&format!("{url}.minisig"))
                 .await
-                .with_context(|| format!("downloading {artifact}.minisig"))?
+                .with_context(|| {
+                    format!(
+                        "downloading {artifact}.minisig — releases from {base} are not signed by \
+                         a key your mesh trusts. Publish the binary into the mesh instead \
+                         (`meshnode upgrade --publish <file> --version <v>` signs it with your \
+                         own release key), then `meshnode upgrade --on <selector> --to <v>`"
+                    )
+                })?
                 .body;
             pb.finish_and_clear();
             eprintln!(

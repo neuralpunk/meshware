@@ -73,8 +73,9 @@ job — drop ops, fail to forward, fail to report.
   meshware at all.
 - Decrypt a secret sealed for a different node.
 - Put a binary on the fleet: a rollout plan needs an admin signature **and** the release needs a
-  valid minisign signature checked against a key the receiving node already holds. A peer
-  serving content is a CDN, never an authority.
+  valid minisign signature by a key the mesh trusts — normally the publishing admin's own release
+  key, derived from their identity. There is no project-wide key that could reach every mesh. A
+  peer serving content is a CDN, never an authority.
 
 ## 4. Secrets
 
@@ -222,13 +223,15 @@ telemetry), `ProtectProc=invisible` (hides PID 1 — init detection degrades),
 
 ## 7. Supply chain
 
-- **Signed releases.** minisign, with the public key pinned in three places CI keeps in
-  agreement: `packaging/minisign.pub`, `packaging/install.sh`, and the binary itself.
+- **No project-wide signing key.** Meshware's maintainers hold no key that every fleet trusts, so
+  there is no single secret whose theft reaches every mesh and nothing that stops working if the
+  project goes quiet. Each mesh trusts its own admins' release keys
+  ([limits.md §6c](limits.md#6c-release-signing--who-can-put-a-binary-on-your-fleet)).
+- **Build provenance** — `gh attestation verify <file> --repo neuralpunk/meshware` ties a
+  downloaded artifact to the commit and the release workflow that built it. GitHub signs it
+  through Sigstore with the workflow's own short-lived identity: nobody keeps a key for it.
 - **CycloneDX SBOM** per release — `meshnode-<version>.cdx.json` for the node binary and
-  `meshware-<version>-sbom.cdx.tar.gz` for the workspace — covered by `SHA256SUMS` and signed.
-- **Build provenance** — `gh attestation verify <file> --repo neuralpunk/meshware` ties an
-  artifact to the commit and workflow that built it. A different claim from the signature and
-  worth having beside it: a release key can be stolen; provenance also names the source.
+  `meshware-<version>-sbom.cdx.tar.gz` for the workspace — covered by `SHA256SUMS` and attested.
 - **`cargo deny` on every push to `main` and every pull request** — advisories, licences, bans, sources. CI runs
   on changes; nothing re-checks an unchanged tree on a schedule, so run `cargo deny check` before
   cutting a release from an old commit. A new advisory against
@@ -239,14 +242,13 @@ telemetry), `ProtectProc=invisible` (hides PID 1 — init detection degrades),
 ### Verifying a release
 
 ```console
-$ minisign -Vm meshnode-v0.7.0-x86_64-unknown-linux-musl \
-           -P "$(sed -n 2p packaging/minisign.pub)"
-$ sha256sum -c SHA256SUMS
-$ gh attestation verify meshnode-v0.7.0-x86_64-unknown-linux-musl --repo neuralpunk/meshware
+$ sha256sum --ignore-missing -c SHA256SUMS          # not corrupt
+$ gh attestation verify meshnode-v1.0.2-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware
 ```
 
-Nodes fetching a binary through the mesh perform the minisign check themselves, against their
-own local copy of the key. That check is not optional and cannot be turned off.
+Then put it on your fleet by publishing it — `meshnode upgrade --publish <file> --version <v>` signs it with your own
+release key. Nodes fetching a binary through the mesh check that signature themselves, against
+the keys their mesh trusts. That check is not optional and cannot be turned off.
 
 ## 8. Audit
 

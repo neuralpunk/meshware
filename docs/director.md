@@ -168,8 +168,10 @@ in the sidebar is how many machines are behind.
 
 Read the three steps left to right and act on the one that is not ticked:
 
-1. **Release channel** — **Check for updates** looks for a newer release, and **Get** fetches it
-   into the mesh, verified against a release key the fleet already trusts.
+1. **Release channel** — **Check for updates** looks for a newer release on GitHub, and **Get**
+   fetches it into the mesh: the download is checked against the release's `SHA256SUMS`, then
+   signed with *your* release key (derived from your identity, and trusted mesh-wide the first
+   time). There is no project-wide key; your mesh installs what its admins vouch for.
 2. **In the mesh** — the release the mesh holds, ready to install.
 3. **On the nodes** — **Update N nodes** installs it on each machine that is behind, over SSH, a
    few at a time, and waits for the mesh to see each machine come back before moving on. SSH is

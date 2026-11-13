@@ -147,6 +147,20 @@ impl Keypair {
         }
     }
 
+    /// This person's release key: the minisign key their published releases
+    /// are signed with (`crate::release::ReleaseSigner`). Derived from this
+    /// key, so there is nothing new to store, back up or lose.
+    ///
+    /// `None` for a hardware-held identity, whose private half cannot be
+    /// read to derive from. Such a person signs a release with `minisign`
+    /// and publishes the `.minisig` beside it, as before.
+    pub fn release_signer(&self) -> Option<crate::release::ReleaseSigner> {
+        match &self.inner {
+            KeyInner::Software(k) => Some(crate::release::ReleaseSigner::derive(&k.to_bytes())),
+            KeyInner::Hardware(_) => None,
+        }
+    }
+
     pub fn node_id(&self) -> NodeId {
         NodeId(self.public_bytes())
     }

@@ -104,18 +104,23 @@ commit messages, not in help text or docs.
 
 ## Releases
 
-- `./scripts/ship.sh 0.9.28` builds `meshnode` and Director at that version and signs them, then
-  moves the tree to it: every file that carries the version is set to 0.9.28 and committed on its
-  own as "Version 0.9.28", so everything built afterwards says 0.9.28 too. A version older than the
-  tree's is refused. `./scripts/ship.sh` with no version builds a development release
-  (`0.9.28-dev.1`) and leaves the tree as it found it.
-- `./scripts/set-version.sh 0.9.28` does the same move without building anything.
-- `packaging/build-release.sh v0.8.0` builds every architecture, the packages, the SBOM and the
-  and signs them. The `release` workflow does the same on a tag.
-- **Every release needs a [CHANGELOG](CHANGELOG.md) entry**, and all three refuse without one.
-  For `packaging/build-release.sh` and the `release` workflow, rename `## Unreleased` to the
-  version and date, and start a new `## Unreleased` above it. `ship.sh` is satisfied by the
-  `## Unreleased` section you are writing. Development builds (`-dev`) are exempt.
+**There is no project-wide signing key, and none is needed to cut a release.** Every mesh signs
+what it installs with its own admins' release keys (`mesh_core::release::ReleaseSigner`), so the
+project's job is only to build and publish binaries people can check.
+
+- Bump the version with `./scripts/set-version.sh 1.0.3` (every file that carries it), rename
+  `## Unreleased` in the [CHANGELOG](CHANGELOG.md) to the version and date, commit, and push a
+  `v1.0.3` tag.
+- The `release` workflow builds static musl binaries for x86_64 and aarch64, the `.deb`/`.rpm`
+  packages, the SBOM and `SHA256SUMS`, attaches a **build-provenance attestation** to each
+  (GitHub signs it through Sigstore with the workflow's own identity — no secret to keep), and
+  drafts the GitHub release with the CHANGELOG entry as its notes. A tag with no CHANGELOG entry
+  is refused.
+- A fork that wants minisign-signed builds as well sets the `MINISIGN_SECRET_KEY` secret and puts
+  its public key in `packaging/minisign.pub` (and `packaging/install.sh`; CI checks the two
+  agree). Without the secret, that step is skipped.
+- `./scripts/ship.sh` and `packaging/build-release.sh` build and sign a release locally with a
+  minisign key of your own. They are optional conveniences, not part of the release path.
 
 ## Commits
 

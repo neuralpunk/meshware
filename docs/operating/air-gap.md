@@ -25,11 +25,13 @@ The complete list of things that *can* dial out is in
 
 ## 2. Installing with no internet
 
-Carry three files across: the binary, its `.minisig`, and `packaging/minisign.pub`.
+Check the release where you have internet, then carry the binary across — or build it inside
+the air gap from a copy of the source (`make STATIC=1`), which needs no network once the Rust
+dependencies are vendored (`cargo vendor`).
 
 ```console
-$ minisign -Vm meshnode-v0.7.0-x86_64-unknown-linux-musl -P "$(sed -n 2p minisign.pub)"
-$ sudo install -m755 meshnode-v0.7.0-x86_64-unknown-linux-musl /usr/local/bin/meshnode
+$ gh attestation verify meshnode-v1.0.2-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware   # outside
+$ sudo install -m755 meshnode /usr/local/bin/meshnode                                                  # inside
 ```
 
 Or carry the `.deb`/`.rpm` into your internal repository and install from there, which is
@@ -46,9 +48,10 @@ $ meshnode upgrade --on tag=canary --to 0.7.0
 $ meshnode upgrade --on tag=floor --to 0.7.0 --batch 32
 ```
 
-No release server, no internal mirror, no scp to four hundred machines. The receiving node
-verifies the minisign signature against a key it already holds, so peer-to-peer distribution
-costs nothing in trust — the peer is a CDN, never an authority.
+No release server, no internal mirror, no scp to four hundred machines, and no key from outside
+your network: `--publish` signs the binary with your own release key. The receiving node verifies
+that signature against the keys its mesh trusts, so peer-to-peer distribution costs nothing in
+trust — the peer is a CDN, never an authority.
 
 If you would rather have a server, point `[release] base` at an internal URL and nothing leaves
 your network.

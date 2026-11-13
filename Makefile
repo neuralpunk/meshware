@@ -373,12 +373,20 @@ site: ## Serve the project website (site/) at http://127.0.0.1:8000
 
 # -- Collect the outputs ------------------------------------------------------
 
-dist: ## Copy what was built into dist/, with SHA256SUMS
+# The node is named as a release names it — meshnode-v<version>-<target> —
+# so `meshnode upgrade --publish` and Director's "Publish a build" read its
+# version and architecture off the file name.
+NODE_DIST := meshnode-v$(VERSION)-$(ARCH)-unknown-linux-$(if $(filter 1,$(STATIC)),musl,gnu)
+
+dist: ## Copy what was built into dist/ (node named for publishing), with SHA256SUMS
 	@mkdir -p dist
-	@n=0; for f in '$(OUT)/meshnode' '$(OUT)/meshware-archive' '$(DIRECTOR_OUT)/meshware-director'; do \
+	@n=0; \
+	if [ -x '$(OUT)/meshnode' ]; then cp '$(OUT)/meshnode' 'dist/$(NODE_DIST)'; echo "  dist/$(NODE_DIST)"; n=$$((n+1)); fi; \
+	for f in '$(OUT)/meshware-archive' '$(DIRECTOR_OUT)/meshware-director'; do \
 	  if [ -x "$$f" ]; then cp "$$f" dist/; echo "  dist/$$(basename "$$f")"; n=$$((n+1)); fi; done; \
-	  if [ $$n = 0 ]; then echo "nothing built yet — run 'make' first" >&2; exit 1; fi
-	@cd dist && sha256sum meshnode meshware-archive meshware-director 2>/dev/null > SHA256SUMS; echo "  dist/SHA256SUMS"
+	if [ $$n = 0 ]; then echo "nothing built yet — run 'make' first" >&2; exit 1; fi
+	@cd dist && sha256sum '$(NODE_DIST)' meshware-archive meshware-director 2>/dev/null > SHA256SUMS; echo "  dist/SHA256SUMS"
+	@printf '\n  put it on your fleet:  meshnode upgrade --publish dist/$(NODE_DIST) --version $(VERSION)\n\n'
 
 # -- Housekeeping -------------------------------------------------------------
 

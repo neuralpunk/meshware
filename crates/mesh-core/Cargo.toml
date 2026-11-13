@@ -28,6 +28,7 @@ mesh-proto = { workspace = true }
 anyhow = { workspace = true }
 argon2 = { workspace = true }
 blake3 = { workspace = true }
+blake2 = { workspace = true }
 chacha20poly1305 = { workspace = true }
 curve25519-dalek = { workspace = true }
 data-encoding = { workspace = true }

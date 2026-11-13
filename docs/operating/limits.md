@@ -321,14 +321,20 @@ the mesh cannot vouch for, and still moves the old key aside rather than
 deleting it. `meshnode users rotate` is the recovery path when there is
 somebody left to run it.
 
-### 6c. Release signing — the key that can reach every fleet
+### 6c. Release signing — who can put a binary on your fleet
 
-A node verifies every binary against the minisign release key and the check
-cannot be turned off. That is deliberate, and it has a consequence: whoever
-holds that key can push a binary to every fleet running meshware. minisign
-has no hardware support, so the key cannot be moved onto a token.
+**There is no project-wide release key.** A node installs a binary only when
+a key *its own mesh* trusts has signed it, and the check cannot be turned
+off. Nobody outside your mesh — including Meshware's maintainers — holds a
+key that can push a binary onto it.
 
-What can be required instead is a *second* signature that a file cannot
+The usual such key is an admin's **release key**, derived from their user
+key: `meshnode upgrade --publish <file> --version <v>` signs with it and trusts it mesh-wide the
+first time (`meshnode upgrade --my-release-key` prints it). It falls with
+the user key it came from — and an admin's user key can already run any
+command on any node, so it gives an attacker nothing new. It is a file-held
+key all the same, and a mesh that wants every release to carry proof a
+human was present can require a *second* signature that a file cannot
 produce:
 
 ```console

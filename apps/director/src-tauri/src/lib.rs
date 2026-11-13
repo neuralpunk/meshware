@@ -6022,8 +6022,8 @@ async fn collector_widen(
 /// What this fleet verifies releases against.
 #[tauri::command]
 async fn release_trust(state: State<'_, Director>) -> Result<view::ReleaseTrustView, String> {
-    let IpcResponse::ReleaseKeys(v) = state.engine().await?.ipc(IpcRequest::ReleaseKeys).await?
-    else {
+    let engine = state.engine().await?;
+    let IpcResponse::ReleaseKeys(v) = engine.ipc(IpcRequest::ReleaseKeys).await? else {
         return Err("unexpected response".into());
     };
     let live = v.keys.iter().any(|k| !k.revoked);
@@ -6049,7 +6049,13 @@ async fn release_trust(state: State<'_, Director>) -> Result<view::ReleaseTrustV
     Ok(view::ReleaseTrustView {
         cosign_required,
         releases,
-        nothing_would_verify: !live && v.local_override.is_none() && v.embedded_is_placeholder,
+        // Only when nothing *could* sign: publishing signs with the admin's
+        // own release key and trusts it, so an empty list is not a dead end
+        // unless this identity is hardware-held and has no key to derive.
+        nothing_would_verify: !live
+            && v.local_override.is_none()
+            && v.embedded_is_placeholder
+            && engine.user.release_signer().is_none(),
         keys: v
             .keys
             .into_iter()
@@ -6284,6 +6290,9 @@ async fn release_candidates(
         Ok(IpcResponse::Releases(rows)) => rows.into_iter().map(|r| (r.version, r.arch)).collect(),
         _ => Vec::new(),
     };
+    // An unsigned build is publishable when this person can sign it with
+    // their own release key — the usual case, since there is no project key.
+    let can_sign = engine.user.release_signer().is_some();
     let scan_dir = dir.clone();
     let mut out = tokio::task::spawn_blocking(move || {
         let dir = scan_dir;
@@ -6327,11 +6336,22 @@ async fn release_candidates(
             let already = published
                 .iter()
                 .any(|(v, a)| *v == version && (a.is_empty() || *a == arch));
-            let blocked = if !signed {
+            let blocked = if !signed && !can_sign {
                 Some(format!(
-                    "not signed — no node will install it. Sign it with `minisign -HSm {name} -s \
-                     <your key>`, or rebuild with packaging/build-release.sh."
+                    "not signed, and your identity is on a security key, which has no release \
+                     key to sign with. Sign it with `minisign -HSm {name} -s <your key>` and \
+                     trust that key above."
                 ))
+            } else if !signed {
+                // Signed with this person's release key when published.
+                if already {
+                    Some(format!(
+                        "{version} is already published in this mesh for {arch} — a version \
+                         names one binary per architecture for the life of the mesh."
+                    ))
+                } else {
+                    None
+                }
             } else if trusted.is_empty() {
                 Some(
                     "this mesh trusts no release key yet — add one above, then this becomes \
@@ -6440,13 +6460,13 @@ async fn release_publish(
         "{}.minisig",
         binary.file_name().unwrap_or_default().to_string_lossy()
     ));
-    let minisig = std::fs::read_to_string(&sig_path).map_err(|_| {
-        format!(
-            "no signature beside that binary ({}). A release must carry one, or no node will \
-             install it.",
-            sig_path.display()
-        )
-    })?;
+    // The .minisig beside the binary if there is one, else this person's
+    // own release key: Meshware has no project-wide key, so a build you
+    // made or downloaded is one you vouch for yourself.
+    let minisig = match std::fs::read_to_string(&sig_path) {
+        Ok(text) => text,
+        Err(_) => channel::sign_as_publisher(&engine, &bytes, &bare, &arch).await?,
+    };
     channel::publish_bytes(&engine, &bytes, &minisig, &bare, &arch).await
 }
 

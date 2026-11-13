@@ -408,7 +408,7 @@ in a system whose whole point is not having a central one. **Put the binary in t
 nodes fetch it from each other:
 
 ```console
-$ meshnode upgrade --publish ./meshnode --version 0.7.0    # + its .minisig
+$ meshnode upgrade --publish ./meshnode --version 0.7.0    # signed with your release key
 published meshnode 0.7.0 into the mesh (bndl-22e37679, 21.0 MB)
 
 $ meshnode upgrade --status --to 0.7.0
@@ -423,11 +423,11 @@ $ meshnode upgrade --on tag=dc-east --to 0.7.0 --batch 32  # then 400, 32 at a t
 
 The binary travels as an ordinary content-addressed bundle: pulled by digest, every chunk
 verified on write, from whichever peer holds it. **The peer is a CDN, not an authority** — the
-receiving node checks the release key's minisign signature against a key it holds locally before
-the binary goes anywhere near its own. That is the same trust model an HTTP release server always
-had (a release server was never trusted either; that is why minisign exists), minus the single
-point of failure. Publishing needs an admin signature *and* a release-key signature, so neither
-key alone can put a binary on your fleet.
+receiving node checks the release's signature against the keys *its own mesh* trusts before the
+binary goes anywhere near its own. `--publish` signs it for you, with a release key derived from
+your identity, and trusts that key mesh-wide the first time — so there is no key to manage and no
+project-wide key that could reach every fleet. Publishing needs an admin signature *and* a
+release-key signature.
 
 Works air-gapped, survives any server being down, and scales — 400 nodes pull from each other
 rather than from one box. Point `[release] base` at a URL instead if you'd rather have a server;
@@ -568,12 +568,14 @@ arbitrary untrusted code).
 
 [adv]: https://github.com/neuralpunk/meshware/security/advisories/new
 
-Every release is minisign-signed against a key pinned in three places that CI keeps in
-agreement, ships a CycloneDX SBOM, and carries a GitHub build-provenance attestation:
+**There is no project-wide signing key.** Your mesh installs only binaries that one of *its own*
+admins has signed — `meshnode upgrade --publish <file> --version <v>` does it with a release key derived from your
+identity, with nothing to store or lose — so no one outside your mesh, Meshware's maintainers
+included, can push a binary onto it. Each release ships a CycloneDX SBOM and a GitHub
+build-provenance attestation, which proves where a download came from with no key anybody keeps:
 
 ```console
-$ minisign -Vm meshnode-v0.7.0-x86_64-unknown-linux-musl -P "$(sed -n 2p packaging/minisign.pub)"
-$ gh attestation verify meshnode-v0.7.0-x86_64-unknown-linux-musl --repo neuralpunk/meshware
+$ gh attestation verify meshnode-v1.0.2-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware
 ```
 
 Two gates run on every push to `main` and every pull request:

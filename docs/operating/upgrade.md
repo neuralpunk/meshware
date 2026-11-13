@@ -47,12 +47,22 @@ malformed payload. Keep them matched on a machine; on a packaged install they ar
 
 ## 2. One node
 
+The usual way is the fleet's way, aimed at one machine: publish the new binary into the mesh,
+then roll it to that node.
+
 ```console
-$ meshnode upgrade --self
+$ meshnode upgrade --publish ./meshnode --version 1.0.3    # signed with your release key
+$ meshnode upgrade --on name=web-1 --to 1.0.3
 ```
 
-Fetches the signed release, **verifies the minisign signature against a key it already holds**,
-swaps the binary atomically, drains, and exits clean — systemd starts the new one.
+The node fetches the binary from its peers, **verifies the signature against the keys its mesh
+trusts**, swaps the binary atomically, drains, and exits clean — systemd starts the new one.
+
+`meshnode upgrade --self` does the same from a release server instead of the mesh, and verifies
+the download against the same keys. Meshware's own GitHub releases are not signed by any key your
+mesh trusts — there is no project-wide key — so `--self` is for a release server *you* run and
+sign for. On a single machine with no mesh, reinstalling (`install.sh`, a package, or
+`make install`) is the simple path.
 
 The binary it replaced is kept beside it as `meshnode.prev`, and the new one is **on probation**
 until it has run healthy for a minute: every critical loop alive, the watchdog fed. A version
@@ -70,7 +80,7 @@ package-manager-owned binary and says which tool to use.
 Put the binary in the mesh once, then roll rings:
 
 ```console
-$ meshnode upgrade --publish ./meshnode --version 0.7.0     # + its .minisig
+$ meshnode upgrade --publish ./meshnode --version 0.7.0     # signed with your release key
 $ meshnode upgrade --status --to 0.7.0                      # who is where
 $ meshnode bundles prefetch bndl-22e3… --on tag=dc-east      # warm the ring first
 $ meshnode upgrade --on tag=canary  --to 0.7.0              # 3 boxes, watch it
@@ -83,14 +93,21 @@ $ meshnode upgrade --on tag=dc-east --to 0.7.0 --batch 32   # then 400, 32 at a 
   peer holds it, every chunk verified on write. **The peer is a CDN, not an authority** — the
   receiving node checks the release signature against its *own* local key copy before the binary
   goes near its own.
-- Publishing needs an admin signature **and** a valid release-key signature, so neither key
-  alone can put a binary on your fleet.
+- **Your mesh is its own release authority.** Publishing needs an admin signature **and** a
+  valid signature by a release key the mesh trusts. `--publish` makes the second one for you with
+  your **release key**, which is derived from your identity — nothing new to store, back up or
+  lose — and trusts it mesh-wide the first time. `meshnode upgrade --my-release-key` prints it,
+  `meshnode upgrade --keys` lists every key the mesh trusts. A binary that already has a
+  `.minisig` beside it (a build signed with a key of your own) is published with that instead.
+- Where the binary came from is your call, and the guide is: build it yourself (`make STATIC=1`),
+  or download it from the GitHub release and check it with
+  `gh attestation verify <file> --repo neuralpunk/meshware` before you publish it.
 - **A mesh can also require a security key's co-signature** on every binary, which a key
   stolen from a CI secret store cannot make: trust an SSH-form release key, then publish each
   co-signature with `meshnode upgrade --cosign <file> --version <v>` — or, in Director, *Mesh ›
   Updates › Advanced › Release keys*, where a binary without one has **Attach co-signature…**.
   Once such a key is trusted, a release without its co-signature installs nowhere.
-  [limits.md §6c](limits.md#6c-release-signing--the-key-that-can-reach-every-fleet) has the
+  [limits.md §6c](limits.md#6c-release-signing--who-can-put-a-binary-on-your-fleet) has the
   details.
 - A rollout is an admin-signed **plan**: a ring, a version, a wave width, an expiry. A plan
   *authorizes* and never *triggers* — a node that merges one and is never asked does nothing.

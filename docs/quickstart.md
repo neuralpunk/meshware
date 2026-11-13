@@ -8,7 +8,7 @@ You need:
 - **Two or more Linux machines** (x86_64 or aarch64) that can reach each other on **UDP port
   7777**. One machine is enough to try it; see [Try it on one machine](#try-it-on-one-machine).
 - A terminal on each, and `sudo` if you want the binary in `/usr/local/bin`.
-- `minisign` to check the download (`dnf install minisign`, `apt install minisign`).
+- Optionally, the [GitHub CLI](https://cli.github.com) (`gh`) to prove where the download came from.
 
 Nothing else: no database, no server to set up first, no certificates, no account to sign up for.
 
@@ -16,18 +16,16 @@ Nothing else: no database, no server to set up first, no certificates, no accoun
 
 ## 1. Download
 
-Each release publishes a small set of files. For the version you are installing, download these
-from the release page, into one directory:
+Each release on [GitHub](https://github.com/neuralpunk/meshware/releases) publishes a small set
+of files. For the version you are installing, download these into one directory:
 
 | File | What it is |
 |---|---|
-| `meshnode-v<version>-<arch>-unknown-linux-musl.tar.gz` | The node: the `meshnode` binary, its systemd unit and its man page |
-| `meshnode-v<version>-<arch>-unknown-linux-musl.tar.gz.minisig` | The signature over that file |
+| `meshnode-v<version>-<arch>-unknown-linux-musl.tar.gz` | The node: the `meshnode` binary, its systemd unit, its man page and the licences |
 | `SHA256SUMS` | Checksums for every file in the release |
 
-You also need the Meshware release key, `minisign.pub`. It is **not** one of the release files, on
-purpose: a key downloaded from the same place as the thing it vouches for proves nothing. Take it
-from the source tree (`packaging/minisign.pub`), or from wherever your organisation keeps it.
+Prefer to build it yourself? `make` in a clone of the repository does it in a few minutes — see
+[installing from source](operating/install.md#from-source--make).
 
 `<arch>` is what `uname -m` prints: `x86_64` or `aarch64`. The binary is static, so the Linux
 distribution and its glibc version do not matter.
@@ -41,20 +39,26 @@ $ A=$(uname -m)                 # x86_64 or aarch64
 
 ## 2. Verify
 
-Check the signature before you run anything:
-
-```console
-$ minisign -Vm meshnode-v$V-$A-unknown-linux-musl.tar.gz -p minisign.pub
-Signature and comment signature verified
-```
-
-A signature that does not verify means the file is not the one Meshware published. Do not install
-it. The checksum file catches a download that was cut short, but it comes from the same place as
-the files, so only the signature proves where they came from:
+Check the download before you run anything. The checksum catches a file that was cut short or
+corrupted:
 
 ```console
 $ sha256sum --ignore-missing -c SHA256SUMS
 ```
+
+The checksum comes from the same place as the file, so it cannot prove *where* the file came
+from. GitHub's build-provenance attestation can: it ties the file to the commit and the release
+workflow in the Meshware repository that built it, and there is no key anybody has to keep.
+
+```console
+$ gh attestation verify meshnode-v$V-$A-unknown-linux-musl.tar.gz --repo neuralpunk/meshware
+```
+
+If that fails, the file is not one Meshware's release workflow built. Do not install it.
+
+Meshware has **no project-wide signing key**, on purpose: nobody has to keep one safe for your
+mesh to keep working. Once your mesh is running, it installs upgrades only when one of *your*
+admins has signed them — see [Upgrading](operating/upgrade.md).
 
 ## 3. Install
 

@@ -93,9 +93,9 @@ refuse to do its job — drop ops, fail to forward, fail to report.
 Manufacture a user, a role grant or a session policy. Rewrite audit history — audit entries
 are node-signed ops in a grow-only log and every row exports with the exact bytes its signature
 covers. Decrypt a secret sealed for a different node. Put a binary on the fleet: a rollout plan
-needs an admin signature *and* the release itself needs a valid minisign signature checked
-against a key the receiving node already holds, so a peer serving content is a CDN and never an
-authority.
+needs an admin signature *and* the release itself needs a valid minisign signature by a release
+key the mesh trusts — there is no project-wide key — so a peer serving content is a CDN and never
+an authority.
 
 **What is deliberately not claimed.**
 
@@ -197,38 +197,35 @@ design.
 
 ## Verifying a release
 
-Every release artifact is signed with [minisign](https://jedisct1.github.io/minisign/). The
-public key ships in this repository at [`packaging/minisign.pub`](packaging/minisign.pub), is
-embedded in the binary for `meshnode upgrade --self`, and is pinned in
-[`packaging/install.sh`](packaging/install.sh) — CI fails if those three ever disagree.
+**Meshware has no project-wide signing key, by design.** Nobody — including its maintainers —
+holds a key that every fleet trusts, so there is no single secret whose theft reaches every mesh,
+and nothing stops working if the project ever goes quiet.
+
+A downloaded release is proven by GitHub's **build-provenance attestation**, which ties the file
+to the commit and the release workflow in this repository that built it. GitHub signs it through
+Sigstore with the workflow's own short-lived identity; there is no key for anyone to keep:
 
 ```console
-$ minisign -Vm meshnode-v0.7.0-x86_64-unknown-linux-musl \
-           -P "$(sed -n 2p packaging/minisign.pub)"
-$ sha256sum -c SHA256SUMS
+$ sha256sum --ignore-missing -c SHA256SUMS
+$ gh attestation verify meshnode-v1.0.2-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware
 ```
 
 Each release also carries a **CycloneDX SBOM** — `meshnode-<version>.cdx.json` for the node
-binary, and `meshware-<version>-sbom.cdx.tar.gz` for the whole workspace — and a GitHub
-build-provenance attestation, so an artifact can be traced to the commit and workflow run that
-produced it:
+binary, and `meshware-<version>-sbom.cdx.tar.gz` for the whole workspace.
 
-```console
-$ gh attestation verify meshnode-v0.7.0-x86_64-unknown-linux-musl --repo neuralpunk/meshware
-```
-
-Nodes fetching a binary through the mesh (`meshnode upgrade --on …`) perform the minisign check
-themselves, against their own local copy of the key, before the binary goes anywhere near their
-own. That check is not optional and cannot be turned off.
+**Your mesh is its own release authority.** A node installs a binary only when a release key its
+own mesh trusts has signed it, and that check is not optional and cannot be turned off. The usual
+key is the publishing admin's: `meshnode upgrade --publish <file> --version <v>` signs with a release key derived from
+their identity and trusts it mesh-wide the first time. It falls with the user key it came from —
+and an admin's user key can already run any command on any node, so it gives an attacker nothing
+new. Nodes fetching a binary through the mesh (`meshnode upgrade --on …`) check that signature
+themselves before the binary goes anywhere near their own.
 
 ### A second signature, from a key nothing can copy
 
-That the check cannot be turned off has a consequence worth stating plainly: **whoever holds
-the minisign release key can push a binary to every fleet running meshware.** It is the one
-secret whose loss ends the project, and minisign has no hardware-token support, so the key
-cannot simply be moved onto a device.
-
-A mesh can instead require a *second* signature that a file cannot produce:
+A release key derived from a file-held identity is still a file. A mesh that wants every release
+to carry proof that a human was present can require a *second* signature that a file cannot
+produce:
 
 ```console
 $ ssh-keygen -Y sign -f ~/.ssh/release_sk -n meshware-release meshnode
@@ -238,7 +235,7 @@ $ meshnode upgrade --cosign meshnode.sig --version 0.7.3
 
 **Opt-in, and fail-closed once opted into.** A mesh that trusts no SSH-form release key behaves
 exactly as it always has. The moment one is trusted, a valid minisign signature alone will not
-install anywhere in that mesh — which is precisely the check a stolen signing key passes. With
+install anywhere in that mesh — which is precisely the check a stolen file-held key passes. With
 an `sk-ssh-ed25519` key the signature also carries the authenticator's user-presence bit, and
 the mesh records it: *a human touched the key to sign this release.* A key copied out of a CI
 secret store can never set that bit.

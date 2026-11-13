@@ -483,7 +483,7 @@ async fn bad_signature_is_refused_and_binary_untouched() {
 }
 
 #[tokio::test]
-async fn placeholder_key_is_refused() {
+async fn with_no_project_key_self_upgrade_refuses_and_says_what_to_do() {
     let dir = tempfile::tempdir().unwrap();
     let exe = install_exe(dir.path());
     let signer = Signer2::new(7);
@@ -494,7 +494,7 @@ async fn placeholder_key_is_refused() {
     if std::env::var("MESHWARE_MINISIGN_PUBKEY").is_ok() {
         return; // the environment injects a key; the embedded path is not exercised
     }
-    // No key given → the embedded packaging/minisign.pub (placeholder) applies.
+    // No key given → the embedded packaging/minisign.pub, which carries no project key.
     let config = test_config(dir.path());
     let user = Keypair::generate().unwrap();
     let before = std::fs::read(&exe).unwrap();
@@ -504,7 +504,10 @@ async fn placeholder_key_is_refused() {
         .contains("placeholder");
     if embedded_is_placeholder {
         let err = result.unwrap_err();
-        assert!(format!("{err:#}").contains("placeholder"), "{err:#}");
+        // It says there is no project key, and what to do instead.
+        let msg = format!("{err:#}");
+        assert!(msg.contains("no project-wide release key"), "{msg}");
+        assert!(msg.contains("upgrade --publish"), "{msg}");
         assert_eq!(std::fs::read(&exe).unwrap(), before);
     } else {
         // A real key is pinned: our test signature must then be rejected.

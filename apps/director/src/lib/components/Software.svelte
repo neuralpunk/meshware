@@ -852,10 +852,10 @@
 
 <Sheet open={advOpen === "keys"} title="Release keys" sub={keysSummary} icon="shield" width={720} onclose={() => (advOpen = null)}>
   <div class="flex flex-col gap-3">
-    <p class="m-0 text-sm leading-normal text-ink-4">A release is only installed if a key you trust signed it. Trusting one is an admin-signed record like any other, so it replicates: no editing a config file on every machine, and a node that joins next month arrives already knowing. The secret half never comes near Director.</p>
+    <p class="m-0 text-sm leading-normal text-ink-4">A release is only installed if a key this mesh trusts signed it. There is no project-wide key: publishing a build signs it with your own release key — derived from your identity, nothing to store — and trusts that key here the first time. Trusting a key is an admin-signed record like any other, so it replicates: no editing a config file on every machine, and a node that joins next month arrives already knowing.</p>
     {#if trust?.nothingWouldVerify}
       <div class="note" data-tone="warn">
-        <strong>No node in this mesh can install a release yet.</strong> This build carries the placeholder signing key, and the mesh trusts none of its own. Trust one below — it reaches every node, including ones that join later.
+        <strong>No node in this mesh can install a release yet.</strong> Meshware has no project-wide key, and your identity is on a security key, which has no release key to sign with. Trust a minisign key you sign builds with below — it reaches every node, including ones that join later.
       </div>
     {/if}
     {#if trust?.keys.length}
@@ -929,7 +929,7 @@
 {#if isAdmin}
   <Sheet open={advOpen === "publish"} title="Publish a build" sub={publishSummary} icon="folder" width={720} onclose={() => (advOpen = null)}>
     <div class="flex flex-col gap-3">
-      <p class="m-0 text-sm leading-normal text-ink-4">Point at the folder packaging/build-release.sh wrote. Director remembers it, so next time the builds are already listed. Each signed, verified build becomes one click to publish; every reason a build cannot be published is worked out before you commit to one.</p>
+      <p class="m-0 text-sm leading-normal text-ink-4">Point at a folder of meshnode builds — what <code>make dist</code> or packaging/build-release.sh wrote. Director remembers it, so next time the builds are already listed. Each build is one click to publish, signed with your own release key unless it already carries a signature; every reason a build cannot be published is worked out before you commit to one.</p>
       {#if buildDir}
         <div class="flex flex-wrap items-center gap-3 rounded-lg px-3.5 py-2.5" style="background: var(--surface-subtle); box-shadow: 0 0 0 1px var(--edge-card);">
           <span class="grid h-7 w-7 shrink-0 place-items-center rounded-md" style="background: var(--accent-wash); color: var(--accent-ink);">
@@ -957,7 +957,7 @@
                 {#if b.blocked}
                   <span class="min-w-0 flex-1 truncate text-xs" style="color: var(--status-warn-ink);" title={b.blocked}>{b.blocked}</span>
                 {:else}
-                  <span class="min-w-0 flex-1 truncate text-xs" style="color: var(--accent-ink);">Signed and verified against a key this mesh trusts</span>
+                  <span class="min-w-0 flex-1 truncate text-xs" style="color: var(--accent-ink);">{b.signed ? "Signed and verified against a key this mesh trusts" : "Publishing signs it with your release key"}</span>
                   <button class="btn btn-primary h-8 shrink-0 rounded-sm px-3 text-xs" disabled={pubBusy} onclick={() => publish(b)}>
                     {pubBusy ? "Publishing…" : `Publish ${b.version}`}
                   </button>
