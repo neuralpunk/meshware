@@ -101,7 +101,6 @@ const SHOTS = [
   ["mesh-topology", async () => { await go("Topology"); await sleep(1400); }],
   ["mesh-updates", async () => { await go("Updates"); await sleep(1200); }],
   ["mesh-capacity", async () => { await go("Capacity"); await sleep(1200); }],
-  ["benchmark", async () => { await go("Benchmark"); await sleep(1500); }],
   ["scripts", async () => { await go("Scripts"); await sleep(900); }],
   ["run", async () => { await go("New run"); await sleep(900); }],
   ["activity", async () => { await go("Activity"); await sleep(900); }],

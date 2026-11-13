@@ -7,6 +7,7 @@
 // builds (guarded by import.meta.env.DEV in main.ts).
 
 import type { StatusView } from "./bindings/StatusView";
+import type { AboutView } from "./bindings/AboutView";
 import type { NodeView } from "./bindings/NodeView";
 import type { CandidateView } from "./bindings/CandidateView";
 import type { LanWatchView } from "./bindings/LanWatchView";
@@ -4504,6 +4505,24 @@ async function invokeRaw(cmd: string, args: Args = {}): Promise<unknown> {
     case "frontend_log":
       console.debug("[frontend_log]", args.kind, args.message);
       return null;
+    // Settings › About. The real one reads the build (`about.rs`); this one
+    // stands in so the pane, and the licence text it folds open, render.
+    case "about_view": {
+      const about: AboutView = {
+        version: "1.1.0",
+        bundledMeshnode: "1.1.0",
+        commit: null,
+        os: "linux",
+        arch: "x86_64",
+        licenseId: "MIT OR Apache-2.0",
+        licenseName: "MIT License or Apache License 2.0, at your option",
+        licenseText: "MIT License\n\nCopyright (c) The Meshware Developers\n\n(mock: the real build carries both licence texts in full)",
+        docsUrl: "https://neuralpunk.github.io/meshware/guide.html",
+        issuesUrl: "https://github.com/neuralpunk/meshware/issues",
+        sourceUrl: "https://github.com/neuralpunk/meshware",
+      };
+      return about;
+    }
     case "copy_text":
       await navigator.clipboard?.writeText(String(args.text)).catch(() => {});
       return null;

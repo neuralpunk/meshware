@@ -219,7 +219,6 @@ async function pass(name, run) {
 // Mesh and Settings, and every view in the Focus surface.
 const RAIL = [
   "mesh:nodes", "mesh:topology", "mesh:placement", "mesh:capacity", "mesh:updates",
-  "benchmark",
   "library", "run", "jobs",
   "deployments", "schedules", "registry",
   "access", "secrets",

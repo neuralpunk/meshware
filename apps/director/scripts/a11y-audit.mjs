@@ -194,7 +194,7 @@ const closeOverlays = async () => {
 
 const RAIL = [
   "mesh:nodes", "mesh:topology", "mesh:placement", "mesh:capacity", "mesh:updates",
-  "benchmark", "library", "run", "jobs", "deployments", "schedules", "registry",
+  "library", "run", "jobs", "deployments", "schedules", "registry",
   "access", "secrets",
   "settings:this-peer", "settings:director", "settings:fleet", "settings:facts",
   "settings:diagnostics", "settings:history", "settings:storage", "settings:backup",

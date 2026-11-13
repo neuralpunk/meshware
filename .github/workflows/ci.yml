@@ -298,8 +298,8 @@ jobs:
           npm ci
           npm run check
           npm run build
-      # B6 — the paid app was the least-tested thing in the tree, which is
-      # backwards from where the revenue is. `access.ts` is pinned against
+      # B6 — Director was the least-tested thing in the tree, and it is
+      # what most people meet first. `access.ts` is pinned against
       # the engine's own `rbac::glob_match` vectors: those two are one rule
       # implemented twice, and matching test vectors are the only thing
       # holding them together.

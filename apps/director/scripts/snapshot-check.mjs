@@ -93,7 +93,9 @@ await evaluate(`(() => {
 })()`);
 
 const clicked = await evaluate(`(() => {
-  const b = [...document.querySelectorAll("button")].find(x => /Share this mesh/.test(x.textContent||""));
+  // By its title, not its label: the label is one word ("Share") since
+  // UX-13 moved it onto the canvas, and a word that short is not unique.
+  const b = [...document.querySelectorAll("button")].find(x => /^Save a PNG of this mesh/.test(x.title||""));
   if (!b) return "MISS";
   if (b.disabled) return "DISABLED";
   b.click(); return "ok";
