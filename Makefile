@@ -157,8 +157,17 @@ endif
 director-dev: preflight-director ## Run Director with live reload (development)
 	cd apps/director && { [ -d node_modules ] || $(NPM) ci --no-audit --no-fund; } && $(NPM) run tauri dev
 
-director-package: preflight preflight-director ## Build Director's .deb, .rpm and AppImage
-	cd apps/director && { [ -d node_modules ] || $(NPM) ci --no-audit --no-fund; } && $(NPM) run tauri build
+# The same packages a release carries. WITH_NODE=1 puts a static meshnode
+# inside them first, as a release does.
+director-package: preflight preflight-director ## Build Director's .deb and .rpm (WITH_NODE=1 to carry a meshnode)
+ifeq ($(WITH_NODE),1)
+	@$(MAKE) --no-print-directory meshnode STATIC=1
+	@mkdir -p '$(DIRECTOR_RES)'
+	@rm -f '$(DIRECTOR_RES)'/meshnode-* '$(DIRECTOR_RES)/VERSION'
+	install -m 0755 'target/$(MUSL)/release/meshnode' '$(DIRECTOR_RES)/meshnode-$(MUSL)'
+	@'target/$(MUSL)/release/meshnode' -V | awk '{print $$2}' > '$(DIRECTOR_RES)/VERSION'
+endif
+	cd apps/director && { [ -d node_modules ] || $(NPM) ci --no-audit --no-fund; } && $(NPM) run tauri build -- --bundles deb,rpm
 	@printf '\n  $(G)packages$(Z)  target/release/bundle/\n\n'
 
 # -- Try it -------------------------------------------------------------------

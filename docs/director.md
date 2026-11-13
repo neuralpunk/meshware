@@ -19,8 +19,19 @@ side.
 
 Director runs on **Linux** desktops. It is a single binary with its interface built in.
 
-Packaged installers with automatic updates are not published yet. Until they are, build Director
-from the source tree, on the machine that will run it or on one like it:
+Each release publishes Director as a `.deb` and an `.rpm` for x86_64 on the
+[Releases page](https://github.com/neuralpunk/meshware/releases), carrying that release's
+`meshnode` so Director can install this machine's node for you. Check the download against the
+release's `SHA256SUMS`, then install it with your package manager:
+
+```console
+$ sha256sum -c SHA256SUMS --ignore-missing
+$ sudo apt install ./meshware-director_<version>_x86_64.deb      # Debian, Ubuntu
+$ sudo dnf install ./meshware-director-<version>.x86_64.rpm     # Fedora, RHEL
+```
+
+On another architecture, or to build it yourself, build Director from the source tree, on the
+machine that will run it or on one like it:
 
 ```console
 $ make doctor                     # says whether Node.js and WebKitGTK are installed
@@ -33,7 +44,7 @@ builds against (`make doctor` names the package for your distribution). The fini
 `target/director/meshware-director`; copy it anywhere and run it, and it adds itself to your
 application menu. `WITH_NODE=1` builds a static `meshnode` and carries it inside Director, as a
 release does, so Director can install this machine's node for you. `make director-package` builds
-a `.deb`, `.rpm` and AppImage instead. Director signs
+the `.deb` and `.rpm` a release ships instead. Director signs
 with your personal key in `~/.meshware/identity/user.key` — the same key the `meshnode` command
 line uses on that machine, so the two are the same person — and keeps only its own window settings
 in `~/.meshware/director`.

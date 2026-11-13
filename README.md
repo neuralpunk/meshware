@@ -175,7 +175,9 @@ including the two jobs that used to need a terminal: adding machines over SSH, a
   <img src="docs/img/director/mesh-updates.webp" alt="Director's Updates screen" width="440">
 </p>
 
-[The Director guide](docs/director.md) walks through every screen; `make director` builds it.
+Each release carries Director as a `.deb` and an `.rpm` for x86_64, with that release's `meshnode`
+inside. [The Director guide](docs/director.md) walks through every screen; `make director`
+builds it from source.
 
 ## What it costs to operate
 

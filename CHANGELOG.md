@@ -64,7 +64,7 @@ if the project goes quiet.
   - `make` builds `meshnode` and `meshware-archive`; `make STATIC=1` builds the static musl
     binaries the releases ship.
   - `make director` builds Director (`WITH_NODE=1` carries a `meshnode` inside it), and
-    `make director-package` its `.deb`, `.rpm` and AppImage.
+    `make director-package` its `.deb` and `.rpm`.
   - `make demo` runs a real three-node mesh on this machine, gone when you stop it.
   - `make doctor` says what this machine is missing and which package provides it.
   - `sudo make install`, `install-service` and `install-director` install what was built, with
@@ -73,6 +73,9 @@ if the project goes quiet.
     integration suite in a memory-capped scope.
   - `make dist` collects the binaries, named so they can be published as they are.
 - **A website and a user guide** at <https://neuralpunk.github.io/meshware/>.
+- **Director as a package.** Releases now carry Director as a `.deb` and an `.rpm` for x86_64,
+  each with that release's `meshnode` inside, beside `meshnode`'s own tarballs and packages for
+  x86_64 and aarch64. Linux only; there is no AppImage.
 
 ### Changed
 
@@ -91,8 +94,12 @@ if the project goes quiet.
 
 ### Fixed
 
-- The tree is clean under Rust 1.99's `rustfmt` and `clippy -D warnings`, so CI passes on
+- The tree is clean under Rust 1.100's `rustfmt` and `clippy -D warnings`, so CI passes on
   today's stable toolchain.
+- **Security updates in the dependencies**, clearing every open RustSec advisory: `quinn-proto`
+  0.11.19 (peer-triggered panics in the QUIC transport), `rustls` 0.23.46 and `rustls-webpki`
+  0.103.17, `tokio` 1.54, `zstd`, `russh` 0.65 in Director, and others. Director's updater no
+  longer pulls in `zip` at all.
 - A test still expected the workflow, schedule, policy and host rows removed in 1.0.
 
 ---

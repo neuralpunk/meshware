@@ -191,7 +191,11 @@ $ sudo make install-service       # optional: the systemd unit and the meshnode 
 <p><code>make STATIC=1</code> builds the static musl binaries the releases ship, and needs <code>musl-gcc</code>. <code>make install-service</code> installs the unit and never starts it. <code>make help</code> lists every target.</p>
 
 <h3 id="install-director">Director, the desktop app</h3>
-<p>Director runs on Linux desktops. Packaged installers are not published yet, so for now you build it from the source tree on the machine that will run it, or on one like it:</p>
+<p>Director runs on Linux desktops. Each release publishes it as a <code>.deb</code> and an <code>.rpm</code> for x86_64 on the <a href="https://github.com/neuralpunk/meshware/releases">Releases page</a>, carrying that release's <code>meshnode</code> so Director can install this computer's node for you. Check the download against the release's <code>SHA256SUMS</code>, then install it:</p>
+<pre class="g-code"><code>$ sha256sum -c SHA256SUMS --ignore-missing
+$ sudo apt install ./meshware-director_&lt;version&gt;_x86_64.deb      # Debian, Ubuntu
+$ sudo dnf install ./meshware-director-&lt;version&gt;.x86_64.rpm     # Fedora, RHEL</code></pre>
+<p>On another architecture, or to build it yourself, build it from the source tree on the machine that will run it, or on one like it:</p>
 <pre class="g-code"><code>$ make doctor                     # says whether Node.js and WebKitGTK are installed
 $ make director WITH_NODE=1       # about four minutes; carries a meshnode for this machine
 $ sudo make install-director      # optional: /usr/local/bin/meshware-director</code></pre>
@@ -855,7 +859,7 @@ $ meshnode secrets scope db-pass --clear              # back to the default</cod
 <figure class="g-fig"><img src="assets/img/mesh-fleet-dark.webp" alt="Director's Mesh › Fleet screen for a mesh named hyacinth: a sidebar with Mesh, Run, Services, Access, Secrets and Settings; Health, Workload and Hardware cards showing 6 machines, 92 CPU cores, 360 GB of memory and 7 GPUs; and machine cards for director, anvil (quarantined) and edge-7 with their load, cores, memory and tags." width="2722" height="1732" loading="lazy"><figcaption>Mesh › Fleet: every machine, its health, load, hardware and tags, with the whole mesh added up across the top.</figcaption></figure>
 
 <h3 id="director-get">Getting Director</h3>
-<p>Director runs on Linux desktops. Until packaged installers are published, build it from the source tree as described in <a href="#install-director">Installing Director</a>. The finished binary is <code>target/director/meshware-director</code>; copy it anywhere and run it, and it adds itself to your application menu. <code>sudo make install-director</code> installs it to <code>/usr/local/bin/meshware-director</code>. <code>make director-package</code> builds a <code>.deb</code>, <code>.rpm</code> and AppImage instead.</p>
+<p>Director runs on Linux desktops. Install the <code>.deb</code> or <code>.rpm</code> from the Releases page, or build it from the source tree, as <a href="#install-director">Installing Director</a> describes. The finished binary is <code>target/director/meshware-director</code>; copy it anywhere and run it, and it adds itself to your application menu. <code>sudo make install-director</code> installs it to <code>/usr/local/bin/meshware-director</code>. <code>make director-package</code> builds the <code>.deb</code> and <code>.rpm</code> a release ships instead.</p>
 
 <h3 id="director-node">Director and meshnode on the same computer</h3>
 <p>Every computer in a mesh runs one node, in <code>~/.meshware</code>. On a desktop it runs as your own systemd user service, <code>meshnode</code>, which Director installs and starts the first time it needs it (the binary goes to <code>~/.local/bin/meshnode</code>). It starts at every login and does not stop when Director does, so <code>meshnode status</code> in a terminal works whether Director is open or not. Settings Director changes are written to <code>~/.meshware/meshnode.toml</code> or signed into the mesh, so the two never disagree.</p>
@@ -1231,7 +1235,7 @@ Wrote meshware-support-1788861515.json (mode 0600)</code></pre>
 <tr><td><code>sudo make install-service</code></td><td>Install the systemd units and the <code>meshnode</code> account. Never starts it.</td></tr>
 <tr><td><code>make director</code></td><td>Build Director; <code>WITH_NODE=1</code> carries a <code>meshnode</code> inside it.</td></tr>
 <tr><td><code>sudo make install-director</code></td><td>Install Director.</td></tr>
-<tr><td><code>make director-package</code></td><td>Build Director's <code>.deb</code>, <code>.rpm</code> and AppImage.</td></tr>
+<tr><td><code>make director-package</code></td><td>Build Director's <code>.deb</code> and <code>.rpm</code>.</td></tr>
 </tbody>
 </table>
 

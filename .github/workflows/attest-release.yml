@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
+#
+# Build-provenance attestation for a release drafted while this repository
+# was private. GitHub offers artifact attestations to private repositories
+# only on Enterprise Cloud, so release.yml skips that step until the
+# repository is public. Run this once per such release, after the switch:
+#
+#   gh workflow run attest-release.yml --repo neuralpunk/meshware -f tag=v1.1.0
+#
+# It downloads the release's files, checks them against the release's own
+# SHA256SUMS (so it attests exactly what was published, and refuses if
+# anything differs), and attests them. `gh attestation verify <file>
+# --repo neuralpunk/meshware`, which install.sh runs, accepts these the
+# same as the ones release.yml makes; the attestation names this workflow
+# and the commit it ran on.
+
+name: attest release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The release tag to attest, e.g. v1.1.0"
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  attest:
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: download the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          mkdir dist
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir dist
+          ls -l dist
+      - name: the files are the ones the release lists
+        run: cd dist && sha256sum -c SHA256SUMS
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            dist/meshnode-*-unknown-linux-musl
+            dist/*.deb
+            dist/*.rpm
+            dist/*.tar.gz

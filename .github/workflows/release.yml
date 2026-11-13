@@ -1,10 +1,16 @@
 # meshware release pipeline (MASTERPLAN §15, M6): static musl binaries for
-# x86_64 + aarch64, .deb/.rpm packages, SHA256SUMS, provenance attestations
-# (and minisign signatures, only for a fork that configures a key)
-# (open question #1 → resolved: minisign), and a draft GitHub release.
+# x86_64 + aarch64, meshnode .deb/.rpm packages, Director's .deb/.rpm
+# (x86_64), SHA256SUMS, provenance attestations (and minisign signatures,
+# only for a fork that configures a key), and a draft GitHub release.
+# Linux only, and no AppImage.
 #
-# Secrets: MINISIGN_SECRET_KEY — the base64 minisign secret key. Releases
-# without it build unsigned artifacts and fail the signing step on tags.
+# Secrets: MINISIGN_SECRET_KEY, optional — see the minisign step.
+#
+# A private repository: GitHub offers artifact attestations to private
+# repositories only on Enterprise Cloud, so while this one is private the
+# attestation step is skipped and the release is drafted without it. Once
+# the repository is public, run the `attest release` workflow
+# (attest-release.yml) for each release drafted before then.
 
 name: release
 
@@ -115,9 +121,63 @@ jobs:
           name: dist-${{ matrix.target }}
           path: dist/
 
+  # Director, the desktop app: .deb and .rpm for x86_64, carrying the
+  # static x86_64 meshnode the `build` job just made — the same bytes as
+  # the bare binary in this release, so Director installs and upgrades the
+  # node it was released with.
+  director:
+    name: director packages (x86_64)
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: system deps (webkit2gtk)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev \
+            libayatana-appindicator3-dev librsvg2-dev patchelf
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist-x86_64-unknown-linux-musl
+          path: node-dist
+      - name: carry this release's meshnode
+        run: |
+          VERSION="${GITHUB_REF_NAME:-dev}"
+          RES=apps/director/src-tauri/resources/meshnode
+          install -m 0755 "node-dist/meshnode-${VERSION}-x86_64-unknown-linux-musl" \
+            "$RES/meshnode-x86_64-unknown-linux-musl"
+          "$RES/meshnode-x86_64-unknown-linux-musl" -V | awk '{print $2}' > "$RES/VERSION"
+          echo "carrying meshnode $(cat "$RES/VERSION")"
+      - name: build .deb + .rpm
+        working-directory: apps/director
+        run: |
+          npm ci --no-audit --no-fund
+          MESHWARE_BUILD_COMMIT="${GITHUB_SHA::12}" npm run tauri build -- --bundles deb,rpm
+      # Tauri names packages after the product ("Meshware Director_…");
+      # a space in a download name breaks too many scripts. Renamed to the
+      # package's own name, in each format's convention.
+      - name: collect
+        run: |
+          VERSION="${GITHUB_REF_NAME:-dev}"; V="${VERSION#v}"
+          mkdir -p dist
+          deb=$(ls target/release/bundle/deb/*.deb); rpm=$(ls target/release/bundle/rpm/*.rpm)
+          test "$(echo "$deb" | wc -l)" = 1 && test "$(echo "$rpm" | wc -l)" = 1
+          cp "$deb" "dist/meshware-director_${V}_x86_64.deb"
+          cp "$rpm" "dist/meshware-director-${V}.x86_64.rpm"
+          ls -l dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-director
+          path: dist/
+
   sign-and-release:
     name: sign + draft release
-    needs: build
+    needs: [build, director]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
@@ -162,7 +222,7 @@ jobs:
           python3 scripts/build-docs-site.py --single "dist/meshware-docs-${GITHUB_REF_NAME}.html"
 
       - name: checksums
-        run: cd dist && sha256sum meshnode-* meshnode_* meshware-*-sbom.cdx.tar.gz meshware-docs-* > SHA256SUMS
+        run: cd dist && sha256sum meshnode-* meshnode_* meshware-director* meshware-*-sbom.cdx.tar.gz meshware-docs-* > SHA256SUMS
       # Optional. Meshware has no project-wide release key — every mesh signs
       # what it installs with its own admins' keys, and a release is proven
       # by the provenance attestation below, which needs no key at all. A
@@ -203,7 +263,12 @@ jobs:
       # has to keep: GitHub signs it through Sigstore with this workflow's
       # own short-lived identity, and it names the commit and workflow that
       # built the file. install.sh checks it when the GitHub CLI is present.
+      #
+      # Not on a private repository (see the top of this file): GitHub
+      # refuses it there outside Enterprise Cloud, and the release would
+      # fail at this step. attest-release.yml covers those releases later.
       - name: attest build provenance
+        if: ${{ !github.event.repository.private }}
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: |

@@ -54,7 +54,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["deb", "rpm"],
     "category": "DeveloperTool",
     "license": "MIT OR Apache-2.0",
     "copyright": "Copyright (c) 2026 The Meshware Developers",
