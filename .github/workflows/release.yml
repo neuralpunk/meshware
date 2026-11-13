@@ -70,6 +70,19 @@ jobs:
           # Bare binary for `meshnode upgrade --self` (MASTERPLAN M7).
           cp "target/${{ matrix.target }}/release/meshnode" \
             "dist/meshnode-${VERSION}-${{ matrix.target }}"
+      # The packages carry meshnode(1), and the binary writes it. The
+      # aarch64 binary runs here under qemu-user: it is static, so qemu
+      # needs nothing else.
+      - name: man page
+        run: |
+          BIN="target/${{ matrix.target }}/release/meshnode"
+          case "${{ matrix.target }}" in
+            x86_64-*) RUN="$BIN" ;;
+            *) sudo apt-get update && sudo apt-get install -y qemu-user
+               RUN="qemu-$(echo '${{ matrix.target }}' | cut -d- -f1) $BIN" ;;
+          esac
+          $RUN manpage --dir target/man
+          test -s target/man/meshnode.1
       - name: deb + rpm
         run: |
           cargo install cargo-deb cargo-generate-rpm --locked
