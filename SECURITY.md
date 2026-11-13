@@ -31,18 +31,16 @@ can, include:
 
 ### What to expect
 
-meshware is currently maintained by a very small team, and these are the targets we hold
-ourselves to rather than a contractual SLA:
+Meshware is an open-source project maintained on a best-effort basis, with updates from time to
+time. There is no service-level agreement, and no response time is promised. What you can count
+on:
 
-| Stage | Target |
-|---|---|
-| Acknowledgement that a human has read it | 3 working days |
-| Initial assessment — severity, whether we can reproduce it | 10 working days |
-| Fix or documented mitigation for a critical issue | 30 days |
-| Coordinated public disclosure | Within 90 days of the report, or on the fix, whichever is first |
-
-If we go quiet, that is a failure on our side and not a request for you to stay quiet too.
-Ninety days is the outer bound; after it, publish.
+- Every private report is read, and fixed as soon as the maintainers can.
+- **Disclosure is coordinated, with an outer bound of 90 days.** If there is no fix within
+  90 days of your report — or no reply at all — publish. Going quiet is a failure on our side,
+  not a request for you to stay quiet too.
+- Because the source is open and builds with one `make`, anyone can fix a vulnerability in their
+  own fleet without waiting for a release, and a pull request with the fix is welcome.
 
 We do not currently run a paid bounty. We do credit reporters by name in the advisory and in
 the release notes unless you ask us not to.
@@ -51,18 +49,17 @@ the release notes unless you ask us not to.
 
 ## Supported versions
 
-meshware is pre-1.0 and ships from a single line. **Only the most recent release receives
-security fixes.** There is no LTS branch and pretending otherwise would be worse than saying
-this plainly.
+Meshware ships from a single line. **Only the most recent release receives security fixes.**
+There is no LTS branch, and pretending otherwise would be worse than saying this plainly.
 
 | Version | Supported |
 |---|---|
 | Latest release | ✅ |
 | Anything older | ❌ — upgrade |
 
-Upgrading is deliberately cheap and is the intended answer: `meshnode upgrade --self` for one
-node, `meshnode upgrade --on <ring> --to <version>` for a fleet in health-gated waves. A
-supported-release policy with real dates arrives with 1.0.
+Upgrading is deliberately cheap and is the intended answer: publish the new binary into the mesh
+once (`meshnode upgrade --publish <file> --version <v>`), then roll it out with
+`meshnode upgrade --on <ring> --to <version>` in health-gated waves.
 
 ---
 
@@ -207,7 +204,7 @@ Sigstore with the workflow's own short-lived identity; there is no key for anyon
 
 ```console
 $ sha256sum --ignore-missing -c SHA256SUMS
-$ gh attestation verify meshnode-v1.0.2-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware
+$ gh attestation verify meshnode-v1.1.0-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware
 ```
 
 Each release also carries a **CycloneDX SBOM** — `meshnode-<version>.cdx.json` for the node

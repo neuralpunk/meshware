@@ -52,6 +52,7 @@ NAV = [
     ("Use Meshware", [
         ("docs/guides/running-work.md", "Running work"),
         ("docs/guides/machines.md", "Machines"),
+        ("docs/guides/compiling.md", "Compiling"),
         ("docs/deployments.md", "Deployments"),
         ("docs/guides/people-and-access.md", "People and access"),
         ("docs/guides/secrets.md", "Secrets"),
@@ -83,6 +84,7 @@ NAV = [
         ("docs/reference/schedule-file.md", "Schedule file"),
         ("docs/reference/script-definitions.md", "Script definitions"),
         ("docs/reference/plugins.md", "Plugin contracts"),
+        ("docs/reference/by-design.md", "By design"),
     ]),
     ("Background", [
         ("docs/no-control-plane.md", "No control plane"),

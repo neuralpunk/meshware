@@ -3,17 +3,113 @@
 What changed in each release of Meshware, newest first: what is new, what might stop working, and
 what to do about it.
 
-One version number covers everything: `meshnode`, `meshware-archive`, Director and the Python SDK
-are released together. Nodes also speak a **protocol**, versioned separately as major.minor. Nodes
-with the same major version work together, and a release that raises the minor says below what a
-mesh with older nodes in it can and cannot do. [Compatibility](docs/operating/compatibility.md) has
-the rules.
+One version number covers everything: `meshnode`, `meshware-archive` and Director are released
+together. Nodes also speak a **protocol**, versioned separately as major.minor. Nodes with the
+same major version work together, and a release that raises the minor says below what a mesh with
+older nodes in it can and cannot do. [Compatibility](docs/operating/compatibility.md) has the
+rules.
 
-A release cannot be cut without an entry here: the release scripts refuse.
+A release cannot be cut without an entry here: the release workflow refuses.
 
 ---
 
-## Unreleased
+## 1.1.0 — 2026-11-13
+
+**Meshware is open source.** This is the first public release, under your choice of the
+[MIT](LICENSE-MIT) or [Apache 2.0](LICENSE-APACHE) licence, with no plans, tiers or machine
+limits — free for any use, personal or commercial, at any scale. It speaks **protocol 2.x**, the
+same as 1.0, so 1.0 and 1.1 nodes work together.
+
+The other large change is about trust. **There is no longer a project-wide signing key.** Your
+mesh installs a new `meshnode` only when one of *your* admins has signed it, so nobody outside
+your mesh — Meshware's maintainers included — can push a binary onto it, and nothing stops working
+if the project goes quiet.
+
+### What might stop working
+
+- **`meshnode upgrade --self` no longer upgrades from GitHub on its own.** It verified downloads
+  against a key compiled into the binary, and there is none now: Meshware's releases are proven
+  by GitHub's build-provenance attestation instead (below). Put a new version on your machines
+  by publishing it into the mesh — it is signed with your own release key — and rolling it out:
+
+  ```console
+  $ meshnode upgrade --publish ./meshnode-v1.1.0-x86_64-unknown-linux-musl --version 1.1.0
+  $ meshnode upgrade --on tag=canary --to 1.1.0
+  ```
+
+  `--self` still works against a release server you run and sign for. On a single machine with
+  no mesh, reinstall with `install.sh`, a package, or `make install`.
+
+- **Upgrading a 1.0 mesh to 1.1:** publish with the **1.1.0** `meshnode` (the binary you are
+  publishing can do it: `./meshnode-v1.1.0-… upgrade --publish ./meshnode-v1.1.0-… --version
+  1.1.0`). It trusts your release key mesh-wide as it publishes, and 1.0 nodes read that list,
+  so they accept the release.
+
+- **`install.sh` checks provenance, not a minisign signature.** It always checks `SHA256SUMS`,
+  and when the GitHub CLI is installed and logged in it also runs `gh attestation verify`. With
+  `MESHWARE_REQUIRE_SIGNATURE=1` it stops if it could not.
+
+### Added
+
+- **Your release key.** Every admin has one, derived from their identity: nothing new to store,
+  back up or lose. `meshnode upgrade --publish` signs with it when the binary has no `.minisig`
+  beside it, and trusts it mesh-wide the first time. `meshnode upgrade --my-release-key` prints
+  it as a minisign `.pub`. The signatures are ordinary minisign, so `minisign -V` checks them too.
+  A person whose identity is held on a security key signs with minisign as before.
+- **Director signs releases the same way.** *Publish a build* lists unsigned builds as ready to
+  publish, and *Get* on the Updates screen downloads a release from GitHub, checks it against the
+  release's `SHA256SUMS`, and signs it with your key.
+- **`make`.** Build, install, try and test Meshware with one front door — `make help` lists it
+  all:
+  - `make` builds `meshnode` and `meshware-archive`; `make STATIC=1` builds the static musl
+    binaries the releases ship.
+  - `make director` builds Director (`WITH_NODE=1` carries a `meshnode` inside it), and
+    `make director-package` its `.deb`, `.rpm` and AppImage.
+  - `make demo` runs a real three-node mesh on this machine, gone when you stop it.
+  - `make doctor` says what this machine is missing and which package provides it.
+  - `sudo make install`, `install-service` and `install-director` install what was built, with
+    man pages and shell completions; `install-service` never starts the node.
+  - `make check` is what a pull request must pass, and `make test-one T=<suite>` runs one
+    integration suite in a memory-capped scope.
+  - `make dist` collects the binaries, named so they can be published as they are.
+- **A website and a user guide** at <https://neuralpunk.github.io/meshware/>.
+
+### Changed
+
+- **Licence: MIT OR Apache-2.0**, replacing the proprietary licence. Director's *About & licence*
+  shows both texts; the "Director Personal" plan, its five-machine ceiling, the sales button and
+  every warning about it are gone. Release tarballs, `.deb` and `.rpm` packages carry the licence
+  texts.
+- **The project's home is <https://github.com/neuralpunk/meshware>.** `upgrade --self`,
+  Director's release channel and updater, `install.sh`, the systemd units and the docs point
+  there. Security reports go through GitHub's private vulnerability reporting.
+- Director's help menu says *Report a problem* and opens the GitHub issues; *Copy diagnostics*
+  says which licence a build is under instead of which plan.
+- The documentation's screenshots are regenerated from the current build
+  (`apps/director/scripts/docs-shots.mjs` remakes them), and the example machines in tests and
+  docs have neutral names.
+
+### Fixed
+
+- The tree is clean under Rust 1.99's `rustfmt` and `clippy -D warnings`, so CI passes on
+  today's stable toolchain.
+- A test still expected the workflow, schedule, policy and host rows removed in 1.0.
+
+---
+
+## 1.0.2 — 2026-09-22
+
+- Director: one icon family throughout, drawn crisp at every size.
+- Director: every progress ring and spinner drawn as exact geometry, so none is a pixel off at
+  any zoom.
+
+## 1.0.1 — 2026-09-22
+
+- Director: Fleet, Capacity and Updates laid out as cards, on a cooler colour theme.
+
+---
+
+## 1.0.0 — 2026-09-20
 
 **Protocol 2.0.** Nodes from any 1.x release and nodes from this one **do not work together**, and
 do not try: the handshake refuses on the major version. A data directory written by 1.x is refused

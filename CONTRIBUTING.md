@@ -1,7 +1,13 @@
 # Working on Meshware
 
 For people building Meshware from source and changing it. Running it is in the
-[README](README.md) and [`docs/`](docs/).
+[README](README.md), [`docs/`](docs/) and the [User Guide](https://neuralpunk.github.io/meshware/guide.html).
+
+Contributions are welcome: bug reports, fixes, documentation, and ideas. For anything larger
+than a fix, open an [issue](https://github.com/neuralpunk/meshware/issues) first so the shape can
+be agreed before the work is done. Everyone taking part follows the
+[Code of Conduct](CODE_OF_CONDUCT.md). The project is maintained on a best-effort basis, so a
+review may take a while — it has not been forgotten.
 
 ## Building
 
@@ -145,3 +151,10 @@ $ ./scripts/clean.sh --everything    # …and the out-of-repo kernel-build scrat
 `--stale` is the one to run regularly: it removes orphaned copies and keeps recent builds, so it
 costs almost nothing. It never touches source, config or git history, refuses to run during a
 build, and asks before deleting anything (`--yes` to skip, required when not interactive).
+
+## Licence of contributions
+
+Meshware is dual-licensed under [MIT](LICENSE-MIT) or [Apache 2.0](LICENSE-APACHE), at the
+user's option. Unless you explicitly state otherwise, any contribution intentionally submitted for
+inclusion in Meshware by you, as defined in the Apache-2.0 license, shall be dual licensed as
+above, without any additional terms or conditions. There is no CLA and no sign-off to add.

@@ -30,7 +30,7 @@ the air gap from a copy of the source (`make STATIC=1`), which needs no network 
 dependencies are vendored (`cargo vendor`).
 
 ```console
-$ gh attestation verify meshnode-v1.0.2-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware   # outside
+$ gh attestation verify meshnode-v1.1.0-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware   # outside
 $ sudo install -m755 meshnode /usr/local/bin/meshnode                                                  # inside
 ```
 

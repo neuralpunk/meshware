@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/neuralpunk/meshware/security/advisories/new
+    about: Never in a public issue. Use a private report; SECURITY.md has the details.
+  - name: User Guide
+    url: https://neuralpunk.github.io/meshware/guide.html
+    about: Installing, running work, deployments, Director, upgrades and troubleshooting.
+  - name: Security policy
+    url: https://github.com/neuralpunk/meshware/blob/main/SECURITY.md
+    about: What the trust model claims, what is in scope, and which versions get fixes.

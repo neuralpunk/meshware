@@ -243,7 +243,7 @@ telemetry), `ProtectProc=invisible` (hides PID 1 — init detection degrades),
 
 ```console
 $ sha256sum --ignore-missing -c SHA256SUMS          # not corrupt
-$ gh attestation verify meshnode-v1.0.2-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware
+$ gh attestation verify meshnode-v1.1.0-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware
 ```
 
 Then put it on your fleet by publishing it — `meshnode upgrade --publish <file> --version <v>` signs it with your own
