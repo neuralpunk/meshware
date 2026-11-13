@@ -260,7 +260,7 @@ jobs:
       - name: release notes, from CHANGELOG.md
         run: |
           scripts/changelog-entry.sh --notes "${GITHUB_REF_NAME}" \
-            | sed -E "s#\]\((docs/|CHANGELOG\.md|SECURITY\.md|README\.md)#](https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}/\1#g" \
+            | sed -E "s#\]\((docs/|CHANGELOG\.md|SECURITY\.md|README\.md|LICENSE-MIT|LICENSE-APACHE)#](https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}/\1#g" \
             > release-notes.md
           test -s release-notes.md
 
