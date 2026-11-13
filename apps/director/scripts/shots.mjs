@@ -16,8 +16,14 @@ const OUT = process.argv[2] || "/tmp/director-shots";
 const THEME = process.argv[3] || "light";
 const W = 1361, H = 866;
 mkdirSync(OUT, { recursive: true });
-const profile = `/tmp/shots-profile-${PORT}`;
+// One profile per run: back-to-back runs (light, then dark) shared one,
+// and the second deleted it while the first run's Chrome was still
+// writing to it (ENOTEMPTY on CI). Removed on exit where Chrome allows.
+const profile = `/tmp/shots-profile-${PORT}-${process.pid}`;
 rmSync(profile, { recursive: true, force: true });
+process.on("exit", () => {
+  try { rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); } catch {}
+});
 const chrome = spawn("google-chrome", [
   "--headless=new", "--disable-gpu", "--no-sandbox", "--hide-scrollbars",
   `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
