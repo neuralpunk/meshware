@@ -58,7 +58,8 @@ jobs:
       - name: clippy
         run: cargo clippy --workspace --exclude meshware-director --all-targets --features mesh-archive/cli -- -D warnings
       - name: test
-        run: cargo test --workspace --exclude meshware-director
+        # --no-fail-fast: one run names every failing test, not just the first.
+        run: cargo test --workspace --exclude meshware-director --no-fail-fast
       # C3 §7.3 P1 — the operational-cost claim's last row, gated.
       #
       # It runs as its own step rather than folding into `test` so the

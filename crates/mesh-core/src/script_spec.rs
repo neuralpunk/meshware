@@ -608,15 +608,23 @@ impl RunDefaults {
                 })
             })
         };
+        // Sorted by name, as they are written. serde_json's map keeps the
+        // file's order when any crate in the build enables its
+        // `preserve_order` feature and sorts when none does, so without
+        // this the same file read back differently depending on what it
+        // was linked with.
         let pairs = |k: &str| -> Vec<(String, String)> {
-            o.get(k)
+            let mut v: Vec<(String, String)> = o
+                .get(k)
                 .and_then(|v| v.as_object())
                 .map(|m| {
                     m.iter()
                         .filter_map(|(k, v)| Some((k.clone(), as_scalar(v)?)))
                         .collect()
                 })
-                .unwrap_or_default()
+                .unwrap_or_default();
+            v.sort_by(|a, b| a.0.cmp(&b.0));
+            v
         };
         RunDefaults {
             mode: s("mode"),
