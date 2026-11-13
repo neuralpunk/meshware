@@ -3040,7 +3040,10 @@ fn list(task: &str, a: Args<'_>) -> Out {
                             x.trim().parse::<f64>().unwrap_or(0.0),
                             y.trim().parse::<f64>().unwrap_or(0.0),
                         );
-                        x.partial_cmp(&y).unwrap_or(std::cmp::Ordering::Equal)
+                        // total_cmp, not partial_cmp: "NaN" parses as a
+                        // number, and a NaN that compares Equal to
+                        // everything is not a total order — the sort panics.
+                        x.total_cmp(&y)
                     });
                 }
                 "length" => items.sort_by_key(|i| i.chars().count()),

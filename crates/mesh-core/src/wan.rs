@@ -345,7 +345,12 @@ impl Wan {
                 .map(|m| m.info.clone())
                 .collect()
         });
-        peers.sort_by_key(|m| {
+        // Cached: the key reads the live connection pool, which changes
+        // while a mesh is forming. Recomputed per comparison, one peer could
+        // order differently against two others mid-sort, and the standard
+        // sort panics on an order that is not total (it did, on a loaded CI
+        // runner joining 100 nodes). One snapshot per peer, taken once.
+        peers.sort_by_cached_key(|m| {
             let pooled = self.transport.pooled_conn(&m.node_id);
             let direct_15 = pooled
                 .as_ref()
