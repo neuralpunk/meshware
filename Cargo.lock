@@ -4746,7 +4746,7 @@ dependencies = [
 
 [[package]]
 name = "mesh-archive"
-version = "1.0.2"
+version = "1.1.0"
 dependencies = [
  "blake3",
  "clap",
@@ -4766,7 +4766,7 @@ dependencies = [
 
 [[package]]
 name = "mesh-core"
-version = "1.0.2"
+version = "1.1.0"
 dependencies = [
  "anyhow",
  "argon2",
@@ -4822,7 +4822,7 @@ dependencies = [
 
 [[package]]
 name = "mesh-proto"
-version = "1.0.2"
+version = "1.1.0"
 dependencies = [
  "blake3",
  "data-encoding",
@@ -4837,7 +4837,7 @@ dependencies = [
 
 [[package]]
 name = "mesh-testkit"
-version = "1.0.2"
+version = "1.1.0"
 dependencies = [
  "mesh-core",
  "mesh-proto",
@@ -4850,7 +4850,7 @@ dependencies = [
 
 [[package]]
 name = "meshware-director"
-version = "1.0.2"
+version = "1.1.0"
 dependencies = [
  "blake3",
  "data-encoding",
@@ -4888,7 +4888,7 @@ dependencies = [
 
 [[package]]
 name = "meshware-node"
-version = "1.0.2"
+version = "1.1.0"
 dependencies = [
  "anyhow",
  "blake3",

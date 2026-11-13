@@ -33,7 +33,7 @@ distribution and its glibc version do not matter.
 The rest of this page uses two shell variables so that every command can be pasted as is:
 
 ```console
-$ V=1.0.2                      # the version you downloaded
+$ V=1.1.0                      # the version you downloaded
 $ A=$(uname -m)                 # x86_64 or aarch64
 ```
 
@@ -99,7 +99,7 @@ administrator**. Check it:
 
 ```console
 $ meshnode status
-Meshware Node 1.0.2
+Meshware Node 1.1.0
   node      mw1xqka4662aop7  (alpha)
   mesh      alpha-mesh  (mesh-t33bwjcpisf7izqu3m7t6xncge)
   members   1 alive / 1 total

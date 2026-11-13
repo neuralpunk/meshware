@@ -575,7 +575,7 @@ included, can push a binary onto it. Each release ships a CycloneDX SBOM and a G
 build-provenance attestation, which proves where a download came from with no key anybody keeps:
 
 ```console
-$ gh attestation verify meshnode-v1.0.2-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware
+$ gh attestation verify meshnode-v1.1.0-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware
 ```
 
 Two gates run on every push to `main` and every pull request:

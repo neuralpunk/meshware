@@ -398,7 +398,7 @@ One command:
 $ meshnode support bundle
 Wrote meshware-support-1788861515.json (mode 0600)
 
-  meshnode      1.0.2 · protocol 2.0
+  meshnode      1.1.0 · protocol 2.0
   host          linux x86_64 · kernel 6.11.0
   doctor        24 ok, 1 warn, 0 fail
   nodes         1

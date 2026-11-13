@@ -16,8 +16,8 @@ Nodes are Linux-only by design, and so is Director. See [limits.md](limits.md).
 ### The tarball — any machine, and the one to start with
 
 ```console
-$ gh attestation verify meshnode-v1.0.2-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware
-$ tar xzf meshnode-v1.0.2-x86_64-unknown-linux-musl.tar.gz
+$ gh attestation verify meshnode-v1.1.0-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware
+$ tar xzf meshnode-v1.1.0-x86_64-unknown-linux-musl.tar.gz
 $ sudo install -m755 meshnode /usr/local/bin/
 ```
 
@@ -30,7 +30,7 @@ repository by its release workflow, which a checksum served beside it cannot —
 ### `.deb` / `.rpm` — a fleet you already manage
 
 ```console
-$ sudo dpkg -i meshnode_1.0.2_x86_64.deb    # or: sudo rpm -i meshnode-1.0.2.x86_64.rpm
+$ sudo dpkg -i meshnode_1.1.0_x86_64.deb    # or: sudo rpm -i meshnode-1.1.0.x86_64.rpm
 $ sudo systemctl enable --now meshnode
 ```
 
