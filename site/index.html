@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Meshware — distributed compute for Linux, without a control plane</title>
+  <meta name="description" content="Meshware joins any number of Linux machines into a single peer-to-peer compute mesh. One binary per machine, no control plane, no database. Open source under MIT or Apache 2.0.">
+  <meta name="theme-color" content="#08090a">
+  <meta property="og:title" content="Meshware — distributed compute for Linux, without a control plane">
+  <meta property="og:description" content="Install one binary per Linux machine, pair them, and schedule work across every CPU, GPU and gigabyte of memory, with no control plane and no single point of failure. Open source under MIT or Apache 2.0.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://neuralpunk.github.io/meshware/">
+  <meta property="og:image" content="https://neuralpunk.github.io/meshware/assets/img/mesh-fleet.webp">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+  <link rel="preload" href="assets/fonts/geist.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/css/site.css">
+  <link rel="stylesheet" href="assets/css/home.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js" integrity="sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/ScrollTrigger.min.js" integrity="sha384-P8VzCVnT9NBUkMrpcIZrJbA7EBjJvh/fJS6PmP+4nLIM284DtsImIv8D0fFjIkeh" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+  <script src="assets/js/home.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="./"><img src="assets/img/director-mark-white.svg" alt="" width="24" height="24">Meshware <span class="ver">1.1</span></a>
+    <nav aria-label="Primary">
+      <ul class="nav-links" id="nav-links">
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#measured">Performance</a></li>
+        <li><a href="#director">Director</a></li>
+        <li><a href="#install">Install</a></li>
+        <li><a href="guide.html">User Guide</a></li>
+      </ul>
+    </nav>
+    <div class="nav-end">
+      <a class="nav-gh" href="https://github.com/neuralpunk/meshware" aria-label="Meshware on GitHub">
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+      <a class="btn btn-primary" href="#install">Get Meshware</a>
+      <button class="nav-menu" id="nav-menu" aria-controls="nav-links" aria-expanded="false" aria-label="Menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ───── hero ───── -->
+  <section class="hero" id="hero" aria-labelledby="hero-title">
+    <canvas class="hero-mesh" id="mesh" aria-hidden="true"></canvas>
+    <div class="hero-shade" aria-hidden="true"></div>
+    <div class="wrap hero-inner">
+      <h1 class="h-display hero-title" id="hero-title">
+        <span class="line"><span>Your Linux machines,</span></span>
+        <span class="line dim"><span>working as one.</span></span>
+      </h1>
+      <div class="hero-foot">
+        <p class="lead hero-lead">Meshware joins any number of Linux machines into a single peer-to-peer compute mesh. Install one binary per machine, pair them, and schedule work across every CPU, GPU and gigabyte of memory, with no control plane, no database and no single point of failure.</p>
+        <div class="actions hero-actions">
+          <a class="btn btn-primary" href="#install">Get Meshware</a>
+          <a class="btn btn-ghost" href="guide.html">Read the guide <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a>
+        </div>
+      </div>
+      <dl class="hero-readout" aria-label="Demonstration mesh">
+        <div><dt class="label">Demonstration mesh</dt><dd id="ro-mesh">hyacinth</dd></div>
+        <div><dt class="label">Nodes</dt><dd id="ro-nodes">—</dd></div>
+        <div><dt class="label">Tasks in flight</dt><dd id="ro-jobs">—</dd></div>
+        <div><dt class="label">Control planes</dt><dd>0</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ───── intro + director rise ───── -->
+  <section class="chapter intro" aria-labelledby="intro-title">
+    <div class="wrap intro-head">
+      <h2 class="h-section" id="intro-title" data-split>Every node is a peer. <span class="dim">Nothing to provision first.</span></h2>
+      <p class="lead" data-fade><code>meshnode</code> is both the agent and the command-line interface. With no control plane, no database and no quorum, there is no infrastructure to provision before you begin and none to maintain afterwards. <strong>Meshware Director</strong> gives you a live view of the entire mesh.</p>
+    </div>
+    <div class="rise" id="rise">
+      <div class="window rise-window">
+        <div class="window-bar"><i></i><i></i><i></i><span>Meshware Director — Fleet</span></div>
+        <img src="assets/img/mesh-fleet-dark.webp" alt="Meshware Director's Fleet screen, dark theme: six machines with their health, job slots, hardware and load" width="2722" height="1732" decoding="async">
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── measured ───── -->
+  <section class="chapter measured" id="measured" aria-labelledby="measured-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 class="h-section" id="measured-title" data-split>Measured, <span class="dim">not promised.</span></h2>
+        <p class="lead" data-fade>Every figure below links to the document that records it, alongside the test or benchmark that produced it.</p>
+      </div>
+      <div class="stats">
+        <article class="stat">
+          <span class="label">Dedicated control-plane servers</span>
+          <p class="stat-n"><span class="num" data-count="0">0</span></p>
+          <p class="stat-d">Kubernetes and Nomad require three to five before scheduling any work. Slurm requires two, plus a database.</p>
+          <a class="stat-src link" href="https://github.com/neuralpunk/meshware/blob/main/docs/operational-cost.md"><span>Operational cost</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a>
+        </article>
+        <article class="stat">
+          <span class="label">400 tasks · two 16-core nodes</span>
+          <p class="stat-n"><span class="num" data-count="2.8" data-dec="1">2.8</span><sup>s</sup></p>
+          <p class="stat-d">6.8 s with one node frozen mid-run: the remaining node absorbs its share rather than waiting.</p>
+          <a class="stat-src link" href="https://github.com/neuralpunk/meshware/blob/main/docs/operational-cost.md"><span>Operational cost</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a>
+        </article>
+        <article class="stat">
+          <span class="label">Rejoin after a network partition</span>
+          <p class="stat-n"><span class="num" data-count="51">51</span><sup>ms</sup></p>
+          <p class="stat-d">Unreachable peers are detected within 5–10 seconds and readmitted within 51 ms of returning.</p>
+          <a class="stat-src link" href="https://github.com/neuralpunk/meshware/blob/main/docs/no-control-plane.md"><span>Partition tests</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a>
+        </article>
+        <article class="stat">
+          <span class="label">Largest validated mesh</span>
+          <p class="stat-n"><span class="num" data-count="1000" data-sep="1">1,000</span><sup>nodes</sup></p>
+          <p class="stat-d">Simulated before every release. A build that fails the simulation does not ship.</p>
+          <a class="stat-src link" href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/limits.md"><span>Tested limits</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── how it works (pinned) ───── -->
+  <section class="how" id="how" aria-labelledby="how-title">
+    <div class="wrap how-grid">
+      <div class="how-text">
+        <h2 class="h-section how-title" id="how-title">From standalone machines <span class="dim">to a single mesh.</span></h2>
+        <div class="steps-wrap"><div class="steps-progress" aria-hidden="true"><i></i></div>
+        <ol class="steps">
+          <li class="step is-active" data-step="0">
+            <span class="step-n mono">01</span>
+            <div><h3 class="h-sub">Install a single binary</h3><p>One static executable per Linux machine. No runtime dependencies, no database, and no distribution-specific packages.</p></div>
+          </li>
+          <li class="step" data-step="1">
+            <span class="step-n mono">02</span>
+            <div><h3 class="h-sub">Pair each machine</h3><p>Both machines display the same six-digit code. Confirm it, and the new node joins with its own cryptographic identity. Every connection is encrypted.</p></div>
+          </li>
+          <li class="step" data-step="2">
+            <span class="step-n mono">03</span>
+            <div><h3 class="h-sub">Run work anywhere</h3><p>Target any node, every node, or one task per available core. Output streams back in real time, labelled by machine.</p></div>
+          </li>
+          <li class="step" data-step="3">
+            <span class="step-n mono">04</span>
+            <div><h3 class="h-sub">Scale with available capacity</h3><p>Work is never pre-partitioned. Each node pulls the next batch as capacity frees up, and work held by an unresponsive node is reassigned.</p></div>
+          </li>
+        </ol></div>
+      </div>
+      <div class="how-stage" aria-live="off">
+        <div class="stage-card" data-panel="0">
+          <div class="term">
+            <div class="term-bar"><i></i><i></i><i></i><span>edge-7</span></div>
+<pre class="term-body"><span class="t-p">$</span> curl -fsSL https://raw.githubusercontent.com/neuralpunk/meshware/main/packaging/install.sh | sh
+<span class="t-dim">downloading meshnode v1.1.0 (x86_64)…
+checksum matches SHA256SUMS
+provenance verified: built by github.com/neuralpunk/meshware's release workflow (gh attestation)</span>
+installed /usr/local/bin/meshnode
+<span class="t-p">$</span> meshnode --version
+meshnode 1.1.0
+<span class="t-dim">protocol 2.36</span></pre>
+          </div>
+        </div>
+        <div class="stage-card" data-panel="1">
+          <div class="pair">
+            <div class="pair-card">
+              <div class="pair-who"><span class="dot"></span>edge-7 <span class="pair-role">wants to join</span></div>
+              <div class="pair-code" aria-label="Pairing code 482 913"><span>4</span><span>8</span><span>2</span><b></b><span>9</span><span>1</span><span>3</span></div>
+            </div>
+            <div class="pair-card">
+              <div class="pair-who"><span class="dot on"></span>forge <span class="pair-role">in mesh hyacinth</span></div>
+              <div class="pair-code" aria-label="Pairing code 482 913"><span>4</span><span>8</span><span>2</span><b></b><span>9</span><span>1</span><span>3</span></div>
+              <div class="pair-ok"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>Codes match — edge-7 joined</div>
+            </div>
+          </div>
+        </div>
+        <div class="stage-card" data-panel="2">
+          <div class="term">
+            <div class="term-bar"><i></i><i></i><i></i><span>forge</span></div>
+<pre class="term-body"><span class="t-p">$</span> meshnode run 'uname -a' --fanout all
+<span class="t-dim">▸ running on 4 machines · fan-agq5ltebqi</span>
+<span class="n1">[forge]</span>  Linux forge 6.12.0 x86_64 GNU/Linux
+<span class="n2">[anvil]</span>  Linux anvil 6.12.0 x86_64 GNU/Linux
+<span class="n3">[edge-7]</span> Linux edge-7 6.8.0 aarch64 GNU/Linux
+<span class="n4">[lab-2]</span>  Linux lab-2 6.12.0 x86_64 GNU/Linux
+<span class="t-ok">✓ All 4 machines succeeded · 21ms</span></pre>
+          </div>
+        </div>
+        <div class="stage-card" data-panel="3">
+          <div class="spread">
+            <div class="spread-head">
+              <div class="spread-keys"><span class="key a">forge · 16 cores</span><span class="key b">anvil · 16 cores</span></div>
+              <div class="spread-clock"><span id="spread-time">0.0</span><small>s</small></div>
+            </div>
+            <div class="spread-grid" id="spread-grid" role="img" aria-label="400 tasks, coloured by the node that ran each one"></div>
+            <div class="spread-foot">
+              <button class="btn btn-primary spread-run" id="spread-run" type="button">Run 400 tasks</button>
+              <label class="switch"><input type="checkbox" id="spread-freeze"><span class="switch-track" aria-hidden="true"></span><span>Freeze anvil at the halfway point</span></label>
+            </div>
+            <p class="spread-note" id="spread-note">Timings reflect the measured benchmark: 2.8 s with both nodes healthy, 6.8 s with one frozen.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── statement (teal) ───── -->
+  <section class="statement" aria-labelledby="statement-title">
+    <div class="wrap">
+      <h2 class="visually-hidden" id="statement-title">No control plane</h2>
+      <p class="statement-text" data-words>Most schedulers begin by provisioning a control plane. Meshware begins with any machine you already have. There is no coordinator to deploy, no database to operate, no quorum to protect, and no central component whose failure stops your work.</p>
+      <div class="overhead" role="table" aria-label="Dedicated control-plane servers, each project's documented minimum">
+        <div class="oh-row" role="row"><span class="oh-name" role="rowheader">Kubernetes</span><span class="oh-bar" role="cell"><i style="--w:100%"></i></span><span class="oh-v" role="cell">3–5 servers + etcd</span></div>
+        <div class="oh-row" role="row"><span class="oh-name" role="rowheader">Nomad</span><span class="oh-bar" role="cell"><i style="--w:100%"></i></span><span class="oh-v" role="cell">3–5 servers</span></div>
+        <div class="oh-row" role="row"><span class="oh-name" role="rowheader">Slurm</span><span class="oh-bar" role="cell"><i style="--w:52%"></i></span><span class="oh-v" role="cell">2 servers + MySQL</span></div>
+        <div class="oh-row oh-us" role="row"><span class="oh-name" role="rowheader">Meshware</span><span class="oh-bar" role="cell"><i style="--w:0%"></i><b class="oh-zero"></b></span><span class="oh-v" role="cell">None required</span></div>
+        <p class="oh-src">Minimum documented topology for each project. <a href="https://github.com/neuralpunk/meshware/blob/main/docs/operational-cost.md">Sources and methodology</a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── capabilities ───── -->
+  <section class="chapter caps" aria-labelledby="caps-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 class="h-section" id="caps-title" data-split>Everything a scheduler should do. <span class="dim">Nothing it should need.</span></h2>
+      </div>
+      <div class="cap-grid">
+        <article class="cap">
+          <svg class="cap-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><path d="M7 7h.01M7 17h.01"/></svg>
+          <h3 class="h-sub">Gang scheduling and GPUs</h3>
+          <p>Multi-node jobs start together or not at all. GPUs are allocated as discrete devices, so frameworks such as <code>torchrun</code> run unmodified.</p>
+          <code class="cap-cmd">meshnode run ./train.sh --gang 8 --gpus 1</code>
+        </article>
+        <article class="cap">
+          <svg class="cap-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0113.7-5.6L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 01-13.7 5.6L4 15"/><path d="M4 20v-5h5"/></svg>
+          <h3 class="h-sub">Result caching</h3>
+          <p>Identical work with identical inputs never runs twice. A result computed on one node is reused by every other node in the mesh.</p>
+          <code class="cap-cmd">meshnode run ./build.sh --cacheable --cache-outputs 'out/*'</code>
+        </article>
+        <article class="cap">
+          <svg class="cap-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l-5 6 5 6M16 6l5 6-5 6M14 4l-4 16"/></svg>
+          <h3 class="h-sub">Distributed compilation</h3>
+          <p>Prefix your compiler with <code>meshnode cc</code> to distribute and cache compilation across every available core.</p>
+          <code class="cap-cmd">meshnode cc gcc -c src/parser.c -o parser.o</code>
+        </article>
+        <article class="cap">
+          <svg class="cap-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>
+          <h3 class="h-sub">Long-running services</h3>
+          <p>Deployments keep services running across nodes, with containers, port allocation, health checks, canary rollouts, automatic rollback and DNS names.</p>
+          <code class="cap-cmd">meshnode deployment put web.yaml</code>
+        </article>
+        <article class="cap">
+          <svg class="cap-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>
+          <h3 class="h-sub">Operational controls</h3>
+          <p>Quiet hours per machine, graceful draining before maintenance, and an explanation of every placement decision.</p>
+          <code class="cap-cmd">meshnode drain --until 06:00 --reason "kernel update"</code>
+        </article>
+        <article class="cap">
+          <svg class="cap-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V5M6 11l6-6 6 6"/><path d="M4 20h16"/></svg>
+          <h3 class="h-sub">Rolling upgrades</h3>
+          <p>Publish a new binary once. Nodes distribute it peer-to-peer, verify its signature, and upgrade in health-gated waves.</p>
+          <code class="cap-cmd">meshnode upgrade --on tag=canary --to 1.1.0</code>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── director (horizontal) ───── -->
+  <section class="director" id="director" aria-labelledby="dir-title">
+    <div class="dir-pin">
+      <div class="wrap dir-head">
+        <h2 class="h-section" id="dir-title">Meshware Director. <span class="dim">Full control from the desktop.</span></h2>
+        <div class="dir-side">
+          <p class="lead">A native Linux desktop application with complete parity with the command line, including onboarding machines over SSH and coordinating fleet upgrades.</p>
+          <div class="theme-switch" role="group" aria-label="Screenshot theme">
+            <button type="button" data-theme="dark" aria-pressed="true">Dark</button>
+            <button type="button" data-theme="light" aria-pressed="false">Light</button>
+          </div>
+        </div>
+      </div>
+      <div class="dir-track" id="dir-track">
+        <figure class="shot"><img src="assets/img/deployment-open-dark.webp" data-light="assets/img/deployment-open.webp" data-dark="assets/img/deployment-open-dark.webp" alt="A deployment opened in Director: every copy healthy, where each one runs" width="2722" height="1732" loading="lazy" decoding="async"><figcaption><span class="label">Deployments</span>Every replica, where it runs, and its current rollout state.</figcaption></figure>
+        <figure class="shot"><img src="assets/img/mesh-topology-dark.webp" data-light="assets/img/mesh-topology.webp" data-dark="assets/img/mesh-topology-dark.webp" alt="Director's topology view: machines and the links between them" width="2722" height="1732" loading="lazy" decoding="async"><figcaption><span class="label">Topology</span>Reachability and link quality between every pair of nodes.</figcaption></figure>
+        <figure class="shot"><img src="assets/img/mesh-capacity-dark.webp" data-light="assets/img/mesh-capacity.webp" data-dark="assets/img/mesh-capacity-dark.webp" alt="Director's Capacity screen: cores, job slots, memory and disk across the mesh" width="2722" height="1732" loading="lazy" decoding="async"><figcaption><span class="label">Capacity</span>Cores, slots, memory and disk across every node, live.</figcaption></figure>
+        <figure class="shot"><img src="assets/img/mesh-updates-dark.webp" data-light="assets/img/mesh-updates.webp" data-dark="assets/img/mesh-updates-dark.webp" alt="Director's Updates screen: releases in the mesh and machines that are behind" width="2722" height="1732" loading="lazy" decoding="async"><figcaption><span class="label">Updates</span>Version status across the fleet, with one-click upgrades.</figcaption></figure>
+        <figure class="shot"><img src="assets/img/add-machines-dark.webp" data-light="assets/img/add-machines.webp" data-dark="assets/img/add-machines-dark.webp" alt="Director's Add machines sheet: hosts, credentials, and a code to confirm for each" width="2722" height="1732" loading="lazy" decoding="async"><figcaption><span class="label">Add machines</span>Onboard hosts over SSH and confirm each pairing code.</figcaption></figure>
+        <figure class="shot"><img src="assets/img/access-dark.webp" data-light="assets/img/access.webp" data-dark="assets/img/access-dark.webp" alt="Director's Access screen: people, their roles, and requests waiting to join" width="2722" height="1732" loading="lazy" decoding="async"><figcaption><span class="label">Access</span>Role-based access for every person and service account.</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── yours ───── -->
+  <section class="chapter yours" aria-labelledby="yours-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 class="h-section" id="yours-title" data-split>Fully self-hosted. <span class="dim">No dependency on us.</span></h2>
+        <p class="lead" data-fade>Meshware is designed to operate indefinitely without any service from its maintainers. Releases are published periodically; between them, your mesh is entirely self-sufficient.</p>
+      </div>
+      <ul class="rows">
+        <li class="row"><span class="label">Accounts</span><span class="row-t">None required to install, operate or update.</span></li>
+        <li class="row"><span class="label">Network</span><span class="row-t">No telemetry, licence checks or update pings. Fully air-gapped deployments are supported.</span></li>
+        <li class="row"><span class="label">Signing</span><span class="row-t">No signing key is held outside your organisation. Your administrators approve every binary your nodes run.</span></li>
+        <li class="row"><span class="label">Licence</span><span class="row-t">Open source under MIT or Apache 2.0, free for any use at any scale.</span></li>
+        <li class="row"><span class="label">Limitations</span><span class="row-t">Documented alongside every claim. <a class="link" href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/limits.md"><span>Review the documented limitations</span><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a></span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ───── install ───── -->
+  <section class="chapter install" id="install" aria-labelledby="install-title">
+    <div class="wrap install-grid">
+      <div>
+        <h2 class="h-section" id="install-title" data-split>Get Meshware.</h2>
+        <p class="lead" data-fade>Available for Linux on x86_64 and aarch64 as a single static binary, independent of distribution and glibc version.</p>
+        <div class="actions install-links" data-fade>
+          <a class="link" href="https://github.com/neuralpunk/meshware/releases"><span>All releases</span><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a>
+          <a class="link" href="guide.html#install"><span>Install guide</span><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg></a>
+        </div>
+      </div>
+      <div class="install-panel" data-fade>
+        <div class="tabs" role="tablist" aria-label="Ways to install">
+          <button role="tab" id="tab-try" aria-controls="pane-try" aria-selected="true">Evaluate</button>
+          <button role="tab" id="tab-release" aria-controls="pane-release" aria-selected="false" tabindex="-1">Release</button>
+          <button role="tab" id="tab-oneline" aria-controls="pane-oneline" aria-selected="false" tabindex="-1">Installer</button>
+          <button role="tab" id="tab-source" aria-controls="pane-source" aria-selected="false" tabindex="-1">From source</button>
+        </div>
+        <div class="pane" role="tabpanel" id="pane-try" aria-labelledby="tab-try">
+          <p>Run a three-node mesh on a single machine, bound to loopback and removed when you exit.</p>
+          <div class="cmd"><code><span class="p">$ </span>git clone https://github.com/neuralpunk/meshware &amp;&amp; cd meshware &amp;&amp; make demo</code><button class="copy" type="button" data-copy="git clone https://github.com/neuralpunk/meshware && cd meshware && make demo">Copy</button></div>
+        </div>
+        <div class="pane" role="tabpanel" id="pane-release" aria-labelledby="tab-release" hidden>
+          <p>Download the archive for your architecture, verify its build provenance, and install it.</p>
+          <div class="cmd"><code><span class="p">$ </span>gh attestation verify meshnode-v1.1.0-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware</code><button class="copy" type="button" data-copy="gh attestation verify meshnode-v1.1.0-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware">Copy</button></div>
+          <div class="cmd"><code><span class="p">$ </span>tar xzf meshnode-v1.1.0-x86_64-unknown-linux-musl.tar.gz &amp;&amp; sudo install -m755 meshnode /usr/local/bin/</code><button class="copy" type="button" data-copy="tar xzf meshnode-v1.1.0-x86_64-unknown-linux-musl.tar.gz && sudo install -m755 meshnode /usr/local/bin/">Copy</button></div>
+        </div>
+        <div class="pane" role="tabpanel" id="pane-oneline" aria-labelledby="tab-oneline" hidden>
+          <p>Detects your architecture, verifies the download and installs the binary. It starts no services and writes no configuration.</p>
+          <div class="cmd"><code><span class="p">$ </span>curl -fsSL https://raw.githubusercontent.com/neuralpunk/meshware/main/packaging/install.sh | sh</code><button class="copy" type="button" data-copy="curl -fsSL https://raw.githubusercontent.com/neuralpunk/meshware/main/packaging/install.sh | sh">Copy</button></div>
+        </div>
+        <div class="pane" role="tabpanel" id="pane-source" aria-labelledby="tab-source" hidden>
+          <p>Requires Rust and a C compiler; <code>make doctor</code> reports anything missing. Director additionally requires Node.js and WebKitGTK.</p>
+          <div class="cmd"><code><span class="p">$ </span>make &amp;&amp; sudo make install</code><button class="copy" type="button" data-copy="make && sudo make install">Copy</button></div>
+          <div class="cmd"><code><span class="p">$ </span>make director</code><button class="copy" type="button" data-copy="make director">Copy</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-cta">
+    <h2 class="h-section">Start with the machines <span class="dim">you already have.</span></h2>
+    <div class="actions">
+      <a class="btn btn-primary" href="#install">Get Meshware</a>
+      <a class="btn btn-ink" href="guide.html">Read the guide</a>
+    </div>
+  </div>
+  <div class="wrap footer-cols">
+    <div><h2>Meshware</h2><p>Distributed compute for Linux, without a control plane. Open source under MIT or Apache 2.0.</p></div>
+    <div><h2>Learn</h2><ul>
+      <li><a href="guide.html">User Guide</a></li>
+      <li><a href="https://github.com/neuralpunk/meshware/blob/main/docs/quickstart.md">Quickstart</a></li>
+      <li><a href="https://github.com/neuralpunk/meshware/blob/main/docs/director.md">Director</a></li>
+      <li><a href="https://github.com/neuralpunk/meshware/tree/main/docs/reference">Reference</a></li>
+    </ul></div>
+    <div><h2>Project</h2><ul>
+      <li><a href="https://github.com/neuralpunk/meshware">GitHub</a></li>
+      <li><a href="https://github.com/neuralpunk/meshware/releases">Releases</a></li>
+      <li><a href="https://github.com/neuralpunk/meshware/blob/main/CHANGELOG.md">Changelog</a></li>
+      <li><a href="https://github.com/neuralpunk/meshware/blob/main/CONTRIBUTING.md">Contributing</a></li>
+    </ul></div>
+    <div><h2>Trust</h2><ul>
+      <li><a href="https://github.com/neuralpunk/meshware/blob/main/SECURITY.md">Security</a></li>
+      <li><a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/limits.md">Limits</a></li>
+      <li><a href="https://github.com/neuralpunk/meshware/blob/main/LICENSE-MIT">MIT License</a></li>
+      <li><a href="https://github.com/neuralpunk/meshware/blob/main/LICENSE-APACHE">Apache License 2.0</a></li>
+    </ul></div>
+  </div>
+  <div class="wrap footer-legal">
+    <span>Meshware 1.1.0 · Linux · x86_64 &amp; aarch64</span>
+    <span>Screenshots show a demonstration mesh with fictional host names</span>
+  </div>
+  <p class="footer-mark" aria-hidden="true">Meshware</p>
+</footer>
+</body>
+</html>

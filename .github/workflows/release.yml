@@ -156,8 +156,9 @@ jobs:
       # one file to open anywhere. Before the checksums, so both are signed.
       - name: documentation
         run: |
-          python3 scripts/build-docs-site.py --out site
-          tar -czf "dist/meshware-docs-${GITHUB_REF_NAME}.tar.gz" -C site .
+          # Not `site/`: that directory is the project website (GitHub Pages).
+          python3 scripts/build-docs-site.py --out target/docs-site
+          tar -czf "dist/meshware-docs-${GITHUB_REF_NAME}.tar.gz" -C target/docs-site .
           python3 scripts/build-docs-site.py --single "dist/meshware-docs-${GITHUB_REF_NAME}.html"
 
       - name: checksums

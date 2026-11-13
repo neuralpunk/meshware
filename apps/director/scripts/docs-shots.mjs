@@ -5,6 +5,7 @@
 //   npm run dev                                   # in another shell
 //   node scripts/docs-shots.mjs [outdir] [only…]  # default outdir: ../../docs/img/director
 //   node scripts/docs-shots.mjs --probe '<query>' # list the buttons on one screen
+//   node scripts/docs-shots.mjs --dark [outdir] [only…]  # the dark theme, files named <shot>-dark.webp
 //
 // Each shot is one URL of the mock app (`?mock=1&view=…&tab=…&open=…`, see
 // src/main.ts) plus, where a sheet has to be open, the button that opens
@@ -21,6 +22,8 @@ const APP = process.env.APP_PORT || 1420;
 const W = 1361, H = 866, DPR = 2;
 
 const args = process.argv.slice(2);
+const DARK = args[0] === "--dark" ? (args.shift(), true) : false;
+const THEME = DARK ? "dark" : "light";
 const probe = args[0] === "--probe" ? args[1] ?? "" : null;
 const OUT = probe === null && args[0] && !args[0].startsWith("-") && args[0].includes("/")
   ? resolve(args.shift())
@@ -69,14 +72,14 @@ const evaluate = async (expr) =>
 
 await send("Page.enable"); await send("Runtime.enable");
 await send("Emulation.setDeviceMetricsOverride", { width: W, height: H, deviceScaleFactor: DPR, mobile: false });
-await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: "light" }] });
+await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: THEME }] });
 
 async function load(query) {
   // A fresh document per shot: sessionStorage carries the deep link, and a
   // previous shot's open sheet must not leak into the next.
   await send("Page.navigate", { url: "about:blank" });
   await sleep(150);
-  await send("Page.navigate", { url: `http://localhost:${APP}/?mock=1&theme=light&${query}` });
+  await send("Page.navigate", { url: `http://localhost:${APP}/?mock=1&theme=${THEME}&${query}` });
   await sleep(3200);
 }
 const click = async (text, sel = "button, [role=button], a, [role=tab], [role=menuitem]") => {
@@ -141,7 +144,7 @@ for (const [name, query, then] of SHOTS) {
   if (then) await then();
   await sleep(400);
   const { data } = await send("Page.captureScreenshot", { format: "webp", quality: 88 });
-  writeFileSync(`${OUT}/${name}.webp`, Buffer.from(data, "base64"));
+  writeFileSync(`${OUT}/${name}${DARK ? "-dark" : ""}.webp`, Buffer.from(data, "base64"));
   console.log(name);
 }
 done();

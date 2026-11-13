@@ -5,7 +5,7 @@
 <h1 align="center">Meshware</h1>
 
 <p align="center">
-  <strong>You have machines. Pair them. Now you have a computer.</strong>
+  <strong>Your Linux machines, working as one.</strong>
 </p>
 
 <p align="center">
@@ -25,10 +25,11 @@
 
 ---
 
-Install one binary on each Linux machine you have, and they pool their CPUs, memory and GPUs.
-Run a command on all of them at once, keep a service running across them, or spread a
-thousand-item job over whatever is free — with no server to set up first, no database, and
-nothing that can be down.
+Meshware joins any number of Linux machines into a single peer-to-peer compute mesh. Install one
+binary per machine, pair them, and schedule work across every CPU, GPU and gigabyte of memory:
+run a command on every node at once, keep services running across them, or spread thousands of
+tasks over whatever capacity is free — with no control plane, no database and no single point of
+failure.
 
 - **One binary, and every machine is equal.** `meshnode` is both the node and the command line.
   There is no control plane, no database and no quorum: nothing to stand up before you start,

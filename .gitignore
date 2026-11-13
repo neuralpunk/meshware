@@ -24,3 +24,8 @@ __pycache__/
 # Local AI-assistant notes
 CLAUDE.md
 .claude/
+
+# Local design-tool notes (impeccable)
+PRODUCT.md
+DESIGN.md
+.impeccable/
