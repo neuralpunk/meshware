@@ -746,9 +746,9 @@ def home_page(site: Site) -> str:
         '<section class="hero pattern">'
         f"{eyebrow('Documentation')}"
         "<h1>Meshware documentation</h1>"
-        "<p>You have machines. Pair them, and now you have a computer: run commands across them, keep "
-        "services up, and decide who may do what. Everything is here, from the first install to the last "
-        "configuration key.</p>"
+        "<p>Meshware joins your Linux machines into a single compute mesh: run commands across them, keep "
+        "services running, and decide who may do what. Everything is here, from the first install to the "
+        "last configuration key.</p>"
         f"{search_box('heroSearch', big=True)}"
         "</section>"
         f'<div class="tiles">{"".join(tiles)}</div>'
