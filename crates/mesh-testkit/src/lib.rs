@@ -108,6 +108,14 @@ fn test_config(
     // No scrape endpoint by default: hundreds of in-process nodes must not
     // race for one port. Tests that need it opt in with port 0.
     config.http_addr = None;
+    // A test node's size is part of the test, not of the machine running
+    // it. Slots default to the host's cores, so the same suite had 16
+    // slots on a workstation and 2 on a CI runner, and tests that submit a
+    // dozen jobs — or place four instances on "roomy" — passed on one and
+    // failed on the other. Fixed here at what the suites were written on;
+    // a test that needs another size says so (`limits`, `*_sized`).
+    config.limits.slots = 16;
+    config.limits.queue = 64;
     config
 }
 
