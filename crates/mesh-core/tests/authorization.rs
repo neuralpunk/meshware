@@ -51,6 +51,8 @@ fn unit_requests() -> Vec<(&'static str, IpcRequest)> {
         ("Sources", IpcRequest::Sources),
         ("Objects", IpcRequest::Objects),
         ("HistoryStatus", IpcRequest::HistoryStatus),
+        ("HistoryRuns", IpcRequest::HistoryRuns),
+        ("BenchRun", IpcRequest::BenchRun),
         ("Backpressure", IpcRequest::Backpressure),
         ("FactCollectors", IpcRequest::FactCollectors),
         // Shipped after this list was written (M31 A2 and Y2/Y3), which is

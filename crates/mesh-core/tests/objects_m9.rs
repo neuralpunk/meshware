@@ -38,6 +38,7 @@ fn numbers(n: usize) -> Vec<String> {
 
 #[derive(Debug, Default)]
 struct MapRun {
+    job: Option<mesh_proto::JobId>,
     /// item -> (object, the node that produced it)
     outputs: HashMap<String, (ObjectRef, NodeId)>,
     total: u64,
@@ -52,7 +53,10 @@ async fn run_map(node: &TestNode, user: &mesh_core::identity::Keypair, req: IpcR
     let mut run = MapRun::default();
     while let Some(frame) = rx.recv().await {
         match frame {
-            IpcResponse::ParallelStarted { total, .. } => run.total = total,
+            IpcResponse::ParallelStarted { job_id, total, .. } => {
+                run.job = Some(job_id);
+                run.total = total;
+            }
             IpcResponse::ParallelItem {
                 item,
                 output: Some(obj),
@@ -322,6 +326,18 @@ async fn objects_are_reclaimed_when_their_job_is_over() {
     assert_eq!(run.error, None);
     assert_eq!(run.outputs.len(), 6);
     assert!(!objects_on(&node, user).await.is_empty());
+
+    // A run's results are kept until somebody collects them — a finished
+    // run nobody has fetched still holds the answer. Collect them, as
+    // `map --out` and Director's save do; then they are ordinary objects.
+    let job = run.job.expect("the run said which job it is");
+    assert!(
+        matches!(
+            ipc_as(&node, user, IpcRequest::ResultsCollected { job }).await,
+            IpcResponse::Ok
+        ),
+        "collecting the results must be accepted"
+    );
 
     // The job's summary is replicated and terminal, so the sweep can
     // decide this alone — no release message from anyone.
