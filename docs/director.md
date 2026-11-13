@@ -23,11 +23,17 @@ Packaged installers with automatic updates are not published yet. Until they are
 from the source tree, on the machine that will run it or on one like it:
 
 ```console
-$ ./scripts/build-director-release.sh     # about four minutes; prints where the binary is
+$ make doctor                     # says whether Node.js and WebKitGTK are installed
+$ make director WITH_NODE=1       # about four minutes; carries a meshnode for this machine
+$ sudo make install-director      # optional: /usr/local/bin/meshware-director
 ```
 
-The script needs a Rust toolchain, Node.js, and the WebKitGTK development packages Tauri builds
-against. It prints the path of the finished binary; copy it anywhere and run it. Director signs
+The build needs a Rust toolchain, Node.js 20+, and the WebKitGTK 4.1 development packages Tauri
+builds against (`make doctor` names the package for your distribution). The finished binary is
+`target/director/meshware-director`; copy it anywhere and run it, and it adds itself to your
+application menu. `WITH_NODE=1` builds a static `meshnode` and carries it inside Director, as a
+release does, so Director can install this machine's node for you. `make director-package` builds
+a `.deb`, `.rpm` and AppImage instead. Director signs
 with your personal key in `~/.meshware/identity/user.key` — the same key the `meshnode` command
 line uses on that machine, so the two are the same person — and keeps only its own window settings
 in `~/.meshware/director`.

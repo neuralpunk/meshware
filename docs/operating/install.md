@@ -3,7 +3,7 @@
 *Reference. Describes what is in the tree.*
 
 One static binary, no runtime dependencies, no database, no control plane to stand up first.
-Four ways to get it onto a machine, and what each leaves behind. New to Meshware? The
+Five ways to get it onto a machine, and what each leaves behind. New to Meshware? The
 [quickstart](../quickstart.md) is the shortest path from nothing to a working mesh.
 
 **Supported:** Linux, `x86_64` and `aarch64`, static musl — so glibc version does not matter.
@@ -11,7 +11,7 @@ Nodes are Linux-only by design, and so is Director. See [limits.md](limits.md).
 
 ---
 
-## 1. The four ways
+## 1. The five ways
 
 ### The tarball — any machine, and the one to start with
 
@@ -50,10 +50,10 @@ firewall, pairs each machine (showing you the confirmation codes), and starts th
 
 Director does the same thing with no terminal: *Mesh › Fleet › Add machines*.
 
-### `install.sh` — one machine, from a published install URL
+### `install.sh` — one machine, one command
 
 ```console
-$ curl -fsSL <your install URL>/install.sh | sh
+$ curl -fsSL https://raw.githubusercontent.com/neuralpunk/meshware/main/packaging/install.sh | sh
 ```
 
 `packaging/install.sh` detects the architecture, downloads the tarball, and installs the binary to
@@ -61,11 +61,28 @@ $ curl -fsSL <your install URL>/install.sh | sh
 `MESHWARE_VERSION` pins a release.
 
 **Be exact about what it verifies.** It checks the minisign signature only when `minisign` is
-installed on the machine *and* the script carries the real release key. Otherwise it checks the
+installed on the machine (it carries the release key itself). Otherwise it checks the
 download against `SHA256SUMS` — which catches a corrupt download and nothing else, because the
 checksum comes from the same server as the file — and says so in capitals. Set
 `MESHWARE_REQUIRE_SIGNATURE=1` to make a missing signature check a hard failure.
 `MESHWARE_NO_VERIFY=1` skips even the checksum; do not use it.
+
+### From source — `make`
+
+```console
+$ git clone https://github.com/neuralpunk/meshware && cd meshware
+$ make doctor                     # checks Rust, a C compiler, and what the optional builds need
+$ make                            # meshnode and meshware-archive, optimised
+$ sudo make install               # binaries, man pages, bash/zsh/fish completions
+$ sudo make install-service       # optional: the systemd unit and the meshnode account
+```
+
+Needs Linux, Rust (the `rust-version` in `Cargo.toml` or newer) and a C compiler. `make STATIC=1`
+builds the static musl binary the releases ship, and needs `musl-gcc`. `make install-service`
+installs the unit and **never starts it**: the first start of a node with no mesh founds a new
+one, so a machine meant to join an existing mesh should join first. `make help` lists every
+target, including `make demo` — a real mesh of three nodes on this one machine, on loopback only,
+gone when you stop it.
 
 ## 2. Founding a mesh, or joining one
 

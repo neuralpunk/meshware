@@ -6,16 +6,24 @@ For people building Meshware from source and changing it. Running it is in the
 ## Building
 
 Latest stable Rust, edition 2024. The minimum supported version is 1.96, and CI checks it.
+`make help` lists everything; these are the ones you will use:
 
 ```console
-$ cargo build -p meshware-node                  # meshnode, for development
-$ ./scripts/build-node-release.sh               # the static musl binary you deploy
-$ ./scripts/build-director-release.sh           # Director: needs Node.js and WebKitGTK's dev packages
-$ ./scripts/ship.sh                             # both, at one version, signed — see "Releases"
+$ make doctor                     # what this machine has, and what each build needs
+$ make                            # meshnode + meshware-archive, release mode
+$ make director                   # Director: needs Node.js and WebKitGTK's dev packages
+$ make demo                       # a real 3-node mesh on loopback, to try a change by hand
+$ make check                      # fmt, clippy -D warnings, unit tests — what a PR must pass
+$ make test-one T=partition       # one integration suite, in a memory-capped scope
 ```
 
-A release `meshnode` is static musl, so it needs the `x86_64-unknown-linux-musl` target and
-`musl-gcc`. The scripts say what is missing.
+For the edit-compile loop, plain cargo is faster: `cargo build -p meshware-node` builds a debug
+`meshnode`. `make STATIC=1` builds the static musl binary the releases ship; it needs the
+`x86_64-unknown-linux-musl` target and `musl-gcc`, and says what is missing.
+
+The release scripts under `scripts/` (`ship.sh`, `build-node-release.sh`,
+`build-director-release.sh`) are what the maintainers use to cut and sign a release; see
+"Releases" below.
 
 ## Testing without running out of memory
 
