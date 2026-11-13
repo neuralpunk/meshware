@@ -1,0 +1,14 @@
+---
+source: crates/mesh-core/src/deploy.rs
+expression: "InstallPlan::stage_script()"
+---
+set -e
+d=/tmp; [ -w "$d" ] || d="$HOME"
+tmp=$(mktemp "$d/meshnode.XXXXXX")
+cat > "$tmp"
+chmod 700 "$tmp"
+if ! v=$("$tmp" --version 2>/dev/null); then
+t2=$(mktemp "$HOME/meshnode.XXXXXX"); mv -f "$tmp" "$t2"; tmp=$t2
+if ! v=$("$tmp" --version 2>&1); then rm -f "$tmp"; printf 'mw.error=%s\n' "$v"; exit 1; fi
+fi
+printf 'mw.staged=%s\nmw.version=%s\n' "$tmp" "$v"

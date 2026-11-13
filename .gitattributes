@@ -1,0 +1,40 @@
+# Line endings, and what git should not try to read.
+#
+# A checkout that rewrites files to CRLF (a git with `core.autocrlf` set)
+# breaks two kinds of file: shell scripts, which stop being executable by
+# the kernel (`bad interpreter: /usr/bin/env bash^M`), and the `insta`
+# snapshots, which compare byte-for-byte.
+
+# Normalise to LF in the repository and on checkout, everywhere.
+* text=auto eol=lf
+
+# Belt and braces on the two categories above, so a future `text=auto`
+# heuristic misfire cannot silently reintroduce the problem.
+*.sh              text eol=lf
+*.snap            text eol=lf
+packaging/deb/postinst          text eol=lf
+examples/test-git-repo/seed/bin/tool text eol=lf
+
+# Binary. Listed rather than left to detection: a mangled PNG is not
+# obvious until somebody opens the app, and `text=auto` guesses from the
+# first 8k.
+*.png             binary
+*.ico             binary
+*.icns            binary
+*.zip             binary
+*.gz              binary
+*.tar             binary
+*.woff            binary
+*.woff2           binary
+
+# Generated, and verified by CI rather than reviewed by eye:
+#   Cargo.lock / package-lock.json  — resolver output
+# `linguist-generated` collapses them in diffs and keeps them out of the
+# language statistics; it does not stop them being tracked, which they must
+# be.
+Cargo.lock                        linguist-generated=true
+apps/director/package-lock.json   linguist-generated=true
+
+# SVG is text and diffs usefully, but GitHub counting 126 icons as "source"
+# makes the language bar say this is an SVG project.
+*.svg             text eol=lf linguist-detectable=false

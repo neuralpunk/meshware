@@ -1,0 +1,17 @@
+---
+source: crates/mesh-core/src/deploy.rs
+expression: "user.upgrade_script(\"/tmp/meshnode.new\")"
+---
+set -e
+if [ -r /var/lib/dpkg/info/meshnode.list ] && grep -qx '/home/pi/.local/bin/meshnode' /var/lib/dpkg/info/meshnode.list 2>/dev/null; then echo mw.owner=dpkg; exit 3; fi
+if command -v rpm >/dev/null 2>&1 && rpm -qf '/home/pi/.local/bin/meshnode' >/dev/null 2>&1; then echo mw.owner=rpm; exit 3; fi
+mv -f '/tmp/meshnode.new' '/home/pi/.local/bin/meshnode'
+chmod 755 '/home/pi/.local/bin/meshnode'
+if command -v restorecon >/dev/null 2>&1; then restorecon -F '/home/pi/.local/bin/meshnode' >/dev/null 2>&1 || true
+fi
+if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1 && systemctl --user cat meshnode >/dev/null 2>&1; then
+systemctl --user restart meshnode
+echo mw.restarted=systemd
+else
+echo mw.restarted=none
+fi

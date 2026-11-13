@@ -1,0 +1,102 @@
+# Coverage-guided fuzzing of the parsers that read untrusted bytes (SEC-22).
+#
+# Its own workspace, so the product's never builds libFuzzer. The targets
+# are one line each: the bodies live in `mesh_core::fuzz`, where the stable
+# `tests/fuzz_smoke.rs` runs them too. See README.md.
+[package]
+name = "meshware-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "MIT OR Apache-2.0"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+mesh-core = { path = "../crates/mesh-core" }
+
+[workspace]
+members = ["."]
+
+# As the product's: fuzzing spends its time in signature checks otherwise.
+[profile.release]
+debug = 1
+
+[profile.dev.package.ed25519-dalek]
+opt-level = 3
+[profile.dev.package.curve25519-dalek]
+opt-level = 3
+[profile.dev.package.blake3]
+opt-level = 3
+
+[[bin]]
+name = "wire_frame"
+path = "fuzz_targets/wire_frame.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ipc_envelope"
+path = "fuzz_targets/ipc_envelope.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "op_envelope"
+path = "fuzz_targets/op_envelope.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "op_apply"
+path = "fuzz_targets/op_apply.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "manifest"
+path = "fuzz_targets/manifest.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "http_response"
+path = "fuzz_targets/http_response.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "jwt"
+path = "fuzz_targets/jwt.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "attestation"
+path = "fuzz_targets/attestation.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "agent_reply"
+path = "fuzz_targets/agent_reply.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "dns_query"
+path = "fuzz_targets/dns_query.rs"
+test = false
+doc = false
+bench = false

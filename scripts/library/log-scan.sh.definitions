@@ -1,0 +1,31 @@
+{
+  "name": "log-scan",
+  "about": "Count what matters in one log file, compressed or not.",
+  "item": "path",
+  "needs": {
+    "cores": 1
+  },
+  "reads": [
+    "$path"
+  ],
+  "args": [
+    {
+      "name": "ignore_case",
+      "type": "bool",
+      "default": true,
+      "description": "Match case-insensitively"
+    },
+    {
+      "name": "path",
+      "type": "text",
+      "required": true,
+      "description": "The log file"
+    },
+    {
+      "name": "patterns",
+      "type": "text",
+      "default": "ERROR,WARN,CRITICAL",
+      "description": "Comma-separated, counted in one pass"
+    }
+  ]
+}

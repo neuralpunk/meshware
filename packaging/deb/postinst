@@ -1,0 +1,133 @@
+#!/bin/sh
+# meshnode postinst: create the service user + data dir (never root; root
+# would only be for stronger sandboxing later, MASTERPLAN §7.5).
+set -e
+if ! getent passwd meshnode >/dev/null; then
+    useradd --system --home-dir /var/lib/meshware --shell /usr/sbin/nologin meshnode
+fi
+mkdir -p /var/lib/meshware /etc/meshware
+chown meshnode:meshnode /var/lib/meshware
+chmod 0750 /var/lib/meshware
+
+# --- rootless containers need a sub-id range, and --system gives none -----
+#
+# `useradd --system` deliberately skips the /etc/subuid and /etc/subgid
+# allocation that an ordinary `useradd` performs. Rootless podman needs it:
+# a stock image's `/etc/shadow` is owned by `0:42`, and with no delegated
+# range there is no gid 42 to map it to. `podman info` answers perfectly
+# well without one, so the node detects the engine, announces that it can
+# run containers, accepts the work, and then dies deep in the image unpack
+# with
+#
+#   potentially insufficient UIDs or GIDs available in user namespace
+#   (requested 0:42 for /etc/shadow) … lchown /etc/shadow: invalid argument
+#
+# This was found on a real three-node fleet: every package-installed node
+# failed identically while the one running as a login user worked. The
+# package created the problem, so the package fixes it.
+#
+# 65536 is the conventional allocation and what an ordinary `useradd` hands
+# out. The range is picked high to stay clear of anything an admin has
+# allocated by hand; `usermod` refuses an overlap rather than corrupting
+# one, which is why the failure is tolerated below.
+ids_changed=
+if ! grep -q '^meshnode:' /etc/subuid 2>/dev/null \
+   && usermod --add-subuids 2000000-2065535 meshnode 2>/dev/null; then
+    ids_changed=1
+fi
+if ! grep -q '^meshnode:' /etc/subgid 2>/dev/null \
+   && usermod --add-subgids 2000000-2065535 meshnode 2>/dev/null; then
+    ids_changed=1
+fi
+if ! grep -q '^meshnode:' /etc/subuid 2>/dev/null; then
+    echo "meshnode: no /etc/subuid range — rootless containers will not run." >&2
+    echo "meshnode: \`meshnode runtimes\` says so by name and how to fix it." >&2
+fi
+
+# --- and a user session, so podman uses the systemd cgroup manager -------
+#
+# Without lingering there is no systemd user session for a `nologin` system
+# account, and podman says so on every single run:
+#
+#   The cgroupv2 manager is set to systemd but there is no systemd user
+#   session available … Falling back to --cgroup-manager=cgroupfs
+#
+# It still runs, so this is not fatal — but the fallback is why a
+# container's accounting lands outside the tree meshnode delegates, and
+# four warning lines before every job train an operator to ignore the log.
+loginctl enable-linger meshnode >/dev/null 2>&1 || true
+
+# --- and re-map podman's storage, but only if the range actually moved ----
+#
+# A machine that has already *tried* to run a container has a storage tree
+# built under the old, empty mapping; adding the range does not fix that
+# retroactively. podman's own error says to run `podman system migrate`, and
+# without it an upgrade would look like a repair and fail in exactly the
+# same place.
+#
+# Guarded on `ids_changed` because a migrate **stops running containers** —
+# doing it on every package upgrade would turn a routine `apt upgrade` into
+# an outage. Lingering above comes first: it is what creates
+# `/run/user/<uid>`, which podman needs to do anything as a nologin account.
+#
+# `su -l` rather than a bare `su` or `sudo -u`: `-l` sets HOME to the service
+# account's own directory (podman looks for the container storage under it)
+# and changes to that directory. A command that inherits the installer's cwd
+# fails with `cannot chdir to /home/<you>: Permission denied`, because
+# podman enters the cwd while setting up the user namespace and a service
+# account cannot enter somebody's home. `-s /bin/sh` because the account's
+# shell is `nologin`, which is what makes it a service account.
+if [ -n "$ids_changed" ] && command -v podman >/dev/null 2>&1; then
+    su -s /bin/sh -l -c 'podman system migrate' meshnode >/dev/null 2>&1 || true
+fi
+
+# --- and a podman service of the account's own, to make its containers ----
+#
+# A rootless container cannot be made from inside meshnode.service. The unit
+# puts read-only mounts over parts of /proc (ProtectKernelTunables=,
+# ProtectKernelLogs=), and the kernel will not mount a container a /proc of
+# its own while any of /proc is covered — every container fails with
+# `mount proc to proc: Operation not permitted`. So the node drives podman's
+# own stock podman.socket, in this account's user manager (the lingering
+# above), with the socket moved to where the unit can reach it: /run/user
+# is hidden from it. `crate::engines` in the source says the rest; the
+# drop-in text is the same one `meshnode adopt` writes, held so by a test.
+#
+# It also takes back the old way's drop-in, which relaxed NoNewPrivileges
+# and the capability bounding set so the node could exec newuidmap itself.
+rm -f /etc/systemd/system/meshnode.service.d/containers.conf
+if command -v podman >/dev/null 2>&1 && [ -d /run/systemd/system ] \
+   && { [ -e /usr/lib/systemd/user/podman.socket ] || [ -e /lib/systemd/user/podman.socket ]; }; then
+    mw_uid=$(id -u meshnode)
+    mkdir -p /var/lib/meshware/.config/systemd/user/podman.socket.d /var/lib/meshware/run
+    cat > /var/lib/meshware/.config/systemd/user/podman.socket.d/50-meshware.conf <<'EOF'
+# Written by meshnode's installer. meshnode.service starts its containers
+# through this socket: it cannot reach podman's usual one, under /run/user,
+# and a rootless container cannot be made from inside its unit.
+[Socket]
+ListenStream=
+ListenStream=/var/lib/meshware/run/podman.sock
+SocketMode=0600
+EOF
+    chown -R meshnode:meshnode /var/lib/meshware/.config
+    chown meshnode:meshnode /var/lib/meshware/run
+    # podman's documented setting for rootless cpu limits, for this one
+    # account's manager. Restarted only the first time, before anything of
+    # the account's runs under it.
+    mw_dd=/etc/systemd/system/user@$mw_uid.service.d
+    if [ ! -e "$mw_dd/50-meshware-delegate.conf" ]; then
+        mkdir -p "$mw_dd"
+        printf '[Service]\nDelegate=cpu cpuset io memory pids\n' > "$mw_dd/50-meshware-delegate.conf"
+        systemctl daemon-reload
+        systemctl try-restart "user@$mw_uid.service" >/dev/null 2>&1 || true
+    fi
+    i=0; while [ ! -S "/run/user/$mw_uid/systemd/private" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i+1)); done
+    mw_user() { runuser -u meshnode -- env XDG_RUNTIME_DIR="/run/user/$mw_uid" systemctl --user "$@"; }
+    if ! { mw_user daemon-reload && mw_user enable podman.socket >/dev/null 2>&1 \
+           && mw_user restart podman.socket; }; then
+        echo "meshnode: could not start the meshnode account's podman.socket — containers will not run." >&2
+        echo "meshnode: \`meshnode runtimes\` says why and how to fix it." >&2
+    fi
+fi
+
+#DEBHELPER#

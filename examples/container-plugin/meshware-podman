@@ -1,0 +1,376 @@
+#!/usr/bin/env bash
+# The reference container plugin for meshware (N4).
+#
+# It answers one question — *"what command would run this image?"* — and
+# meshnode spawns that command. It does **not** run the container itself,
+# which is what keeps a container job's logs, cancellation, kill group,
+# secret redaction and accounting identical to every other job's. A plugin
+# that ran the container would have to reimplement all of it, and would be
+# the one job on the node whose logs worked differently.
+#
+# The contract, shared with `secrets::provider_get` and the sink writer:
+#
+#   <plugin> prepare   JSON on stdin, JSON on stdout, non-zero exit fails
+#   <plugin> stop      MESHWARE_JOB_ID in the environment; remove that
+#                      container. Must be idempotent — already gone is
+#                      success
+#   <plugin> list      MESHWARE_NODE_ID in the environment; print the job id
+#                      of every container this node started that is still
+#                      running, one per line
+#   <plugin> info      JSON on stdout, describing what this plugin enforces
+#
+# `info` and `list` are optional; `prepare` and `stop` are not. A plugin
+# without `list` simply leaves nothing to reap, which is what every plugin
+# did before it existed.
+#
+# ## Why `list` exists
+#
+# `stop` covers the container whose job ended. It cannot cover the node
+# that ended: kill `meshnode` and conmon keeps every container it started
+# alive, holding its ports, belonging to nobody. On restart the node knows
+# it is running nothing, so anything this plugin still lists under its own
+# label is left over from a previous life — and is removed before the first
+# job is placed, rather than found by an operator weeks later.
+#
+# The label is what makes that safe. Two nodes on one machine each see the
+# other's containers in `podman ps`, and reaping by name alone would have
+# one node kill the other's work on every restart.
+#
+# ## Why `stop` exists
+#
+# `podman run --rm` removes the container when *the client* exits cleanly,
+# and the client is not the container: `podman run` hands the workload to
+# `conmon`, which reparents it. A job that is cancelled, times out or is
+# killed therefore leaves the container running — still holding its host
+# port, after meshware's ledger has already recorded that port as free. The
+# next instance is handed the same number, the orphan still has it, and
+# every replacement crash-loops on `Address already in use`.
+#
+# meshware calls this on every job exit, including the ordinary ones where
+# `--rm` already did the work, which is why it has to succeed on a
+# container that is not there.
+#
+# ## Podman rootless, and why
+#
+# It matches the product's existing no-root posture — meshnode takes no
+# capability it does not need, and a runtime that demands a root daemon
+# would be the first thing on the node that did.
+#
+# ## What this enforces, and what it cannot
+#
+# **Landlock and the executor's cgroup do not reach a container's
+# processes.** `podman run` hands the workload to `conmon`, which reparents
+# it out of both. So the flags below are the *equivalent* controls, and the
+# `controls` block is how this plugin declares them — `meshnode doctor`
+# reports exactly what is claimed here, and a plugin that claims nothing is
+# reported as enforcing nothing.
+#
+#   [runtime]
+#   container_plugin = "/usr/local/libexec/meshware-podman"
+
+set -euo pipefail
+
+PODMAN="${MESHWARE_PODMAN:-podman}"
+
+case "${1:-}" in
+  info)
+    version="$("$PODMAN" --version 2>/dev/null || echo "podman not found")"
+    # Every field here is a claim this plugin is making about the flags it
+    # passes below. Keep the two in step: `doctor` prints this, and an
+    # operator will believe it.
+    cat <<JSON
+{
+  "name": "podman (rootless)",
+  "version": 1,
+  "detail": "$version",
+  "controls": {
+    "memory": true,
+    "cpu": true,
+    "readonly_rootfs": true,
+    "drop_capabilities": true,
+    "capabilities_kept": "CHOWN SETUID SETGID DAC_OVERRIDE NET_BIND_SERVICE",
+    "no_new_privileges": true,
+    "rootless": true
+  }
+}
+JSON
+    ;;
+
+  prepare)
+    req="$(cat)"
+
+    # jq is the only dependency, and it is the right one: hand-parsing JSON
+    # in bash is how a plugin ends up executing an image name.
+    command -v jq >/dev/null 2>&1 || {
+      echo "meshware-podman needs jq" >&2
+      exit 1
+    }
+
+    get() { jq -r "$1 // empty" <<<"$req"; }
+
+    # The contract version first, as the contract asks: a request from a
+    # newer node may carry fields this script has never heard of, and
+    # guessing at them is worse than saying so.
+    version="$(get .version)"
+    [ "$version" = "1" ] || {
+      echo "meshware-podman speaks contract version 1; this node sent version ${version:-none}" >&2
+      exit 1
+    }
+
+    image="$(get .image)"
+    [ -n "$image" ] || { echo "no image in the request" >&2; exit 1; }
+
+    workdir="$(get .workdir)"
+    bundle_root="$(get .bundle_root)"
+    bundle_mount="$(get .bundle_mount)"
+    job_id="$(get .job_id)"
+    cpus="$(get .cpus)"
+    mem_mb="$(get .mem_mb)"
+    cgroup_parent="$(get .cgroup_parent)"
+
+    # `--rm` so a finished container leaves nothing behind: meshware already
+    # owns the job's lifecycle and its logs, and a stopped container hanging
+    # around is state nobody reconciles.
+    #
+    # Networking: **published ports when the job declared `to`, host
+    # networking otherwise.**
+    #
+    # This is the difference between running a stock image and rewriting
+    # one. `to = 80` says *my app listens on 80 inside the container* — so
+    # the node's allocated host port is published to it and `nginx:alpine`
+    # runs completely unmodified. Without the mapping, host networking
+    # means the only way to use an allocated port is for the workload to
+    # read `$MESHWARE_PORT_<LABEL>` and bind it, which off-the-shelf images
+    # do not do and cannot be made to do without a command override.
+    #
+    # Host networking stays the default when nothing declares `to`, because
+    # it is right for the case it was chosen for: a job meshware itself
+    # built, which reads its port from the environment, and for which a NAT
+    # between the registry's address and the listener would be a lie.
+    mapped="$(jq -r '[.ports[]? | select((.to // 0) > 0)] | length' <<<"$req")"
+    if [ "${mapped:-0}" -gt 0 ]; then
+      args=(run --rm --init)
+      while IFS= read -r line; do
+        [ -n "$line" ] && args+=(--publish "$line")
+      done < <(jq -r '.ports[]? | select((.to // 0) > 0) | (.host|tostring) + ":" + (.to|tostring)' <<<"$req")
+    else
+      args=(run --rm --network=host --init)
+    fi
+
+    [ -n "$job_id" ] && args+=(--name "meshware-$job_id")
+    # Whose container this is. `list` filters on it, so a machine running
+    # two nodes never has one reaping the other's work.
+    node_id=$(jq -r '.node // ""' <<<"$req")
+    [ -n "$node_id" ] && args+=(--label "meshware.node=$node_id")
+
+    # The equivalents of the controls that cannot reach in.
+    # Drop everything, then add back the five an ordinary image needs to
+    # *start* and then give up privileges.
+    #
+    # `--cap-drop=ALL` alone is the stricter claim and it makes stock images
+    # unrunnable: `nginx:alpine` fails with
+    #
+    #   nginx: [emerg] chown("/var/cache/nginx/client_temp", 101) failed
+    #          (1: Operation not permitted)
+    #
+    # because its entry point chowns its cache and drops to an unprivileged
+    # user — which is the image doing the *right* thing and needing CHOWN,
+    # SETUID and SETGID to do it. NET_BIND_SERVICE is for the same reason a
+    # web server image exists at all: it listens on 80 inside the container.
+    #
+    # What stays dropped is the set that actually matters: SYS_ADMIN,
+    # SYS_PTRACE, NET_RAW, NET_ADMIN, SYS_MODULE, MKNOD and the rest. This
+    # is a smaller set than Docker's own default, and `info` below reports
+    # it honestly rather than claiming "all capabilities dropped".
+    args+=(--read-only --security-opt=no-new-privileges)
+    args+=(--cap-drop=ALL)
+    for cap in CHOWN SETUID SETGID DAC_OVERRIDE NET_BIND_SERVICE; do
+      args+=(--cap-add="$cap")
+    done
+    # Writable tmpfs for the paths a read-only rootfs actually needs.
+    #
+    # `/tmp` alone is not enough for stock images, and that mattered more
+    # than it sounds: `nginx:alpine` — the most ordinary container anybody
+    # will try first — dies at startup with
+    #
+    #   nginx: [emerg] mkdir() "/var/cache/nginx/client_temp" failed
+    #          (30: Read-only file system)
+    #
+    # A hardened rootfs that only works for images written to expect one is
+    # a hardened rootfs nobody keeps switched on. These five are what a
+    # conventional read-only container setup grants, they are all tmpfs so
+    # nothing survives the container, and `nosuid,nodev` keeps them boring.
+    args+=(--tmpfs /tmp:rw,nosuid,nodev,size=64m)
+    args+=(--tmpfs /run:rw,nosuid,nodev,size=16m)
+    args+=(--tmpfs /var/run:rw,nosuid,nodev,size=16m)
+    args+=(--tmpfs /var/cache:rw,nosuid,nodev,size=64m)
+    args+=(--tmpfs /var/log:rw,nosuid,nodev,size=32m)
+
+    [ -n "$cpus" ] && [ "$cpus" != "0" ] && args+=(--cpus "$cpus")
+    [ -n "$mem_mb" ] && [ "$mem_mb" != "0" ] && args+=(--memory "${mem_mb}m")
+    # `--cgroup-parent`, but **only when podman will accept it**.
+    #
+    # meshware delegates a cgroupfs path (`…/meshnode.service/jobs`), and
+    # podman under the systemd cgroup manager demands a `.slice` name
+    # instead — passing the path gets `did not receive systemd slice as
+    # cgroup parent`, and the job fails before the image is even consulted.
+    #
+    # So this passes it only when it is already a slice. Where it is not,
+    # the container lands in podman's own tree and the ceilings below still
+    # apply: `--memory` and `--cpus` are enforced by the runtime either way,
+    # which is what the `controls` block claims. What is lost is the
+    # *accounting* being in one tree, not the limit.
+    case "$cgroup_parent" in
+      *.slice) args+=(--cgroup-parent "$cgroup_parent") ;;
+      *) ;;
+    esac
+
+    # The bundle is the *code*; the image is the base. Mounted read-only,
+    # and `:Z` so SELinux relabels it where SELinux is enforcing.
+    if [ -n "$bundle_root" ] && [ -d "$bundle_root" ]; then
+      args+=(-v "$bundle_root:${bundle_mount:-/meshware/bundle}:ro,Z")
+    fi
+
+    # Volumes this job has **already claimed** (N5).
+    #
+    # The claim is a row in the node's own lease table, taken before this
+    # ran. The plugin mounts what it is given and never claims — which is
+    # what keeps the claim and the mount from being two facts that can
+    # disagree, the failure the whole phase exists to avoid.
+    while IFS= read -r line; do
+      [ -n "$line" ] && args+=(-v "$line")
+    done < <(jq -r '.volumes[]? | .source + ":" + .target + ":" + (if .read_only then "ro" else "rw" end) + ",Z"' <<<"$req")
+
+    [ -n "$workdir" ] && args+=(--workdir "$workdir")
+
+    # The command override, which podman spells `--entrypoint`.
+    #
+    # Nomad's `config { command = … }`, and the same semantics: absent means
+    # the image runs whatever it was built to run, which is right for an
+    # image built to be run and useless for a general-purpose base like
+    # alpine. The arguments that follow it are the trailing args below —
+    # podman's own split, and the one every container runtime uses.
+    command_override="$(get .command)"
+    [ -n "$command_override" ] && args+=(--entrypoint "$command_override")
+
+    # The allocated host port, in the environment, **either way**.
+    #
+    # Under host networking it is the port the job must bind. Under a
+    # published mapping the job binds its own `to` and does not need this —
+    # but something inside still often wants to know the address it is
+    # reachable at, so it is passed regardless rather than being a variable
+    # that exists in one mode and not the other.
+    #
+    # The label is upper-cased with anything else folded to `_`, exactly as
+    # the node spells it: `admin-api` is MESHWARE_PORT_ADMIN_API.
+    while IFS= read -r line; do
+      [ -n "$line" ] && args+=(--env "$line")
+    done < <(jq -r '.ports[]? | "MESHWARE_PORT_" + (.label | ascii_upcase | gsub("[^A-Z0-9]"; "_")) + "=" + (.host|tostring)' <<<"$req")
+
+    # Each volume's variable names where it is mounted *inside*; the host
+    # directory the job's environment holds does not exist in here.
+    while IFS= read -r line; do
+      [ -n "$line" ] && args+=(--env "$line")
+    done < <(jq -r '.volumes[]? | "MESHWARE_VOLUME_" + (.name | ascii_upcase | gsub("[^A-Z0-9]"; "_")) + "=" + .target' <<<"$req")
+
+    # **Where the job's own environment goes.** meshware runs the command
+    # this reply names with the job's environment — its `env`, its
+    # secrets, its MESHWARE_* variables — but `podman run` passes none of
+    # that into the container by itself. `forward_env_at` asks meshware to
+    # insert `--env NAME` for each of them here, just before the image:
+    # by name, so podman reads the value from its own environment and a
+    # secret never appears in an argument list.
+    image_at=${#args[@]}
+    args+=("$image")
+
+    while IFS= read -r a; do
+      [ -n "$a" ] && args+=("$a")
+    done < <(jq -r '.args[]? // empty' <<<"$req")
+
+    # **What podman itself needs from the host environment.**
+    #
+    # meshware runs every job with `env_clear()` — deliberately, so a job
+    # sees exactly what it was given and nothing the daemon happened to be
+    # holding. Rootless podman does not survive that: without
+    # XDG_RUNTIME_DIR it cannot find its own runtime directory, and the
+    # first run fails with `creating events dirs: permission denied`.
+    #
+    # The plugin is the right place to fix it, and the `env` field in the
+    # reply is the mechanism: **only the plugin knows what its runtime
+    # needs**, so it reads those few variables from its own environment and
+    # names them. meshware keeps `env_clear()`, the job still sees nothing
+    # it was not given, and the list of exceptions is three lines in the
+    # plugin that wanted them rather than a hole in the executor.
+    passthrough=()
+    for v in XDG_RUNTIME_DIR HOME PATH CONTAINERS_CONF CONTAINERS_STORAGE_CONF; do
+      [ -n "${!v:-}" ] && passthrough+=("$v=${!v}")
+    done
+
+    # The reply. `controls` must match what was actually passed above — it
+    # is what `doctor` reports, and an operator will believe it.
+    #
+    # The argument list arrives through **stdin**, one per line, rather than
+    # as `jq --args`: half of it starts with `-`, and jq would try to parse
+    # `--rm` as one of its own options. Null-free by construction, since
+    # every element came from a JSON string or a literal above.
+    {
+      printf '%s\n' "${args[@]}"
+      printf '\037\n'
+      printf '%s\n' "${passthrough[@]+"${passthrough[@]}"}"
+    } | jq -R -s \
+      --arg program "$PODMAN" --argjson at "$image_at" '
+        (rtrimstr("\n") | split("\n")) as $all
+        | ($all | index("")) as $cut
+        | {
+            program: $program,
+            args: $all[0:$cut],
+            env: [
+              $all[($cut + 1):][]
+              | select(length > 0)
+              | (index("=")) as $eq
+              | [.[0:$eq], .[($eq + 1):]]
+            ],
+            forward_env_at: $at,
+            controls: {
+              memory: true,
+              cpu: true,
+              readonly_rootfs: true,
+              drop_capabilities: true,
+              no_new_privileges: true,
+              rootless: true
+            }
+          }'
+    ;;
+
+  stop)
+    # Idempotent: `--ignore` makes a container that is already gone a
+    # success, which is the common case — this runs on every exit, and a
+    # cleanly-finished `--rm` container removed itself already.
+    [ -n "${MESHWARE_JOB_ID:-}" ] || { echo "no MESHWARE_JOB_ID" >&2; exit 1; }
+    "$PODMAN" rm --force --ignore "meshware-$MESHWARE_JOB_ID" >/dev/null
+    ;;
+
+  list)
+    # Every container this node started that podman still knows about.
+    # Names come back as `meshware-<job id>`; the job id is what meshnode
+    # speaks, so the prefix comes off here rather than there.
+    #
+    # An unlabelled container is **not** listed. Those predate the label,
+    # and without one there is no way to tell this node's work from the
+    # work of another node on the same machine — so they are left for an
+    # operator instead of guessed at.
+    [ -n "${MESHWARE_NODE_ID:-}" ] || { echo "no MESHWARE_NODE_ID" >&2; exit 1; }
+    "$PODMAN" ps --filter "label=meshware.node=$MESHWARE_NODE_ID" \
+        --format '{{.Names}}' 2>/dev/null |
+      while IFS= read -r name; do
+        case "$name" in
+          meshware-*) printf '%s\n' "${name#meshware-}" ;;
+        esac
+      done
+    ;;
+
+  *)
+    echo "usage: $(basename "$0") {prepare|stop|list|info}" >&2
+    exit 2
+    ;;
+esac

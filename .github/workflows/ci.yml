@@ -1,0 +1,354 @@
+# meshware CI: the engine and Director, on Linux — the only
+# platform meshware runs on.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  engine:
+    name: engine (tests + lints)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - name: release key pinned consistently (MASTERPLAN M7)
+        # packaging/minisign.pub is the single source of truth; install.sh
+        # and `meshnode upgrade --self` (include_str!) must carry the same
+        # key line.
+        run: |
+          PUB="$(sed -n 2p packaging/minisign.pub)"
+          test -n "$PUB" || { echo "packaging/minisign.pub has no key line"; exit 1; }
+          grep -Fq "MINISIGN_PUBKEY=\"${PUB}\"" packaging/install.sh || {
+            echo "packaging/install.sh MINISIGN_PUBKEY differs from packaging/minisign.pub"; exit 1; }
+      - name: fmt
+        run: cargo fmt --all --check
+      # Director is excluded *here* and covered in the `director` job below.
+      # Not an omission: building it links the webkit2gtk stack, which this
+      # job deliberately does not install so the engine's gate stays a
+      # minute rather than ten. Its clippy and its tests run beside its
+      # build, on a runner that already has the toolchain.
+      # `--features mesh-archive/cli` is not decoration. `--all-targets`
+      # skips a target whose `required-features` are off, and
+      # `meshware-archive` has `required-features = ["cli"]` — so the
+      # reader binary was outside every gate in this file. It stopped
+      # compiling when the usage-report IPC was retired and nothing said so
+      # for weeks. One flag puts it back inside the wall.
+      - name: clippy
+        run: cargo clippy --workspace --exclude meshware-director --all-targets --features mesh-archive/cli -- -D warnings
+      - name: test
+        run: cargo test --workspace --exclude meshware-director
+      # C3 §7.3 P1 — the operational-cost claim's last row, gated.
+      #
+      # It runs as its own step rather than folding into `test` so the
+      # number is *published*: the harness prints it, and a step named for
+      # it is where somebody looks when the benchmark page is questioned.
+      # An unmeasured claim is a slogan, and a number only measured when
+      # somebody remembers to measure it is a number that regresses.
+      - name: cold start (zero to scheduling)
+        run: cargo test -p mesh-core --test coldstart_c3 -- --nocapture
+      # E1-P1 — the "no control plane" claim, gated.
+      #
+      # The product's headline is a claim about partition behaviour, and
+      # until this suite existed nothing exercised one. It runs as its own
+      # step for the same reason cold-start does: this is the number and
+      # the property somebody will question, and a named step is where they
+      # will look. Single-threaded because each test founds a real four-node
+      # mesh on loopback and the failure detector is timing-sensitive.
+      - name: survives a network partition
+        run: cargo test -p mesh-core --test partition -- --test-threads=1
+      # E1-P4 — a pipeline must not authenticate as a person.
+      #
+      # Its own step because the properties are security properties and
+      # somebody will want to point at them: expiry is enforced at the
+      # authorization choke point, admin is refused at both the API and the
+      # merge, and actor type is derived rather than stored.
+      - name: machine principals
+        run: cargo test -p mesh-core --test service_accounts
+      # E1-P5 — the identity-provider bridge.
+      #
+      # The token verifier's own tests live in `mesh-core --lib oidc` and
+      # sign real ES256 tokens to drive every attack (alg:none, algorithm
+      # confusion, tampered payload, cross-key replay). This is the other
+      # half: the provider as replicated state, and the fail-open property
+      # a buyer asks about — an unreachable IdP must not be a mesh outage.
+      - name: identity provider bridge
+        run: |
+          cargo test -p mesh-core --lib oidc::
+          cargo test -p mesh-core --test oidc_bridge
+      # E1-P6 — the HTTP API, driven over a real TCP socket.
+      #
+      # The property under test is a negative one: the API decides nothing.
+      # A stranger, an expired service account and a replayed envelope are
+      # each refused *without the API checking*, because it hands the same
+      # envelope to the same dispatch the Unix socket uses. If one of these
+      # ever needs its own check, the design has gone wrong.
+      - name: http api
+        run: cargo test -p mesh-core --test api_http
+      # E2.1 — declared limits are ceilings, not hints.
+      #
+      # Run inside a delegated cgroup scope so the enforcement tests
+      # actually exercise the kernel. Without `Delegate=yes` they skip with
+      # a printed reason, which is correct but proves nothing — and the one
+      # test that runs everywhere is the one asserting the node is *honest*
+      # about which mode it is in.
+      - name: resource limits are enforced
+        run: |
+          if systemd-run --user --scope -p Delegate=yes --quiet -- true 2>/dev/null; then
+            systemd-run --user --scope -p Delegate=yes --quiet -- \
+              cargo test -p mesh-core --test resource_limits -- --test-threads=1 --nocapture
+          else
+            echo "no user session delegation on this runner; running unscoped (tests will skip)"
+            cargo test -p mesh-core --test resource_limits -- --test-threads=1 --nocapture
+          fi
+
+  # ── The MSRV is a published promise, so it is gated ─────────────────
+  #
+  # `rust-version = "1.96"` is a claim anybody building from source relies
+  # on, and until now nothing enforced it: every job above runs `stable`,
+  # which is always newer, so a dependency or a language feature that
+  # raised the floor would have been found by a customer with a pinned
+  # toolchain rather than by us.
+  #
+  # `cargo check`, not a test run — the question is "does it still compile
+  # on the version we promise", and answering it twice buys nothing.
+  msrv:
+    name: builds on the promised MSRV (1.96)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96"
+      - uses: Swatinem/rust-cache@v2
+      # The same trick as the minisign key check in `engine`: a gate that
+      # pins a number has to fail when the manifest's number moves, or it
+      # quietly starts testing a compiler nobody promised.
+      - name: the pinned version is the promised version
+        run: |
+          WANT="$(sed -n 's/^rust-version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          test "$WANT" = "1.96" || {
+            echo "Cargo.toml says rust-version ${WANT}; this job pins 1.96 — move both"; exit 1; }
+      - name: check
+        run: cargo check --workspace --exclude meshware-director --all-targets --features mesh-archive/cli
+
+  # ── E1-P3: the supply-chain gate ────────────────────────────────────
+  #
+  # `cargo deny` is the whole check — advisories, licences, bans and
+  # sources in one pass, against a config whose reasoning lives beside it
+  # in deny.toml. It runs on every push and pull request, which is the
+  # point: a new advisory against a dependency breaks the build, and
+  # breaking the build is how we find out.
+  #
+  # It is deliberately NOT folded into the `engine` job. A dependency
+  # advisory is not a code failure and should not be reported as one — a
+  # red X next to "supply chain" tells you what happened without opening
+  # the log.
+  supply-chain:
+    name: supply chain (advisories, licences, bans)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The advisory database changes without us touching the tree, so this
+      # job is expected to start failing on a day nobody committed anything.
+      # That is the feature.
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          # All four checks. `all-features` and the target list live in
+          # deny.toml [graph] rather than here, so `cargo deny check` run
+          # locally checks exactly what CI checks.
+          command: check
+
+  # ── E1-P3: the daemon's hardening, as a number ──────────────────────
+  #
+  # An unmeasured claim is a slogan. SECURITY.md quotes a
+  # `systemd-analyze security` score for the shipped unit; this is what
+  # keeps that number true, and fails when a directive is dropped.
+  security-posture:
+    name: security posture (systemd unit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: score the units
+        run: ./scripts/security-posture.sh
+      - name: …and as JSON, for the record
+        run: ./scripts/security-posture.sh --json | tee security-posture.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: security-posture
+          path: security-posture.json
+
+  # ── DOC-3: the docs, against the binary they describe ───────────────
+  #
+  # Every `meshnode …` line the shipped docs show goes through the real
+  # parser (MESHWARE_CHECK_ARGS=1 parses and exits), every meshnode.toml
+  # snippet through `config check`, and every relative link to a file and
+  # heading that exist. A command that fails for a reader who pasted it is
+  # a bug in the page, and this is where it is caught.
+  docs:
+    name: docs (commands, config, links)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: build
+        run: cargo build -p meshware-node
+      - name: check the docs
+        run: python3 scripts/check-docs.py
+      # DOC-6: the reference pages are generated from the code or held to
+      # it — config from config.rs, metrics and environment variables
+      # against every name the source uses, file formats against their
+      # parsers — so a new key, metric or variable fails here until it is
+      # documented.
+      - name: the reference pages match the code
+        run: python3 scripts/gen-reference.py --check
+      # DOC-16: the HTML site is built from the same Markdown, and the
+      # build fails on any link or anchor that points nowhere — in the
+      # multi-page site and in the single file alike.
+      - name: the HTML documentation builds, and every link in it resolves
+        run: |
+          python3 scripts/build-docs-site.py --out target/docs-site
+          python3 scripts/build-docs-site.py --single target/docs-single/meshware-docs.html
+
+  cold-start-real-host:
+    name: cold start (real binary, real installer path)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # The in-process harness above measures the software; this measures
+      # the *binary*, through the same commands a person types. Neither is
+      # the other's substitute, and the benchmark page publishes both
+      # (docs/operational-cost.md §3).
+      - name: build
+        run: cargo build --release -p meshware-node
+      - name: time it
+        run: ./scripts/cold-start.sh
+      - name: …and as JSON, for the record
+        run: ./scripts/cold-start.sh --json | tee cold-start.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cold-start
+          path: cold-start.json
+
+  interop:
+    name: mixed-version interop (real old binaries)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The harness needs the release tags to know what N-1 and N-2
+          # are, and a shallow clone has none of them.
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # ENG-24. `rolling_upgrade.rs` restarts one build five times and the
+      # mixed-version tests make this build pretend to be older; neither
+      # can catch a request variant added since the old release, because
+      # only the old binary knows what the old binary did.
+      #
+      # **It skips, green, while there is nothing to test against.** The
+      # release number is not settled (SHIP-9) and there may be no
+      # published N-1 yet; a gate that cannot tell "the old binaries
+      # disagree" from "there are no old binaries" is one nobody believes
+      # the first time it goes red. It becomes a real gate the day two
+      # releases exist, with no change here.
+      - name: against the last two releases
+        env:
+          MESHWARE_RELEASE_BASE: ${{ vars.MESHWARE_RELEASE_BASE }}
+        run: ./scripts/interop.sh
+      - name: …and as JSON, for the record
+        env:
+          MESHWARE_RELEASE_BASE: ${{ vars.MESHWARE_RELEASE_BASE }}
+        run: ./scripts/interop.sh --json | tee interop.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: interop
+          path: interop.json
+
+  director:
+    name: director
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: system deps (webkit2gtk)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev \
+            libayatana-appindicator3-dev librsvg2-dev patchelf
+      - name: frontend
+        working-directory: apps/director
+        run: |
+          npm ci
+          npm run check
+          npm run build
+      # B6 — the paid app was the least-tested thing in the tree, which is
+      # backwards from where the revenue is. `access.ts` is pinned against
+      # the engine's own `rbac::glob_match` vectors: those two are one rule
+      # implemented twice, and matching test vectors are the only thing
+      # holding them together.
+      - name: frontend tests
+        working-directory: apps/director
+        run: npm test
+      - name: clippy
+        run: cargo clippy -p meshware-director --all-targets -- -D warnings
+      - name: test
+        run: cargo test -p meshware-director
+      - name: director build
+        run: cargo build -p meshware-director --profile director --features custom-protocol
+
+  # ── The design gates that need a real browser ───────────────────────
+  #
+  # Its own job, for the reason `supply-chain` is its own job: these drive
+  # headless Chrome against a running dev server, so they are the ones that
+  # will go flaky first, and a red X next to "design audits" says what
+  # happened without opening the log.
+  #
+  # Both scripts existed and neither had ever run anywhere but a laptop.
+  # They audit the *rendered* DOM rather than the token file, which is the
+  # only way to catch a palette that never reached the pixels — see the
+  # header of `contrast-audit.mjs` for the two defects that motivated it.
+  director-ux:
+    name: director (contrast + snapshot, headless Chrome)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: install
+        working-directory: apps/director
+        run: npm ci
+      # Server and audits in one step so the server's lifetime is
+      # unambiguous: it dies with the shell that started it, rather than
+      # leaking into whatever runs next.
+      - name: audits, both themes
+        working-directory: apps/director
+        run: |
+          npm run dev > /tmp/vite.log 2>&1 &
+          trap 'kill %1 2>/dev/null || true' EXIT
+          for _ in $(seq 1 60); do
+            curl -sf http://localhost:1420/ >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:1420/ >/dev/null || { echo "dev server never came up:"; cat /tmp/vite.log; exit 1; }
+          npm run audit:contrast
+          THEME=dark npm run audit:contrast
+          npm run check:snapshot
+          node scripts/snapshot-check.mjs dark

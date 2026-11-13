@@ -1,0 +1,35 @@
+---
+source: crates/mesh-core/src/deploy.rs
+expression: "probe_script(\"/usr/local/bin/meshnode\", \"/var/lib/meshware\")"
+---
+printf 'mw.os=%s\n' "$(uname -s)"
+printf 'mw.arch=%s\n' "$(uname -m)"
+printf 'mw.user=%s\n' "$(id -un)"
+printf 'mw.home=%s\n' "$HOME"
+printf 'mw.host=%s\n' "$(uname -n)"
+(. /etc/os-release 2>/dev/null && printf 'mw.distro=%s\n' "${PRETTY_NAME:-$ID}") || true
+if v=$('/usr/local/bin/meshnode' --version 2>/dev/null); then printf 'mw.version=%s\n' "$v" | head -n1; printf 'mw.exe=%s\n' '/usr/local/bin/meshnode'
+elif v=$(meshnode --version 2>/dev/null); then printf 'mw.version=%s\n' "$v" | head -n1; printf 'mw.exe=%s\n' "$(command -v meshnode)"
+fi
+if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
+echo mw.systemd=1
+e=$(systemctl show -p ExecStart --value meshnode 2>/dev/null | sed -n 's/.*path=\([^ ;]*\).*/\1/p' | head -n1)
+[ -n "$e" ] && printf 'mw.exe=%s\n' "$e"
+if systemctl is-active meshnode >/dev/null 2>&1; then echo mw.service=active; fi
+fi
+if [ -e '/var/lib/meshware'/mesh/genesis.json ]; then echo mw.mesh=system
+elif [ -e "${MESHWARE_HOME:-${MESHWARE_DATA_DIR:-$HOME/.meshware}}/mesh/genesis.json" ]; then echo mw.mesh=home
+fi
+if [ "$(id -u)" = 0 ]; then echo mw.priv=root
+elif sudo -n true >/dev/null 2>&1; then echo mw.priv=sudo
+elif command -v sudo >/dev/null 2>&1; then echo mw.priv=sudo-password
+else echo mw.priv=none
+fi
+if command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --state >/dev/null 2>&1; then echo mw.firewall=firewalld
+elif command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q '^Status: active'; then echo mw.firewall=ufw
+fi
+if command -v getenforce >/dev/null 2>&1; then printf 'mw.selinux=%s\n' "$(getenforce 2>/dev/null | tr 'A-Z' 'a-z')"
+elif [ -r /sys/fs/selinux/enforce ]; then
+if [ "$(cat /sys/fs/selinux/enforce 2>/dev/null)" = 1 ]; then echo mw.selinux=enforcing; else echo mw.selinux=permissive; fi
+fi
+echo mw.probe=done

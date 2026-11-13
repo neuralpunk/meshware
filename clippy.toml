@@ -1,0 +1,5 @@
+# `unwrap_used` is a workspace lint (Cargo.toml) because a daemon that
+# panics on a bad input is a daemon an attacker can stop. A test that
+# unwraps is a test that fails loudly, which is what a test is for.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true

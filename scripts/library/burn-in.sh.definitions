@@ -1,0 +1,42 @@
+{
+  "name": "burn-in",
+  "about": "Every machine at full load in the same second.",
+  "needs": {
+    "cores": 1
+  },
+  "run": {
+    "mode": "together",
+    "on": "any",
+    "priority": "normal",
+    "gang": 3,
+    "gang_placement": "spread",
+    "gang_restart": false,
+    "capture": false
+  },
+  "args": [
+    {
+      "name": "align",
+      "type": "int",
+      "default": 5,
+      "min": 1,
+      "max": 3600,
+      "description": "Members wait for the next multiple of this on the wall clock"
+    },
+    {
+      "name": "seconds",
+      "type": "int",
+      "default": 60,
+      "min": 1,
+      "max": 86400,
+      "description": "How long to hold full load"
+    },
+    {
+      "name": "workers",
+      "type": "int",
+      "default": 0,
+      "min": 0,
+      "max": 4096,
+      "description": "Busy processes per machine. 0 = one per thread."
+    }
+  ]
+}

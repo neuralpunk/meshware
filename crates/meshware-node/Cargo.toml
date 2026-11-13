@@ -1,0 +1,131 @@
+[package]
+name = "meshware-node"
+description = "Meshware Node: the mesh daemon and CLI in one binary"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "meshnode"
+path = "src/main.rs"
+
+[dependencies]
+mesh-core = { workspace = true }
+mesh-proto = { workspace = true }
+
+anyhow = { workspace = true }
+clap = { workspace = true }
+clap_complete = { workspace = true }
+# `adopt` runs a bounded batch of hosts concurrently. Already in this
+# binary's graph via mesh-core, so naming it here adds nothing to the tree.
+futures = { workspace = true }
+getrandom = { workspace = true }
+# `cc` derives its heredoc delimiter from the translation unit's own digest
+# (`farm.rs`), using the same hash the content store already uses.
+blake3 = { workspace = true }
+humantime = { workspace = true }
+# The CLI's tables (`format::table`): unicode width, wrapping, the
+# terminal's width; and a live line per host while `adopt` works.
+comfy-table = { workspace = true }
+indicatif = { workspace = true }
+unicode-width = { workspace = true }
+# `meshnode manpage`.
+clap_mangen = { workspace = true }
+# The allocator, on the `#[global_allocator]` in `main.rs`.
+mimalloc = { workspace = true }
+# The NDJSON the remote joiner speaks (`adopt`), decoded into a typed enum
+# rather than poked at as `Value`.
+serde = { workspace = true }
+serde_json = { workspace = true }
+# B9: passphrases and key material are wiped rather than dropped.
+zeroize = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+# Hex and base64 for the upgrade tests and the dev release-channel example,
+# which build a signed release by hand. Not used by the CLI itself: what a
+# person copies out of `identity token ls` is rendered by `mesh-core`.
+data-encoding = { workspace = true }
+ed25519-dalek = { workspace = true }
+# The PTY half of M17 can only be tested where a real binary exists to
+# re-exec as the shim (`sessions::pty_shim`), and that is here.
+mesh-testkit = { workspace = true }
+tempfile = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Structured fields into journald when `up` runs as a systemd service.
+tracing-journald = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+rustix = { workspace = true }
+# `cp` verifies a BLAKE3 digest on both ends of a session (M17 §3.7); the
+# same hash the content store already uses, so no new tree.
+blake3 = { workspace = true }
+
+[lints]
+workspace = true
+
+# -- packaging (MASTERPLAN §15): cargo-deb / cargo-generate-rpm ------------
+
+[package.metadata.deb]
+name = "meshnode"
+extended-description = """\
+Meshware turns any collection of Linux machines into an ad-hoc, governed \
+compute mesh for running automation — bash, Python, Ansible — with no \
+central server and no cloud dependency. meshnode is the daemon and CLI in \
+one static binary."""
+section = "admin"
+priority = "optional"
+assets = [
+    ["target/release/meshnode", "usr/bin/", "755"],
+    ["../../packaging/systemd/meshnode.service", "lib/systemd/system/", "644"],
+    ["../../README.md", "usr/share/doc/meshnode/README", "644"],
+    ["../../LICENSE-MIT", "usr/share/doc/meshnode/LICENSE-MIT", "644"],
+    ["../../LICENSE-APACHE", "usr/share/doc/meshnode/LICENSE-APACHE", "644"],
+    # Written by `meshnode manpage --dir target/man` in build-release.sh.
+    ["../../target/man/meshnode.1", "usr/share/man/man1/", "644"],
+    # The icon, under the freedesktop hicolor theme. meshnode is a daemon
+    # with no window, so it ships no .desktop entry — but a package that
+    # installs no icon at all is one that shows a generic cog in every
+    # software centre, and `meshware-node.png` is the name a future
+    # .desktop file (or a distro's own) would look for.
+    ["../../meshware-icons/app/node/png/square/node-16.png", "usr/share/icons/hicolor/16x16/apps/meshware-node.png", "644"],
+    ["../../meshware-icons/app/node/png/square/node-24.png", "usr/share/icons/hicolor/24x24/apps/meshware-node.png", "644"],
+    ["../../meshware-icons/app/node/png/square/node-32.png", "usr/share/icons/hicolor/32x32/apps/meshware-node.png", "644"],
+    ["../../meshware-icons/app/node/png/square/node-48.png", "usr/share/icons/hicolor/48x48/apps/meshware-node.png", "644"],
+    ["../../meshware-icons/app/node/png/square/node-64.png", "usr/share/icons/hicolor/64x64/apps/meshware-node.png", "644"],
+    ["../../meshware-icons/app/node/png/square/node-128.png", "usr/share/icons/hicolor/128x128/apps/meshware-node.png", "644"],
+    ["../../meshware-icons/app/node/png/square/node-256.png", "usr/share/icons/hicolor/256x256/apps/meshware-node.png", "644"],
+    ["../../meshware-icons/app/node/png/square/node-512.png", "usr/share/icons/hicolor/512x512/apps/meshware-node.png", "644"],
+    ["../../meshware-icons/app/node/node-square.svg", "usr/share/icons/hicolor/scalable/apps/meshware-node.svg", "644"],
+]
+maintainer-scripts = "../../packaging/deb"
+systemd-units = { unit-name = "meshnode", enable = false }
+
+[package.metadata.generate-rpm]
+name = "meshnode"
+assets = [
+    { source = "target/release/meshnode", dest = "/usr/bin/meshnode", mode = "755" },
+    { source = "packaging/systemd/meshnode.service", dest = "/usr/lib/systemd/system/meshnode.service", mode = "644" },
+    { source = "README.md", dest = "/usr/share/doc/meshnode/README", mode = "644", doc = true },
+    { source = "LICENSE-MIT", dest = "/usr/share/licenses/meshnode/LICENSE-MIT", mode = "644", doc = true },
+    { source = "LICENSE-APACHE", dest = "/usr/share/licenses/meshnode/LICENSE-APACHE", mode = "644", doc = true },
+    { source = "target/man/meshnode.1", dest = "/usr/share/man/man1/meshnode.1", mode = "644", doc = true },
+    # Same hicolor set as the .deb above. cargo-generate-rpm resolves
+    # `source` from the workspace root, not from this manifest.
+    { source = "meshware-icons/app/node/png/square/node-16.png", dest = "/usr/share/icons/hicolor/16x16/apps/meshware-node.png", mode = "644" },
+    { source = "meshware-icons/app/node/png/square/node-24.png", dest = "/usr/share/icons/hicolor/24x24/apps/meshware-node.png", mode = "644" },
+    { source = "meshware-icons/app/node/png/square/node-32.png", dest = "/usr/share/icons/hicolor/32x32/apps/meshware-node.png", mode = "644" },
+    { source = "meshware-icons/app/node/png/square/node-48.png", dest = "/usr/share/icons/hicolor/48x48/apps/meshware-node.png", mode = "644" },
+    { source = "meshware-icons/app/node/png/square/node-64.png", dest = "/usr/share/icons/hicolor/64x64/apps/meshware-node.png", mode = "644" },
+    { source = "meshware-icons/app/node/png/square/node-128.png", dest = "/usr/share/icons/hicolor/128x128/apps/meshware-node.png", mode = "644" },
+    { source = "meshware-icons/app/node/png/square/node-256.png", dest = "/usr/share/icons/hicolor/256x256/apps/meshware-node.png", mode = "644" },
+    { source = "meshware-icons/app/node/png/square/node-512.png", dest = "/usr/share/icons/hicolor/512x512/apps/meshware-node.png", mode = "644" },
+    { source = "meshware-icons/app/node/node-square.svg", dest = "/usr/share/icons/hicolor/scalable/apps/meshware-node.svg", mode = "644" },
+]

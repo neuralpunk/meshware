@@ -1,0 +1,261 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/mesh-proto",
+    "crates/mesh-core",
+    "crates/mesh-archive",
+    "crates/meshware-node",
+    "crates/mesh-testkit",
+    "apps/director/src-tauri",
+]
+
+[workspace.package]
+version = "1.0.2"
+edition = "2024"
+# Dual-licensed, MIT OR Apache-2.0, whole workspace: the user of the code
+# picks either. Texts are in ./LICENSE-MIT and ./LICENSE-APACHE.
+#
+# `publish = false` is inherited by every member and is a safety catch: the
+# crates.io publish path has no undo, and these crates are not (yet) meant
+# to be consumed from the registry — the products are the binaries.
+license = "MIT OR Apache-2.0"
+publish = false
+repository = "https://github.com/neuralpunk/meshware"
+homepage = "https://neuralpunk.github.io/meshware/"
+authors = ["The Meshware Developers"]
+rust-version = "1.96"
+
+[workspace.dependencies]
+mesh-proto = { path = "crates/mesh-proto" }
+mesh-core = { path = "crates/mesh-core" }
+mesh-testkit = { path = "crates/mesh-testkit" }
+
+anyhow = "1.0"
+# **No `rayon` feature** (L-11). It only ever takes effect through
+# `Hasher::update_rayon`, which this workspace never calls — every hash
+# here goes through the single-shot `blake3::hash`. Enabling it pulled
+# `rayon`, `rayon-core` and a thread pool into the graph of a binary
+# that starts one thread pool of its own on purpose.
+blake3 = "1.8"
+chacha20poly1305 = "0.11"
+# B9 / `keyfile.rs`: the passphrase-to-key-encryption-key step for a user
+# identity at rest. Argon2id is the memory-hard choice, which is the whole
+# point — a 32-byte Ed25519 seed behind a human-chosen passphrase is only as
+# good as the cost of guessing it, and a fast KDF makes that cheap.
+#
+# `default-features = false` drops the `password-hash` string-encoding layer
+# and its `rand_core`: nothing here parses or emits a PHC string. The salt and
+# the cost parameters live in the key file's own header, so all that is needed
+# is the raw `hash_password_into`. Pure Rust, no C, same as everything else in
+# the node's graph.
+argon2 = { version = "0.6", default-features = false, features = ["alloc"] }
+clap = { version = "4.6", features = ["derive", "env"] }
+curve25519-dalek = "5.0"
+clap_complete = "4.6"
+data-encoding = "2.11"
+humantime = "2.4"
+jsonschema = { version = "0.49", default-features = false }
+dirs = "6.0"
+ed25519-dalek = { version = "3.0", features = ["alloc", "pkcs8", "serde"] }
+futures = "0.3"
+gethostname = "1.1"
+getrandom = "0.4"
+postcard = { version = "1.1", features = ["use-std"] }
+quinn = "0.11"
+rcgen = "0.14"
+redb = "4.2"
+# `thread` for `set_no_new_privs`: a job must carry its own no-new-privs
+# rather than inherit one from the unit, so the unit can be relaxed for the
+# one thing that needs it (rootless podman's `newuidmap`) without every job
+# losing the protection with it. See `jobs.rs`.
+rustix = { version = "1.1", features = ["process", "thread", "fs", "pty", "termios"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "logging", "tls12"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+# M10 workflow definitions (§4.3 writes YAML; the canvas round-trips to it).
+# A pure-Rust parser was chosen over the smaller `serde_yaml_ng` tree
+# deliberately: that one pulls `unsafe-libyaml` — libyaml transpiled from C,
+# unmaintained, with past advisories — and this parses operator-supplied
+# files into a governed execution system. The workspace denies `unsafe_code`
+# in its own crates; buying it back through a dependency on this path is the
+# wrong trade.
+serde-saphyr = "1.1"
+thiserror = "2.0"
+tokio = { version = "1.53", features = ["full"] }
+toml = "1.1"
+# Editing a meshnode.toml a person wrote (Director's settings screens):
+# `toml` re-serialises and drops every comment; this keeps the file as they
+# left it. Already in the tree through `toml` itself.
+toml_edit = "0.25"
+walkdir = "2.5"
+zeroize = "1.8"
+tracing = "0.1"
+# The shipped binary's allocator (ENG-25). musl's serialises under thread
+# contention and releases are static musl, so the numbers everyone quoted
+# — from glibc test builds — were not the product's. See the table on
+# `meshware-node`'s `#[global_allocator]`, and the note in `deny.toml`
+# about why the one C dependency past ring is this one.
+mimalloc = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+# `verify` (Y2/Y3): checking that an attestation certificate is signed by
+# the next one in its chain. It is `ring` underneath — the same one the
+# transport and `presence.rs` already verify with — so this enables a code
+# path rather than adding a library, and the node stays a static musl
+# binary with no C toolchain.
+x509-parser = { version = "0.18", features = ["verify"] }
+# M7 `meshnode upgrade --self`: HTTPS client + release-signature verifier.
+# ring-only TLS (no C toolchain beyond what quinn already needs) and a
+# zero-dependency minisign verifier; rustls-platform-verifier is already in
+# the graph via quinn — promoting it to a direct dependency adds nothing.
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+rustls-platform-verifier = "0.7"
+minisign-verify = "0.2"
+
+# Director (Tauri shell)
+tauri = "2"
+# Director's own SSH client (Add machines, upgrade over SSH): pure Rust,
+# on the same `ring` the transport links. The CLI keeps shelling out to
+# `ssh(1)` on purpose — see `meshware-node/src/adopt.rs` — and this is the
+# one place a password can be taken from a person rather than a prompt.
+russh = { version = "0.63", default-features = false, features = ["ring", "rsa"] }
+tauri-build = "2"
+# Native file/folder pickers (push a bundle dir, save a backup, open a
+# contract) — the desktop-native half of CLI parity.
+#
+# **The XDG portal, not GTK3** — the plugin's default backend is `rfd`'s
+# GTK3 one, and on Wayland it does not work: `rfd` spawns a second thread,
+# calls `gtk_init_check` on it while the app has already initialised GTK on
+# the main thread, and then drives dialogs from there. The chooser never
+# appears and its future never resolves, which is worse than a visible
+# failure — `tauri-plugin-dialog`'s own `save`/`open` commands are `async
+# fn`, so each dead click parks a Tauri async-runtime worker for the life
+# of the process. Enough of them and every Tauri command and everything
+# Director's embedded engine has spawned on that runtime stops making
+# progress: a Save that says "Signing…" for ever, and a mesh that cannot
+# run a script until the app is restarted.
+#
+# The portal backend is a D-Bus call to `xdg-desktop-portal` and always
+# answers — including a cancel.
+tauri-plugin-dialog = { version = "2", default-features = false, features = ["xdg-portal"] }
+ts-rs = "12"
+
+# One version comparison for the whole workspace (`mesh_proto::version_cmp`):
+# four hand-rolled ones sorted `0.7.0-rc.1` above `0.7.0`.
+semver = "1.0"
+# `fact.os.version~/^24\./` in a selector (Phase C, E7). Already in the node's
+# graph through `jsonschema`; linear-time, so a pattern cannot stall a tick.
+regex = "1"
+# `Type=notify` readiness and the systemd watchdog, from the daemon.
+sd-notify = "0.4"
+# Structured fields into journald when the daemon runs under systemd.
+tracing-journald = "0.3"
+# Unprivileged per-job filesystem sandboxing (`mesh_core::sandbox`).
+landlock = "0.4"
+# `10.0.0.0/28` in a target list expands to its hosts.
+ipnet = "2.12"
+# Cancellation tokens for Director's deploy runs.
+tokio-util = "0.7"
+# Locks that cannot be poisoned (ENG-2). Already in the graph through
+# tokio's `full` feature, so this adds no crate.
+parking_lot = "0.12"
+# Director: a rolling log file under its data directory.
+tracing-appender = "0.2"
+# Director: opt-in "remember in my keychain" for SSH and sudo passwords.
+# Pure-Rust backends only — the secret-service one over zbus, never libdbus.
+keyring = { version = "3.6", default-features = false }
+# Director asks the session bus whether any panel is drawing tray icons
+# (`glance::sni_host_present`). Same major as `keyring`'s own, so this adds
+# no second copy to the tree.
+# `blocking-api` is the one this uses and is named explicitly: it happens to
+# be on anyway through `keyring`'s own zbus, and a dependency that compiles
+# only because a sibling enabled the feature is one that breaks the day the
+# sibling changes its mind.
+zbus = { version = "5", default-features = false, features = ["async-io", "blocking-api"] }
+# The CLI's tables and progress: unicode width, wrapping, terminal width,
+# and one live line per host while `adopt` runs.
+comfy-table = "7.2"
+indicatif = "0.18"
+# Columns a string takes on screen, for `meshnode run`'s live board: a row
+# wider than the terminal wraps, and a board that wraps cannot be redrawn in
+# place. Already in the tree through both crates above.
+unicode-width = "0.2"
+# `meshnode manpage`.
+clap_mangen = "0.2"
+# Director plugins: one instance, remembered window geometry, launch at
+# login, OS notifications, the clipboard, and Director's own updater.
+tauri-plugin-single-instance = "2"
+tauri-plugin-window-state = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-updater = "2"
+# `director://jobs/job-…` — a job id somebody pasted into a chat opens on
+# the reader's machine at the right screen (L2 P5).
+tauri-plugin-deep-link = "2"
+
+# dev
+tempfile = "3"
+# Snapshot tests for the remote scripts and unit files; property tests for
+# the parsers a person's typing reaches.
+insta = { version = "1.48", features = ["yaml"] }
+proptest = "1.11"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+unwrap_used = "warn"
+dbg_macro = "warn"
+
+[profile.release]
+# Fat rather than thin LTO: ~1 MB off the shipped binary (18.3 MB vs 19.2)
+# and a few percent of runtime, for about a minute of build time nobody
+# waits on interactively. `meshnode` is a single binary people copy onto
+# machines by hand — its size is a feature, not a statistic.
+#
+# Deliberately *not* `panic = "abort"`, which would take another ~1.7 MB of
+# unwinding tables. A panicking task in an async daemon currently kills that
+# task and is logged; with abort it would kill the node. Trading a node's
+# reliability for a megabyte is the wrong way round.
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
+
+# Director, built to be waited for.
+#
+# Fat LTO is one LLVM module optimised by one thread, and Director's is a
+# big one: `cargo build --release` spent 11m07s in that single pass with
+# fifteen of sixteen cores idle. ThinLTO splits it, and on this machine
+# that is 3m51s at 1164% CPU instead of 17m55s at 100% — measured on the
+# same warm tree, same change.
+#
+# It is not free. ThinLTO's cross-module dead-code elimination is weaker
+# than fat's, and Director's binary goes ~118 MB → ~174 MB. That is the
+# whole trade, and it is why this is a *second* profile rather than an
+# edit to `release`: the everyday build is the one you wait for, and the
+# shipped build is the one that has to be small.
+# `build-director-release.sh --ship` builds with `release` and gets the
+# small binary back at the 18-minute price.
+#
+# Lands in target/director/, not target/release/.
+[profile.director]
+inherits = "release"
+lto = "thin"
+codegen-units = 16
+
+# Crypto in debug builds is 10–100× slower than release, and every op in
+# the replicated log carries an Ed25519 signature — tests spend their time
+# in dalek otherwise (the 100-node CI sim needs this to stay fast).
+[profile.dev.package.ed25519-dalek]
+opt-level = 3
+[profile.dev.package.curve25519-dalek]
+opt-level = 3
+[profile.dev.package.blake3]
+opt-level = 3
+[profile.dev.package.chacha20poly1305]
+opt-level = 3
+[profile.dev.package.ring]
+opt-level = 3
+[profile.dev.package.rustls]
+opt-level = 3

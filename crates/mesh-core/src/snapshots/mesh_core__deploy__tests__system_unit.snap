@@ -1,0 +1,201 @@
+---
+source: crates/mesh-core/src/deploy.rs
+expression: system.unit_text()
+---
+# Meshware Node — systemd unit (MASTERPLAN §15 packaging).
+#
+# The node runs as its own low-privilege system user. Root is never
+# required; it only unlocks stronger per-job sandboxing later (§7.5).
+#
+#   systemctl enable --now meshnode
+#   systemctl reload meshnode        # SIGHUP: hot-reload config (§12)
+#
+# Upgrades: `meshnode upgrade --self` (MASTERPLAN M7) swaps the binary and
+# drains the daemon; it exits cleanly once idle and Restart=always brings
+# the new binary up. Package installs (.deb/.rpm) upgrade through
+# the package manager instead, then `meshnode drain` or
+# `systemctl restart meshnode`.
+#
+# Fleet upgrades (`meshnode upgrade --on <ring> --to <version>`, M24 §4) let
+# a whole ring do that on its own, one wave at a time, without anybody
+# copying a binary anywhere. They need the daemon to be able to write its
+# own binary, which ProtectSystem=full below deliberately forbids — see
+# meshnode-fleet-upgrade.conf for the opt-in drop-in that grants exactly
+# that one directory and nothing else.
+
+[Unit]
+Description=Meshware Node — governed compute mesh daemon
+Documentation=https://github.com/neuralpunk/meshware
+After=network-online.target
+Wants=network-online.target
+# Restart=always below, bounded: a node that cannot stay up for more than a
+# few seconds is given ten tries in five minutes, then left `failed` for a
+# person to look at instead of spinning for ever.
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+# `notify`: the daemon says READY once its listener is bound and its state
+# is loaded (sd_notify), so `systemctl start` returns when the node is
+# actually up, and dependents order after a *working* node. A start that
+# is still replaying or repairing a large op-log asks for more time with
+# EXTEND_TIMEOUT_USEC, and only while that work is moving.
+#
+# WatchdogSec restarts a daemon that has stopped working: the heartbeat is
+# sent only while the node's critical loops (gossip, the scheduler, IPC,
+# wire dispatch, the QUIC accept loop) are alive and have made progress
+# recently. A wedged loop withholds it; systemd aborts the process and
+# Restart= brings it back.
+Type=notify
+NotifyAccess=main
+WatchdogSec=90
+User=meshnode
+Group=meshnode
+# .deb/.rpm install to /usr/bin (cargo-deb / cargo-generate-rpm metadata).
+# Tarball installs land in /usr/local/bin by default: override with
+#   systemctl edit meshnode   →   [Service] ExecStart= / ExecStart=/usr/local/bin/meshnode up
+ExecStart=/usr/local/bin/meshnode up
+ExecReload=/bin/kill -HUP $MAINPID
+# `systemctl restart` is the documented package-upgrade path, so stopping
+# is an upgrade path, and these two lines are what keep an upgrade from
+# being an outage (ENG-15).
+#
+# KillMode=mixed sends SIGTERM to the daemon *only*. The default,
+# control-group, signals every process in the cgroup — which here means
+# every job the executor is running, killed directly, before the daemon has
+# been told anything. There would be nothing left for a graceful stop to be
+# graceful about.
+#
+# The daemon then stops accepting work, lets what it already accepted
+# finish, and exits; a job still running when `[shutdown] grace_secs`
+# (default 30) runs out is left to the SIGKILL that ends the stop, and is
+# marked failed on the next start. TimeoutStopSec sits above that grace, so
+# it is the daemon's deadline that bites and not systemd's.
+KillMode=mixed
+TimeoutStopSec=60
+# Every exit is restarted: a crash, an OOM kill, a watchdog abort and a
+# start that timed out, as well as the clean exit a drain or an upgrade
+# ends with. `on-success` restarted only the last, and left a crashed node
+# down until someone noticed.
+#
+# Except the two refusals a restart cannot fix, which `meshnode up` exits
+# with on purpose: 78 (EX_CONFIG) for a configuration that does not load
+# or check, and 65 (EX_DATAERR) for a data directory written by a newer
+# release. Restarting either would only fill the journal.
+Restart=always
+RestartSec=2
+RestartPreventExitStatus=65 78
+Environment=MESHWARE_DATA_DIR=/var/lib/meshware
+# This home's config is /etc/meshware/meshnode.toml (DOC-5). XDG_CONFIG_HOME
+# keeps the older /etc/meshware/meshware/meshnode.toml readable, so an upgrade
+# does not lose its settings; `meshnode doctor` names that file.
+Environment=XDG_CONFIG_HOME=/etc/meshware
+
+# Meshware saturates the machine by design (MASTERPLAN §11) — no CPU or
+# memory clamps here; cap in /etc/meshware/meshnode.toml [limits].
+LimitNOFILE=65536
+
+# ───────────────────────────────────────────────────────────────────────
+# Hardening (E1-P3)
+# ───────────────────────────────────────────────────────────────────────
+#
+# **The constraint that shapes this whole block:** this daemon's job is to
+# spawn other people's commands. A unit-level restriction does not stop at
+# the daemon — it is inherited by every job the executor runs. So the rule
+# here is not "score as high as systemd-analyze will allow"; it is
+# *"restrict everything the daemon does not need, and nothing a legitimate
+# job might."* Each directive deliberately left off is listed at the bottom
+# with the thing it would have broken, because an unexplained absence reads
+# as an oversight and gets "fixed" by the next person.
+#
+# Measured, not asserted:  ./scripts/security-posture.sh
+#
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/meshware
+# NOTE: fleet self-upgrade additionally needs the install directory writable.
+# That is opt-in, in meshnode-fleet-upgrade.conf, never here.
+PrivateTmp=true
+
+# The daemon needs no capabilities of its own — it never changes user, and
+# every sandbox it applies (Landlock) is a self-restriction that requires no
+# privilege. Jobs inherit the empty set, which is correct: meshware's execution
+# model is unprivileged by design (§7.5).
+#
+# Nothing widens this for containers. A rootless container cannot be made
+# from inside this unit at all — the Protect* lines below cover parts of
+# /proc, and the kernel will not mount a container a /proc of its own under
+# that — so they are made by the meshnode account's own podman.socket, in its
+# user manager, and this process only talks to it (engines.rs, "Where
+# containers are made"). A drop-in that once relaxed NoNewPrivileges and this
+# set so the daemon could exec newuidmap itself is removed by every install.
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+# Kernel state is read-only. The node *reads* a great deal of it —
+# /proc/pressure/*, /proc/stat, /proc/cpuinfo, /sys/class/net,
+# /sys/fs/cgroup/cgroup.controllers, /sys/kernel/security/lsm — and these
+# directives leave reads working while blocking writes.
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectClock=true
+# E2.1: `Delegate=yes` gives the service a writable cgroup subtree of its
+# own, which is what lets meshware put each job in its own cgroup and make
+# `--cpus` and `--mem` real ceilings rather than scheduling hints.
+#
+# **This is why ProtectControlGroups is not set here.** That directive
+# mounts the cgroup hierarchy read-only, which would leave the delegation
+# unusable and every declared limit silently unenforced — the exact failure
+# this phase exists to remove. The subtree systemd hands over is the
+# service's own and nothing else; the daemon can write inside it and
+# nowhere else in /sys/fs/cgroup.
+#
+# Without this line meshware still runs. It logs, loudly and once, that
+# declared cpu/memory limits are NOT enforced, and `meshnode doctor` says
+# so — because an operator who believes `--mem 4G` is a ceiling when it is
+# not has been misled by us.
+Delegate=yes
+
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+SystemCallArchitectures=native
+# The mesh speaks QUIC (UDP) and the IPC socket is AF_UNIX; AF_NETLINK is
+# how interface enumeration works. Nothing here needs AF_PACKET, and a job
+# that does would have needed CAP_NET_RAW, which the empty bounding set
+# above already denies.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+# State, job spool and content are this node's alone; 0077 is the umask the
+# identity key is already written with.
+UMask=0077
+
+# ── Deliberately NOT set, and why ──────────────────────────────────────
+#
+#   PrivateDevices=          Hides /dev/nvidia*, /dev/kfd. GPU discovery
+#                            (`nvidia-smi`, `rocm-smi`) and every accelerator
+#                            job stop working. Non-negotiable.
+#   ProcSubset=pid           Hides /proc/pressure, /proc/stat, /proc/cpuinfo,
+#                            /proc/meminfo, /proc/loadavg — the entire
+#                            capacity and telemetry surface.
+#   ProtectProc=invisible    Hides PID 1 from an unprivileged service, so
+#                            init-system detection (/proc/1/comm, facts.rs)
+#                            silently degrades.
+#   MemoryDenyWriteExecute=  Breaks every JIT a job might legitimately use —
+#                            Python with numba, Java, node, LuaJIT.
+#   RestrictNamespaces=      Breaks jobs that use unshare or a container
+#                            runtime. Available in the strict drop-in.
+#   SystemCallFilter=        Would filter every job as well as the daemon,
+#                            and meshware cannot know what a customer's
+#                            job legitimately calls. Available in the strict
+#                            drop-in, where it is an operator's decision
+#                            about their own workloads rather than ours.
+#   IPAddressDeny=           A mesh peer may be at any address by definition.
+#
+# The last two are offered in meshnode-hardened.conf for fleets whose jobs
+# are known and narrow. Same pattern as the fleet-upgrade drop-in: a
+# decision an operator makes on purpose, in a file they can see.
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,123 @@
+[package]
+name = "mesh-archive"
+description = "Meshware long-term history: run and job records as Parquet, queryable with SQL"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+# NOTE: **nothing in this workspace links this crate.** Not `meshware-node`,
+# not Director — it is not in `[workspace.dependencies]` at all, and that is
+# the point rather than an oversight.
+#
+# A node's job is to run work and converge. Analytics is not that job, and
+# an analytics engine is not small: DataFusion and Arrow together are larger
+# than everything else in the workspace put together. Putting them in the
+# daemon would trade the thing that makes meshnode worth deploying — one
+# tiny binary you can drop on anything — for a feature that belongs on a
+# workstation.
+#
+# Both sides reach the archive the same way: by **spawning**
+# `meshware-archive`, the binary below. `mesh_core::archive_read` finds it
+# on `PATH` or beside the running `meshnode`, and Director inherits that
+# through `mesh-core`. §4 decision 1, stated as a manifest.
+#
+# The reverse direction is fine and intended: this crate depends only on
+# `mesh-proto` for the row shapes, so anything that can obtain rows over IPC
+# can build an archive, including a headless box running an archive job.
+
+[features]
+default = []
+# `meshware-archive`, a standalone reader. Off by default so linking this
+# crate as a library costs nothing extra.
+# `meshware-archive`: the reader, plus `ingest`, which is the only reason
+# it needs `mesh-core` (for the IPC client and the home layout). Off by
+# default, and it is a *separate binary* — nothing here is ever linked into
+# `meshnode`, which is the whole point of the arrangement.
+cli = ["dep:clap", "dep:tokio", "dep:mesh-core"]
+
+[[bin]]
+name = "meshware-archive"
+path = "src/bin/archive.rs"
+required-features = ["cli"]
+
+[dependencies]
+mesh-proto = { workspace = true }
+clap = { workspace = true, optional = true }
+mesh-core = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+# `http` only for `HeaderMap`: `object_store` takes one to set the Object
+# Lock headers a WORM audit copy needs, and exposes no other way to send
+# them. Already in the tree via reqwest, so naming it costs nothing.
+http = "1"
+
+
+# Arrow and Parquet come from DataFusion's own re-exports rather than as
+# separate dependencies: they are versioned in lockstep with it, and pinning
+# them independently is how you end up with two incompatible `RecordBatch`
+# types in one binary.
+#
+# `default-features = false` matters: the default set pulls `compression`,
+# which brings bzip2 and liblzma — both bound C, both for formats nothing
+# here reads. What we write is Snappy (`snap`), which is pure Rust and what
+# every Parquet reader assumes.
+#
+# It does not get the tree to zero C, and it is worth being exact about
+# that rather than claiming a property we do not have: `arrow-ipc` depends
+# on `zstd` unconditionally, so `zstd-sys` is in this crate's tree and
+# cannot be removed without patching DataFusion. That is acceptable *here*
+# and only here — Director already links WebKit and GTK, so one more C
+# library on that side changes nothing. Check `cargo tree -p meshware-node`
+# before believing any of this applies to the daemon: it has no Arrow, no
+# Parquet, no DataFusion, and its only native deps remain `ring`,
+# `dirs-sys` and `linux-raw-sys`.
+[dependencies.datafusion]
+version = "55"
+default-features = false
+features = [
+    "parquet",
+    "sql",
+    "datetime_expressions",
+    "string_expressions",
+    "regex_expressions",
+    "unicode_expressions",
+    "recursive_protection",
+]
+
+# The bucket (M31 B4). Already in this crate's tree — DataFusion depends on
+# it for its own object-store reads — so naming it here costs the `aws`
+# feature and nothing else.
+#
+# `default-features = false` keeps `azure`, `gcp` and the integration
+# harness out; `aws` brings `reqwest`/`hyper`, both pure Rust over rustls.
+# Checked rather than assumed: `cargo tree -p mesh-archive | grep -i
+# openssl` finds only `openssl-probe`, which locates a cert store and links
+# nothing. The C set is unchanged — `zstd-sys` and `linux-raw-sys`, both
+# already documented above — and `meshware-node` is untouched, which is the
+# only fence that matters (C2).
+[dependencies.object_store]
+version = "0.13"
+default-features = false
+features = ["aws"]
+
+[dev-dependencies]
+blake3 = { workspace = true }
+# The B4 tests sign audit rows the way the daemon does, so what they verify
+# is the real signature path rather than a rehearsal of it. `mesh-core` is
+# already an optional dependency here (the `cli` feature); naming it as a
+# dev-dependency costs no extra compilation and keeps the library itself
+# free of it.
+mesh-core = { workspace = true }
+postcard = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

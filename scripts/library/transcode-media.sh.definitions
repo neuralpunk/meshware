@@ -1,0 +1,61 @@
+{
+  "name": "transcode-media",
+  "about": "Re-encode one video. One item per file.",
+  "item": "path",
+  "needs": {
+    "cores": 2
+  },
+  "tools": [
+    "ffmpeg"
+  ],
+  "reads": [
+    "$path"
+  ],
+  "writes": [
+    "$outdir"
+  ],
+  "args": [
+    {
+      "name": "codec",
+      "type": "choice",
+      "choices": [
+        "libx265",
+        "libx264",
+        "libsvtav1"
+      ],
+      "default": "libx265",
+      "description": "Video encoder"
+    },
+    {
+      "name": "crf",
+      "type": "int",
+      "default": 28,
+      "min": 0,
+      "max": 51,
+      "description": "Quality — lower is bigger"
+    },
+    {
+      "name": "outdir",
+      "type": "text",
+      "description": "Where finished files go. Leave blank to keep them on the machine that made them."
+    },
+    {
+      "name": "path",
+      "type": "text",
+      "required": true,
+      "description": "The video to encode"
+    },
+    {
+      "name": "preset",
+      "type": "choice",
+      "choices": [
+        "veryfast",
+        "faster",
+        "medium",
+        "slow"
+      ],
+      "default": "medium",
+      "description": "Speed against size"
+    }
+  ]
+}

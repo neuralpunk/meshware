@@ -1,0 +1,11 @@
+---
+source: crates/mesh-core/src/deploy.rs
+expression: system.firewall_script()
+---
+if command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --state >/dev/null 2>&1; then
+firewall-cmd --permanent --add-port=7777/udp >/dev/null 2>&1 && firewall-cmd --reload >/dev/null 2>&1 && echo mw.firewall=firewalld || echo mw.firewall=failed
+elif command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q '^Status: active'; then
+ufw allow 7777/udp >/dev/null 2>&1 && echo mw.firewall=ufw || echo mw.firewall=failed
+else
+echo mw.firewall=none
+fi

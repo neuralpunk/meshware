@@ -1,0 +1,27 @@
+---
+source: crates/mesh-core/src/deploy.rs
+expression: user.user_unit_text()
+---
+# Meshware Node — user service, written by Director / `meshnode adopt`.
+# Runs as this account. It stops at logout unless lingering is on:
+#   loginctl enable-linger $USER
+[Unit]
+Description=Meshware Node — governed compute mesh daemon (user)
+After=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+Type=notify
+NotifyAccess=main
+WatchdogSec=90
+ExecStart=/home/pi/.local/bin/meshnode up
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=2
+RestartPreventExitStatus=65 78
+Environment=MESHWARE_DATA_DIR=/home/pi/.meshware
+Environment=XDG_CONFIG_HOME=/home/pi/.config
+
+[Install]
+WantedBy=default.target

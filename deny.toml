@@ -1,0 +1,261 @@
+# cargo-deny — the supply-chain gate (E1-P3).
+#
+# Run locally with `cargo deny check`; CI runs the same command on every push
+# and pull request, which is the point: a new advisory against a dependency
+# breaks the build, and breaking the build is how we find out.
+#
+# Three things this file is deliberately doing beyond the defaults:
+#
+#   1. **Licence review is done once, here, with the answer written down.**
+#      The workspace is MIT OR Apache-2.0, and the allow list below is the
+#      set of licences that keep it that way: every one of them lets anybody
+#      take the binaries and the source anywhere, closed products included,
+#      without picking up obligations meshware itself does not impose. It was
+#      derived from the actual graph (958 third-party crates at v0.6.11),
+#      not copied from a template, and each non-obvious entry says which
+#      crate needs it.
+#   2. **Architectural decisions become gates.** "No C toolchain in the
+#      node", "ring-only TLS" and "never `unsafe-libyaml`" are all written
+#      in Cargo.toml as prose today. Prose does not fail CI. `[bans]` does.
+#   3. **`multiple-versions` warns rather than denies.** A graph this size
+#      with Tauri in it always has duplicates; denying them would train
+#      everybody to ignore the output, which is worse than not running it.
+
+[graph]
+# Every target meshware actually ships to. Left unset, cargo-deny checks the
+# host triple only and silently stops seeing Director's Windows and macOS
+# dependencies — half the graph, unreviewed.
+targets = [
+    "x86_64-unknown-linux-musl",
+    "aarch64-unknown-linux-musl",
+    "x86_64-unknown-linux-gnu",
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-pc-windows-msvc",
+]
+all-features = true
+
+[output]
+feature-depth = 1
+
+# ─────────────────────────────────────────────────────────────────────────
+# Advisories — the half that matters most
+# ─────────────────────────────────────────────────────────────────────────
+[advisories]
+version = 2
+
+# **Every entry here is a decision to ship a known finding**, so each one
+# carries the date it was taken, why, and the condition that takes it back
+# out. An id with no comment is a bug in this file.
+#
+# The single most important fact about this whole list, established with
+# `cargo tree -p meshware-node -e normal --target x86_64-unknown-linux-musl`
+# on 2026-09-06: **none of these crates reach `meshnode`.** The shipped node
+# binary — the thing that runs on a customer's fleet and accepts work over
+# the network — contains no gtk, no rsa, no quick-xml and no unic-*. Every
+# entry below is in Director (Tauri's Linux webview stack, its SSH client)
+# or in `mesh-archive` (DataFusion). That is why they are tolerable; if one
+# ever moves into the node's graph, this comment is wrong and the entry must
+# be re-decided rather than carried forward.
+ignore = [
+    # The ten gtk-rs GTK3 "unmaintained" entries (RUSTSEC-2024-0411…0420)
+    # that sat here are gone: the advisory database withdrew all ten on
+    # 2026-08-14, when gtk-rs development resumed. cargo-deny reports an
+    # ignore that matches nothing as `advisory-not-detected`, and a list
+    # of dead exceptions teaches people to stop reading this file.
+
+    # ── unmaintained build-time transitives ────────────────────────────
+    # 2026-09-06. `proc-macro-error` and the `unic-*` family are compile-time
+    # only and do not exist in any shipped binary. Unmaintained, not
+    # vulnerable.
+    # OUT WHEN: the upstreams that pull them bump. Nothing to do here.
+    "RUSTSEC-2024-0370", # proc-macro-error
+    "RUSTSEC-2025-0075", # unic-char-property
+    "RUSTSEC-2025-0080", # unic-char-range
+    "RUSTSEC-2025-0081", # unic-common
+    "RUSTSEC-2025-0098", # unic-ucd-ident
+    "RUSTSEC-2025-0100", # unic-ucd-version
+
+    # ── quick-xml denial of service ────────────────────────────────────
+    # 2026-09-06. Two DoS advisories: quadratic time on duplicate attribute
+    # names, and unbounded namespace allocation in `NsReader`.
+    # REACHABILITY: `object_store` (DataFusion → mesh-archive) parses XML
+    # from an object-store endpoint the *operator* configured, and `plist`
+    # (Tauri) parses bundle metadata shipped inside the app. Neither reads
+    # attacker-controlled XML. Both versions in the graph are already the
+    # newest their parents allow — `cargo update` does not move them.
+    # OUT WHEN: `object_store` and `plist` accept a patched quick-xml.
+    "RUSTSEC-2026-0194",
+    "RUSTSEC-2026-0195",
+
+    # ── RSA: the Marvin attack (timing sidechannel) ────────────────────
+    # 2026-09-06. Reaches **Director only**, through `russh`'s `rsa`
+    # feature, which Cargo.toml enables so Director's "Add machines" flow
+    # can use an operator's existing RSA SSH key.
+    # REACHABILITY: the advisory is a timing sidechannel on RSA
+    # *decryption* (PKCS#1 v1.5 unpadding). SSH does not use RSA for key
+    # exchange — that is ECDH — and an SSH client authenticating with an
+    # RSA key *signs* a challenge rather than decrypting one. The
+    # vulnerable operation is not on this path. It is ignored on that
+    # reasoning, not on "no fix available".
+    # OUT WHEN: `rsa` ships a constant-time release (the crate is still
+    # 0.10.0-rc), or the `rsa` feature comes off `russh` — which is the
+    # cheaper fix if RSA host keys stop mattering to our users. Re-decide
+    # by 2027-03, sooner if the advisory is upgraded to cover signing.
+    "RUSTSEC-2023-0071",
+]
+
+# ─────────────────────────────────────────────────────────────────────────
+# Licences
+# ─────────────────────────────────────────────────────────────────────────
+#
+# meshware itself is MIT OR Apache-2.0 (see ./LICENSE-MIT, ./LICENSE-APACHE).
+# The point of a permissive licence is that whoever builds on meshware owes
+# nothing back — and a copyleft dependency, statically linked into the musl
+# binary, would quietly take that away. So the list is "may be redistributed
+# inside anything, closed-source included", not merely "may be distributed".
+# That is why GPL-3.0-or-later is not on it, and the gate should catch one
+# the day it arrives rather than in a downstream user's licence review.
+#
+# Notes are on the entries somebody will ask about.
+[licenses]
+version = 2
+confidence-threshold = 0.93
+
+allow = [
+    # meshware's own crates are `MIT OR Apache-2.0` and `publish = false`;
+    # `[licenses.private] ignore` below skips them on that basis, so every
+    # entry in this list is there for a third-party crate.
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",                  # `ring` is "Apache-2.0 AND ISC" — both halves needed
+    "Zlib",
+    "0BSD",
+    "Unlicense",
+    "MIT-0",
+    "CC0-1.0",              # `tiny-keccak`; also an option on `blake3`
+    "BSL-1.0",              # `clipboard-win`, `error-code` (Director, Windows)
+    "Unicode-3.0",          # the 13 `icu_*`/`zerovec` crates, single-licensed
+    "MPL-2.0",              # see below
+]
+
+# Deliberately NOT allowed, and each absence is a decision:
+#
+#   GPL-*              — a GPL dependency, statically linked into a musl
+#                        binary we ship under a permissive licence, would
+#                        take away what that licence promises downstream.
+#                        None is present. CI must say so the day one is.
+#   LGPL-2.1-or-later  — offered by `r-efi` only as one arm of
+#                        "MIT OR Apache-2.0 OR LGPL-2.1-or-later". We take
+#                        MIT. This matters more now than it did under GPL:
+#                        LGPL in a *static* binary obliges us to ship
+#                        relinkable objects, which is a release-engineering
+#                        burden nobody has signed up for.
+#   AGPL-*             — worse than GPL for the same reason, and worse again
+#                        because much of the enterprise market bans it
+#                        outright. None is present.
+#   CDLA-Permissive-2.0 — `webpki-root-certs` carries it, and does not
+#                        resolve into any target this file checks. Left out
+#                        deliberately: the gate should make somebody look
+#                        the day it *does* arrive, rather than pre-approving
+#                        a licence nothing currently uses.
+#
+# On MPL-2.0: `cssparser`, `cssparser-macros`, `dtoa-short` and `selectors`
+# reach Director through Tauri's webview stack, and `option-ext` reaches
+# **meshnode** through `dirs`. MPL-2.0 is file-level copyleft and
+# explicitly permits distribution inside a Larger Work under any licence,
+# closed-source included — the obligation attaches to the MPL-covered *files*
+# and nothing else. We ship these unmodified, so the obligation is to make
+# those files' source available on request, which it already is upstream.
+# Modifying one would mean publishing that file. It is allowed knowingly,
+# not by accident — which is the only reason this paragraph exists.
+
+[licenses.private]
+# Workspace crates are `publish = false`, so cargo-deny skips them here: the
+# allow list above is a review of other people's licences, not of our own.
+ignore = true
+
+# ─────────────────────────────────────────────────────────────────────────
+# Bans — architectural decisions, made enforceable
+# ─────────────────────────────────────────────────────────────────────────
+[bans]
+multiple-versions = "warn"
+# `warn`, not `deny`, and the reason is narrow: every workspace crate
+# declares its siblings as `{ workspace = true }`, the workspace declares
+# them as `{ path = ... }` with no version, and cargo-deny reads that as a
+# wildcard. `allow-wildcard-paths` would forgive it, but only for crates
+# marked `publish = false`, which these are not.
+# OUT WHEN: the workspace crates are marked `publish = false` (they are not
+# on crates.io and there is no plan to put them there) — at which point this
+# becomes `deny` and `allow-wildcard-paths` does the rest.
+wildcards = "warn"
+allow-wildcard-paths = true
+highlight = "all"
+
+deny = [
+    # `unsafe-libyaml` is libyaml transpiled from C, unmaintained, with past
+    # advisories. Cargo.toml already explains why `serde-saphyr` was chosen
+    # over the smaller `serde_yaml_ng` tree that pulls it — the workspace
+    # denies `unsafe_code` in its own crates and buying it back through a
+    # dependency on the path that parses operator-supplied files into a
+    # governed execution system is the wrong trade. This is that paragraph,
+    # as a gate.
+    { crate = "unsafe-libyaml", reason = "transpiled C in the YAML parser; see the serde-saphyr note in Cargo.toml" },
+    { crate = "serde_yaml", reason = "pulls unsafe-libyaml; the workspace uses serde-saphyr" },
+
+    # ring-only TLS, and no C toolchain in the node beyond ring's own
+    # assembly and mimalloc's. An OpenSSL or SChannel path appearing in the
+    # graph is a portability regression (static musl cross-builds) before
+    # it is anything else.
+    #
+    # **mimalloc is the second exception, and it was bought with a
+    # measurement** (ENG-25). Releases are static musl, musl's allocator
+    # serialises under thread contention, and the numbers this project
+    # publishes came from glibc builds — so the rule as written was
+    # protecting the cross-build at the cost of the product being slower
+    # than its own proof points. Measured: musl was 40% slower bringing a
+    # hundred nodes up, and the dispatch round trip was three times what it
+    # is now. It is MIT, it links statically, it adds ~0.5 MB and no
+    # runtime dependency, and the cross-build already has a C compiler for
+    # ring. `docs/operational-cost.md` carries the table.
+    #
+    # The rule still holds for everything else, and TLS most of all.
+    { crate = "openssl", reason = "rustls + ring is the only TLS stack; see Cargo.toml" },
+    { crate = "openssl-sys", reason = "would put a C toolchain in the musl cross-build" },
+    { crate = "native-tls", reason = "platform TLS; the transport is key-pinned rustls by design" },
+
+    # Present in the graph, and allowed only where it already comes from.
+    #
+    # `dbus`/`libdbus-sys` reach **Director** through `tao`, Tauri's
+    # windowing layer, and there is no way to build a Tauri app on Linux
+    # without them. They do NOT reach `meshnode` — verified with
+    # `cargo tree -p meshware-node -e normal --target x86_64-unknown-linux-musl`,
+    # which finds no dbus at all. Cargo.toml's "never libdbus" note is about
+    # `keyring`, which genuinely does use pure-Rust zbus; this records the
+    # other path so the two claims are not confused with each other later.
+    #
+    # `wrappers` is the enforcement: if libdbus ever arrives through anything
+    # but Tauri's stack — a keyring backend flip, say — this fails.
+    { crate = "libdbus-sys", wrappers = ["dbus"], reason = "C libdbus; Director gets it unavoidably via tao, nothing else may" },
+    # `dbus-secret-service` is deliberately NOT in this wrapper list: keyring is
+    # configured for the pure-Rust zbus backend, so if libdbus ever arrives that
+    # way instead, this is the line that says so.
+    { crate = "dbus", wrappers = ["tao"], reason = "reaches Director only through Tauri's windowing layer; keyring uses zbus" },
+]
+
+skip = []
+
+# ─────────────────────────────────────────────────────────────────────────
+# Sources
+# ─────────────────────────────────────────────────────────────────────────
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+# Empty, and worth keeping empty: every dependency comes from crates.io, so
+# a `git = ` dependency appearing in a manifest fails here rather than in a
+# reproducibility conversation eighteen months later.
+allow-git = []

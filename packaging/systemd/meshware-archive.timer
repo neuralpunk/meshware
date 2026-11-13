@@ -1,0 +1,31 @@
+# When the archive ingest runs (M31 B4).
+#
+# **Shipped disabled.** Enabling it is the operator saying they want an
+# archive; until then `meshnode doctor` is the thing that says one is
+# missing, and silence from a timer nobody enabled is not an answer.
+#
+#   systemctl enable --now meshware-archive.timer
+#   systemctl list-timers meshware-archive.timer
+#
+# Hourly rather than daily because the ingest is idempotent and cheap when
+# there is nothing new: it pages what has settled past the lag window and
+# writes nothing when that set is empty. Hourly also bounds how much
+# history a machine can lose between the last ingest and a disk failure,
+# which is the number this cadence is actually choosing.
+
+[Unit]
+Description=Meshware — hourly archive ingest
+Documentation=https://github.com/neuralpunk/meshware
+
+[Timer]
+OnCalendar=hourly
+# Spread across the hour, so a fleet of a hundred nodes does not page the
+# same index at :00 — and so a bucket push does not arrive as a thundering
+# herd of identical PUTs.
+RandomizedDelaySec=15m
+# A machine that was off at the appointed hour still ingests when it comes
+# back, rather than silently skipping until the next one.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,48 @@
+---
+source: crates/mesh-core/src/deploy.rs
+expression: system.dropin_text()
+---
+# Fleet self-upgrade drop-in (M24 §4) — OPT IN, deliberately.
+#
+# Install with:
+#
+#   sudo mkdir -p /etc/systemd/system/meshnode.service.d
+#   sudo cp meshnode-fleet-upgrade.conf \
+#           /etc/systemd/system/meshnode.service.d/fleet-upgrade.conf
+#   sudo systemctl daemon-reload && sudo systemctl restart meshnode
+#
+# ---------------------------------------------------------------------------
+# What this changes, and why it is not the default
+# ---------------------------------------------------------------------------
+#
+# `meshnode upgrade --on <ring> --to <version>` asks each node to fetch and
+# verify its own signed release and swap its own binary. **No binary is ever
+# handed from node to node** — the mesh carries the decision, never the
+# executable. But the node still has to be able to write the file, and the
+# shipped unit deliberately makes that impossible: `ProtectSystem=full`
+# renders /usr read-only for the service, and the daemon runs as the
+# unprivileged `meshnode` user.
+#
+# That default is correct. A daemon that can rewrite its own binary is a
+# daemon whose compromise is permanent, so granting it that power is a
+# decision an operator makes on purpose, once, in a file they can see —
+# never something a feature turns on for them.
+#
+# This drop-in makes exactly one directory writable: wherever meshnode is
+# installed. Everything else about the hardening is untouched.
+#
+# ---------------------------------------------------------------------------
+# Which path to use
+# ---------------------------------------------------------------------------
+#
+# The line below assumes the tarball default, /usr/local/bin. Change it to
+# match `which meshnode`.
+#
+# **Package installs (.deb/.rpm) must not use this.** A dpkg- or rpm-owned
+# binary is upgraded through the package manager, and meshnode refuses to
+# replace one itself — with a message naming apt or dnf. For those fleets the
+# rollout tool is the one you already have; `meshnode upgrade --on` is for
+# tarball installs.
+
+[Service]
+ReadWritePaths=/usr/local/bin

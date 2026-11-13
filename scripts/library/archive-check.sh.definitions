@@ -1,0 +1,36 @@
+{
+  "name": "archive-check",
+  "about": "Verify one archive really is intact. One item per file.",
+  "item": "path",
+  "needs": {
+    "cores": 1
+  },
+  "reads": [
+    "$path"
+  ],
+  "args": [
+    {
+      "name": "hash",
+      "type": "choice",
+      "choices": [
+        "none",
+        "sha256"
+      ],
+      "default": "none",
+      "description": "Also digest it, so you can compare runs"
+    },
+    {
+      "name": "max_age_days",
+      "type": "int",
+      "default": 0,
+      "min": 0,
+      "description": "Fail anything older than this. 0 = no age check."
+    },
+    {
+      "name": "path",
+      "type": "text",
+      "required": true,
+      "description": "The archive to verify"
+    }
+  ]
+}

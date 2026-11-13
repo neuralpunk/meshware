@@ -1,0 +1,46 @@
+# Meshware archive ingest — systemd unit (M31 B4).
+#
+# Copies settled history out of the local node into Parquet, and optionally
+# replicates it to a bucket. **Shipped disabled**: an archive is a decision
+# an operator makes, not a directory that appears.
+#
+#   systemctl enable --now meshware-archive.timer
+#
+# `meshnode doctor` warns whenever a retention window implies an archive and
+# nothing has ingested — which is the dangerous combination: `archive: 5y`
+# with no ingest for a month is five years of nothing.
+#
+# To push to a bucket as well, override the command:
+#
+#   systemctl edit meshware-archive.service
+#     [Service]
+#     ExecStart=
+#     ExecStart=/usr/bin/meshware-archive ingest --bucket s3://acme-archive/prod --worm
+#
+# Bucket credentials come from the environment, never from the command
+# line: put them in an EnvironmentFile mode 0600, or use an instance
+# profile / IRSA and set nothing at all.
+
+[Unit]
+Description=Meshware — copy settled history into the Parquet archive
+Documentation=https://github.com/neuralpunk/meshware
+# Not `Requires=`: a node that is down means there is nothing new to copy,
+# which is a no-op rather than a failure worth alerting on.
+After=meshnode.service
+
+[Service]
+Type=oneshot
+User=meshnode
+Group=meshnode
+ExecStart=/usr/bin/meshware-archive ingest
+Environment=MESHWARE_DATA_DIR=/var/lib/meshware
+Environment=XDG_CONFIG_HOME=/etc/meshware
+
+# The archive is the copy you keep, so it is the one thing here that is
+# allowed to grow without a window. It still lives under the node's own
+# state directory unless MESHWARE_ARCHIVE says otherwise.
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/meshware
+PrivateTmp=true

@@ -1,0 +1,55 @@
+---
+source: crates/mesh-core/src/deploy.rs
+expression: "system.upgrade_script(\"/tmp/meshnode.new\")"
+---
+set -e
+if [ -r /var/lib/dpkg/info/meshnode.list ] && grep -qx '/usr/local/bin/meshnode' /var/lib/dpkg/info/meshnode.list 2>/dev/null; then echo mw.owner=dpkg; exit 3; fi
+if command -v rpm >/dev/null 2>&1 && rpm -qf '/usr/local/bin/meshnode' >/dev/null 2>&1; then echo mw.owner=rpm; exit 3; fi
+mv -f '/tmp/meshnode.new' '/usr/local/bin/meshnode'
+chmod 755 '/usr/local/bin/meshnode'
+chown root:root '/usr/local/bin/meshnode' 2>/dev/null || true
+if command -v restorecon >/dev/null 2>&1; then restorecon -F '/usr/local/bin/meshnode' >/dev/null 2>&1 || true
+elif command -v chcon >/dev/null 2>&1 && [ -d /sys/fs/selinux ]; then chcon -t bin_t '/usr/local/bin/meshnode' >/dev/null 2>&1 || true
+fi
+if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1 && systemctl cat meshnode >/dev/null 2>&1; then
+  rm -f /etc/systemd/system/meshnode.service.d/containers.conf
+if command -v podman >/dev/null 2>&1 \
+&& { [ -e /usr/lib/systemd/user/podman.socket ] || [ -e /lib/systemd/user/podman.socket ]; }; then
+  mw_uid=$(id -u 'meshnode')
+command -v loginctl >/dev/null 2>&1 && loginctl enable-linger 'meshnode' >/dev/null 2>&1 || true
+mkdir -p '/var/lib/meshware'/.config/systemd/user/podman.socket.d '/var/lib/meshware'/run
+  cat > '/var/lib/meshware'/.config/systemd/user/podman.socket.d/50-meshware.conf.new <<'MW_EOF'
+# Written by meshnode's installer. meshnode.service starts its containers
+# through this socket: it cannot reach podman's usual one, under /run/user,
+# and a rootless container cannot be made from inside its unit.
+[Socket]
+ListenStream=
+ListenStream=/var/lib/meshware/run/podman.sock
+SocketMode=0600
+MW_EOF
+  if cmp -s '/var/lib/meshware'/.config/systemd/user/podman.socket.d/50-meshware.conf.new '/var/lib/meshware'/.config/systemd/user/podman.socket.d/50-meshware.conf; then rm -f '/var/lib/meshware'/.config/systemd/user/podman.socket.d/50-meshware.conf.new; mw_sock=start; else mv -f '/var/lib/meshware'/.config/systemd/user/podman.socket.d/50-meshware.conf.new '/var/lib/meshware'/.config/systemd/user/podman.socket.d/50-meshware.conf; mw_sock=restart; fi
+chown -R 'meshnode':'meshnode' '/var/lib/meshware'/.config
+chown 'meshnode':'meshnode' '/var/lib/meshware'/run
+rm -f '/var/lib/meshware'/.config/containers/containers.conf.d/50-meshware-sysctls.conf
+mw_dd=/etc/systemd/system/user@$mw_uid.service.d
+if [ ! -e "$mw_dd/50-meshware-delegate.conf" ]; then
+mkdir -p "$mw_dd"
+  cat > "$mw_dd/50-meshware-delegate.conf" <<'MW_EOF'
+[Service]
+Delegate=cpu cpuset io memory pids
+MW_EOF
+    { command -v restorecon >/dev/null 2>&1 && restorecon -RF "$mw_dd" >/dev/null 2>&1; } || true
+systemctl daemon-reload
+systemctl try-restart "user@$mw_uid.service" >/dev/null 2>&1 || true
+fi
+  i=0; while [ ! -S "/run/user/$mw_uid/systemd/private" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i+1)); done
+mw_user() { runuser -u 'meshnode' -- env XDG_RUNTIME_DIR="/run/user/$mw_uid" systemctl --user "$@"; }
+if mw_user daemon-reload && mw_user enable podman.socket >/dev/null 2>&1 \
+&& mw_user "$mw_sock" podman.socket; then echo mw.engine=podman.socket; else echo mw.engine=failed; fi
+else echo mw.engine=none; fi
+  systemctl daemon-reload
+systemctl restart meshnode
+echo mw.restarted=systemd
+else
+echo mw.restarted=none
+fi

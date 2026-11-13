@@ -1,0 +1,267 @@
+workflow: meshbench
+description: >-
+  Push every node in the mesh to the edge of what it can do — 95% of every
+  core and most of its memory — measure what it gave you, and answer the only
+  question that matters about a mesh: what did adding these machines actually
+  buy? One node runs the workload alone first, on the clock, so the number
+  underneath is a measured speedup and not a hopeful one. Ends with a
+  scored, signed-off HTML report.
+tags: [benchmark, compute, fleet, showcase]
+
+# Everything is an input, so this file is never edited to be used.
+inputs:
+  target:
+    type: string
+    default: any
+    description: >-
+      Which nodes take part. `any` is the whole mesh. Narrow it to compare a
+      rack against a rack: `tag=epyc`, `fact.cpu_cores>=32`.
+  profile:
+    type: string
+    default: standard
+    enum: [quick, standard, extended]
+    description: >-
+      How long each kernel runs. quick is about 45s of measuring per node,
+      standard about 80s, and extended about 2m45s — the one to use when two
+      machines are close enough to argue about.
+  load:
+    type: integer
+    default: 95
+    description: >-
+      CPU duty cycle per node, 1-100. 95 is the default for a real reason: a
+      node pegged at a true 100% starves its own heartbeat, and a mesh that
+      marks nodes dead during its own benchmark has measured nothing. Set it
+      to 100 only on machines that are not carrying anything else.
+  memory:
+    type: integer
+    default: 0
+    description: >-
+      Soak only. Hold this share of each node's *available* memory for the
+      whole run. Off by default, deliberately: a scored run should not be
+      fighting the page cache, and none of SPEC CPU, Geekbench, PCMark or
+      3DMark fills memory while measuring — they size working sets to
+      exercise the hierarchy, which the memory kernels already do with a
+      fixed footprint. Turning it on makes the run a stress test and the
+      report says so. Always clamped so the machine keeps a reserve of the
+      larger of 1 GB and a twelfth of RAM, so 100 is safe to type.
+  batch:
+    type: string
+    default: all
+    description: >-
+      How many nodes to load at once. `all` is the point of the exercise and
+      the only setting that measures the mesh. A count turns it into a
+      sequential survey of machines, which is a different, also useful thing.
+  control:
+    type: boolean
+    default: true
+    description: >-
+      Run the single-node control pass. Leave it on: it is what turns the
+      scaling chart from a model into a measurement. Turning it off roughly
+      halves the wall time and costs the baseline.
+
+steps:
+  # ---- 1. prove the build before spending the fleet's time ---------------
+  #
+  # Every node runs the kernels' fixed verification pass and reports its
+  # digests. It takes under a second and it is the difference between a
+  # report that asserts the work was done and one that assumes it. A node
+  # with an older binary, a broken vector unit, or a doctored build fails
+  # here — before the mesh has spent two minutes at full load.
+  #
+  # `continue_on_error` because one node that cannot verify is a finding
+  # about that node, not a reason to abandon the benchmark.
+  - id: preflight
+    on: "{{inputs.target}}"
+    fanout: { max_parallel: "{{inputs.batch}}" }
+    timeout: 2m
+    continue_on_error: true
+    run:
+      bash: |-
+        set -eu
+        # $MESHWARE_BIN is this node's own meshnode, by absolute path. Not
+        # `meshnode` on $PATH: the executor re-admits the daemon's PATH,
+        # which on a node running from /opt or a build tree resolves to a
+        # different build — or to nothing. Identical machine code on every
+        # node is the whole basis of comparing their scores.
+        "$MESHWARE_BIN" bench verify
+
+  - id: t_verified
+    needs: [preflight]
+    run: { task: time.now }
+
+  # ---- 2. the control run: one machine, alone, on the clock --------------
+  #
+  # No `fanout:`, so this lands on exactly one node in the target set. It is
+  # the anchor at N=1: without it, "3.7x faster" is a ratio with nothing
+  # underneath it.
+  - id: control
+    needs: [t_verified]
+    on: "{{inputs.target}}"
+    timeout: 30m
+    env:
+      PROFILE: "{{inputs.profile}}"
+      LOAD: "{{inputs.load}}"
+      MEMORY: "{{inputs.memory}}"
+    run:
+      bash: |-
+        set -eu
+        exec "$MESHWARE_BIN" bench \
+          --profile "$PROFILE" --load "$LOAD" --memory "$MEMORY" --json
+
+  - id: t_control
+    needs: [control]
+    run: { task: time.now }
+
+  # ---- 3. the mesh run: everybody, at once ------------------------------
+  #
+  # The same workload, on every node, simultaneously. The gap between what
+  # the nodes report doing and how long this step took is the mesh's
+  # orchestration cost, and it is the half of the score that no node can
+  # measure about itself.
+  - id: swarm
+    needs: [t_control]
+    on: "{{inputs.target}}"
+    fanout: { max_parallel: "{{inputs.batch}}" }
+    timeout: 30m
+    continue_on_error: true
+    env:
+      PROFILE: "{{inputs.profile}}"
+      LOAD: "{{inputs.load}}"
+      MEMORY: "{{inputs.memory}}"
+      # Pipe every node's live output back into the run stream, attributed
+      # by node. This is what lets a watcher show "which kernel on which
+      # node, right now" — `bench --json` emits one machine-readable
+      # progress marker per phase on stderr for exactly this ride home.
+      MESHWARE_STREAM: "1"
+    run:
+      bash: |-
+        set -eu
+        exec "$MESHWARE_BIN" bench \
+          --profile "$PROFILE" --load "$LOAD" --memory "$MEMORY" --json
+
+  - id: t_swarm
+    needs: [swarm]
+    run: { task: time.now }
+
+  # ---- 4. the wall clock, as the coordinator saw it ---------------------
+  #
+  # Bracketing timestamps rather than asking the run for its own step
+  # timings: `time.now` is a built-in that costs no job and no dispatch, and
+  # a step cannot read the duration of a run that has not finished — which
+  # this one has not, because this step is in it.
+  - id: swarm_ms
+    needs: [t_swarm]
+    run:
+      task: number.subtract
+      with:
+        a: "{{steps.t_swarm.outputs.unix_ms}}"
+        b: "{{steps.t_control.outputs.unix_ms}}"
+
+  - id: control_ms
+    needs: [t_swarm]
+    run:
+      task: number.subtract
+      with:
+        a: "{{steps.t_control.outputs.unix_ms}}"
+        b: "{{steps.t_verified.outputs.unix_ms}}"
+
+  # ---- 5. one report ----------------------------------------------------
+  #
+  # The scoring, the caveats and the HTML all live in `meshnode bench`, in
+  # Rust, so the CLI and Director render byte-identical pages from the same
+  # code. This step's job is only to get the bytes to it.
+  - id: report
+    needs: [swarm_ms, control_ms]
+    timeout: 5m
+    outputs:
+      [
+        result_json,
+        dispatched,
+        report_path,
+        result_path,
+        score,
+        compute_score,
+        nodes,
+        speedup,
+        efficiency,
+      ]
+    env:
+      SWARM: "{{steps.swarm.outputs.results}}"
+      # How many targets the fan-out was sent to, so the report can say so
+      # when fewer came back. Without it a node that crashed simply is not in
+      # the results and the score silently describes a smaller mesh.
+      SWARM_OK: "{{steps.swarm.outputs.succeeded}}"
+      SWARM_BAD: "{{steps.swarm.outputs.failed}}"
+      CONTROL: "{{steps.control.outputs.stdout}}"
+      SWARM_MS: "{{steps.swarm_ms.outputs.value}}"
+      CONTROL_MS: "{{steps.control_ms.outputs.value}}"
+      PROFILE: "{{inputs.profile}}"
+      LOAD: "{{inputs.load}}"
+      MEMORY: "{{inputs.memory}}"
+      RUN_ID: "{{run.id}}"
+    run:
+      bash: |-
+        set -eu
+        # A fresh directory per run. A fixed path under /tmp would be
+        # shared by every benchmark this node ever runs, so two runs at once
+        # — a scheduled one and a person pressing the button — would read
+        # each other's half-written files and report a blend of both.
+        dir="$(mktemp -d "${TMPDIR:-/tmp}/meshbench.XXXXXXXX")"
+
+        # A fan-out's `results` is inlined up to 64 KiB and spilled to an
+        # ephemeral object above it — which is roughly sixteen nodes. Both
+        # forms arrive here in an environment variable and both stay well
+        # inside the kernel's per-variable limit, so this is the whole of
+        # the large-mesh handling.
+        if [ "${SWARM#object:}" != "$SWARM" ]; then
+          ref="${SWARM#object:}"
+          "$MESHWARE_BIN" objects get "${ref%%#*}" --out "$dir/swarm.json"
+        else
+          printf '%s' "$SWARM" > "$dir/swarm.json"
+        fi
+
+        if [ -n "${CONTROL:-}" ]; then
+          printf '%s' "$CONTROL" > "$dir/control.json"
+          set -- --control "$dir/control.json"
+        else
+          set --
+        fi
+
+        # Scoring, caveats and the HTML all live in `meshnode bench`, in
+        # Rust, so this command and Director's Save button render the same
+        # page from the same code. This step only moves bytes to it — and
+        # `assemble --out` prints the output markers itself, so no shell
+        # here ever parses JSON.
+        "$MESHWARE_BIN" bench assemble \
+          --swarm "$dir/swarm.json" "$@" \
+          --wall-ms "$SWARM_MS" --control-ms "$CONTROL_MS" \
+          --dispatched "$(( ${SWARM_OK:-0} + ${SWARM_BAD:-0} ))" \
+          --profile "$PROFILE" --load "$LOAD" --memory "$MEMORY" \
+          --run "$RUN_ID" \
+          --out "$dir/result.json"
+
+        "$MESHWARE_BIN" bench report "$dir/result.json" --out "$dir/report.html" >/dev/null
+        echo "::meshware-output:: report_path=$dir/report.html"
+
+        # The whole document as an output, not just a path.
+        #
+        # A path is only meaningful on the node that wrote it, and this step
+        # can land anywhere in the mesh — so Director, which usually is not
+        # that node, would be pointed at a file it cannot open. The document
+        # is compact JSON on one line, and an output over 64 KiB becomes an
+        # ephemeral object the reader fetches by id, so this stays correct
+        # from one node to a thousand.
+        printf '::meshware-output:: result_json=%s\n' "$(cat "$dir/result.json")"
+
+# The run is red if the mesh could not be measured at all. A node that fell
+# out is already a caveat in the report; a report that could not be built is
+# a failure, and it should look like one.
+on_failure:
+  - id: explain
+    run:
+      task: flow.note
+      with:
+        text: >-
+          The benchmark did not complete. The usual cause is a node whose
+          meshnode build predates `bench` — check the preflight step, then
+          `meshnode upgrade --fleet`.

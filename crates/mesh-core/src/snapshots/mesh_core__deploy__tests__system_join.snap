@@ -1,0 +1,5 @@
+---
+source: crates/mesh-core/src/deploy.rs
+expression: "system.join_command(&[\"gpu\".into()], 300, Some(\"rack-1\"))"
+---
+env MESHWARE_DATA_DIR='/var/lib/meshware' XDG_CONFIG_HOME='/etc/meshware' MESHWARE_NODE_NAME='rack-1' '/usr/local/bin/meshnode' join --pair --json --wait 300s --tag 'gpu'

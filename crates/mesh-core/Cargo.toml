@@ -1,0 +1,101 @@
+[package]
+name = "mesh-core"
+description = "meshware engine: identity, transport, genesis, IPC, daemon (shared by meshnode and Director)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+# ID-token signature verification (E1-P5, `oidc.rs`). **Already in the
+# graph** via rustls, so this adds nothing to the build — the same
+# reasoning `rustls-platform-verifier` is a direct dependency on.
+#
+# It is a direct dependency because the alternative was worse: the obvious
+# JWT crate pulls RustCrypto's `rsa`, which carries RUSTSEC-2023-0071, and
+# `deny.toml` ignores that advisory on the written condition that none of
+# those crates reach `meshnode`. Verification is ring's; only the envelope
+# parsing is ours.
+ring = "0.17"
+mesh-proto = { workspace = true }
+# The benchmark's scoring and result documents: the bench pipeline
+# (`benchrun`, daemon::dispatch_bench_run) assembles the MeshReport
+# in-process rather than shelling out to a workflow step.
+
+anyhow = { workspace = true }
+argon2 = { workspace = true }
+blake3 = { workspace = true }
+chacha20poly1305 = { workspace = true }
+curve25519-dalek = { workspace = true }
+data-encoding = { workspace = true }
+dirs = { workspace = true }
+ed25519-dalek = { workspace = true }
+futures.workspace = true
+gethostname = { workspace = true }
+getrandom = { workspace = true }
+humantime = { workspace = true }
+# `10.0.0.0/28` in a target list (`deploy::expand_all`).
+ipnet = { workspace = true }
+jsonschema = { workspace = true }
+minisign-verify = { workspace = true }
+postcard = { workspace = true }
+quinn = { workspace = true }
+rcgen = { workspace = true }
+redb = { workspace = true }
+# `fact.<key>~/<pattern>/` selectors (Phase C, E7).
+regex = { workspace = true }
+rustls = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde-saphyr = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+toml = { workspace = true }
+toml_edit = { workspace = true }
+tracing = { workspace = true }
+walkdir = { workspace = true }
+x509-parser = { workspace = true }
+zeroize = { workspace = true }
+parking_lot = { workspace = true }
+mdns-sd = "0.21"
+# The pairing beacon (`pairing::LanWatch`): a broadcast UDP socket that
+# shares its port, and the interface list that says which addresses are
+# on-link. Both already in the tree under mdns-sd.
+socket2 = "0.6"
+if-addrs = "0.15"
+# Outbound HTTPS (`httpc`): `meshnode upgrade --self` fetching a release,
+# and M28's drafting agent posting to a model provider. ring-only, and
+# `rustls-platform-verifier` is already in the graph via quinn.
+tokio-rustls = { workspace = true }
+rustls-platform-verifier = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+rustix = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# `Type=notify` readiness and the watchdog heartbeat (`daemon::run`).
+sd-notify = { workspace = true }
+# Per-job filesystem sandboxing (`sandbox`).
+landlock = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+mesh-testkit = { workspace = true }
+# Snapshots of the remote scripts and unit files (`deploy`); properties of
+# the parsers a person's typing reaches (`tests/properties.rs`).
+insta = { workspace = true }
+proptest = { workspace = true }
+# A capturing subscriber, so the spans ENG-21 added can be asserted on
+# rather than eyeballed. Dev only: the daemon's own subscriber lives in
+# `meshware-node`, and nothing here ships it.
+tracing-subscriber = { workspace = true }
+# `tests/scale.rs` publishes the scale and dispatch numbers, so it is
+# linked with the allocator the shipped binary uses (ENG-25). Dev only:
+# this crate is a library and a `#[global_allocator]` belongs to a binary.
+mimalloc = { workspace = true }
+
+[lints]
+workspace = true

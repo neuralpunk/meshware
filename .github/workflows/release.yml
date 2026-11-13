@@ -1,0 +1,220 @@
+# meshware release pipeline (MASTERPLAN §15, M6): static musl binaries for
+# x86_64 + aarch64, .deb/.rpm packages, SHA256SUMS, minisign signatures
+# (open question #1 → resolved: minisign), and a draft GitHub release.
+#
+# Secrets: MINISIGN_SECRET_KEY — the base64 minisign secret key. Releases
+# without it build unsigned artifacts and fail the signing step on tags.
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  # E1-P3: build-provenance attestation. `id-token` mints the OIDC token
+  # Sigstore signs with; `attestations` writes the attestation back to the
+  # repo. Both are required and neither grants anything else.
+  id-token: write
+  attestations: write
+
+jobs:
+  scale-certification:
+    name: 1,000-node certification (release gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      # First, and cheap: a tag with no CHANGELOG.md entry is not a release
+      # (DOC-7). Here rather than at the end so it fails in seconds, not
+      # after the 45-minute simulation below.
+      - name: the tag has release notes
+        if: startsWith(github.ref, 'refs/tags/')
+        run: scripts/changelog-entry.sh "${GITHUB_REF_NAME}"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: 1,000-node simulation
+        run: |
+          cargo test --release -p mesh-core --test scale -- \
+            --ignored --nocapture thousand_node_certification
+
+  bench-shipped:
+    name: benchmark the shipped target (ENG-25)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+      - uses: Swatinem/rust-cache@v2
+      # ring's assembly and the allocator both need a C compiler for the
+      # musl target. The `build` job below uses cargo-zigbuild for the
+      # cross-compile; here the native musl toolchain is simpler and the
+      # binary is run on this machine anyway.
+      - name: musl toolchain
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      # Releases are static musl, and every published figure used to come
+      # from a glibc test build. This measures the target that ships, and
+      # the number lands beside the artifact rather than in a docs page
+      # nobody re-derives.
+      - name: 100 nodes, submit→complete
+        run: ./scripts/bench-release.sh --compare
+      - name: …and as JSON, for the record
+        run: ./scripts/bench-release.sh --json | tee bench-shipped.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench-shipped
+          path: bench-shipped.json
+
+  build:
+    name: build (${{ matrix.target }})
+    needs: scale-certification
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [x86_64-unknown-linux-musl, aarch64-unknown-linux-musl]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - name: cross toolchain
+        run: |
+          pip install cargo-zigbuild
+          pip install ziglang
+      - name: build
+        # The commit `meshnode --version` names (DOC-14).
+        run: MESHWARE_BUILD_COMMIT="${GITHUB_SHA::12}" cargo zigbuild -p meshware-node --release --target ${{ matrix.target }}
+      - name: package tarball + bare binary
+        run: |
+          VERSION="${GITHUB_REF_NAME:-dev}"
+          mkdir -p dist
+          tar -czf "dist/meshnode-${VERSION}-${{ matrix.target }}.tar.gz" \
+            -C "target/${{ matrix.target }}/release" meshnode \
+            -C "$GITHUB_WORKSPACE/packaging/systemd" meshnode.service \
+            -C "$GITHUB_WORKSPACE" LICENSE-MIT LICENSE-APACHE
+          # Bare binary for `meshnode upgrade --self` (MASTERPLAN M7).
+          cp "target/${{ matrix.target }}/release/meshnode" \
+            "dist/meshnode-${VERSION}-${{ matrix.target }}"
+      - name: deb + rpm
+        run: |
+          cargo install cargo-deb cargo-generate-rpm --locked
+          VERSION="${GITHUB_REF_NAME:-dev}"
+          ARCH="$(echo '${{ matrix.target }}' | cut -d- -f1)"
+          cargo deb -p meshware-node --target ${{ matrix.target }} --no-build \
+            -o "dist/meshnode_${VERSION#v}_${ARCH}.deb"
+          cargo generate-rpm -p crates/meshware-node --target ${{ matrix.target }} \
+            -o "dist/meshnode-${VERSION#v}.${ARCH}.rpm"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.target }}
+          path: dist/
+
+  sign-and-release:
+    name: sign + draft release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist
+      # ── E1-P3: SBOM ──────────────────────────────────────────────────
+      #
+      # One CycloneDX document per crate, generated from the *resolved
+      # graph* rather than from the manifests, so it lists what was actually
+      # built. Produced here — before checksums and before signing — so
+      # there is exactly one SHA256SUMS and exactly one signing pass, and
+      # the SBOM is covered by both like every other artifact.
+      #
+      # "Do you publish an SBOM" is on every enterprise security
+      # questionnaire, and until now the answer was no.
+      - name: sbom (cyclonedx)
+        run: |
+          cargo install cargo-cyclonedx --locked
+          cargo cyclonedx --all-features --format json --spec-version 1.5
+          VERSION="${GITHUB_REF_NAME:-dev}"
+          mkdir -p sbom
+          find . -name '*.cdx.json' -not -path './sbom/*' -exec cp {} sbom/ \;
+          test -s sbom/meshware-node.cdx.json || {
+            echo "no SBOM for meshware-node — did cargo-cyclonedx change its output layout?"
+            ls -R sbom; exit 1; }
+          # The whole workspace, and the node binary's own called out by
+          # name: that is the one a customer installs on their fleet.
+          tar -czf "dist/meshware-${VERSION}-sbom.cdx.tar.gz" -C sbom .
+          cp sbom/meshware-node.cdx.json "dist/meshnode-${VERSION}.cdx.json"
+
+      # DOC-16: the documentation for this release, as a site to host and as
+      # one file to open anywhere. Before the checksums, so both are signed.
+      - name: documentation
+        run: |
+          python3 scripts/build-docs-site.py --out site
+          tar -czf "dist/meshware-docs-${GITHUB_REF_NAME}.tar.gz" -C site .
+          python3 scripts/build-docs-site.py --single "dist/meshware-docs-${GITHUB_REF_NAME}.html"
+
+      - name: checksums
+        run: cd dist && sha256sum meshnode-* meshnode_* meshware-*-sbom.cdx.tar.gz meshware-docs-* > SHA256SUMS
+      - name: minisign
+        env:
+          MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
+        run: |
+          test -n "$MINISIGN_SECRET_KEY" || { echo "MINISIGN_SECRET_KEY missing"; exit 1; }
+          sudo apt-get update && sudo apt-get install -y minisign
+          printf '%s' "$MINISIGN_SECRET_KEY" | base64 -d > minisign.key
+          # -H: prehashed signatures (what `meshnode upgrade --self` and
+          # install.sh verify); the public key is packaging/minisign.pub.
+          for f in dist/*; do
+            case "$f" in *.minisig) continue ;; esac
+            minisign -HSm "$f" -s minisign.key -t "meshware ${GITHUB_REF_NAME}" -W
+          done
+          rm -f minisign.key
+          # The key that signed must be the key the tree pins.
+          PUB="$(sed -n 2p packaging/minisign.pub 2>/dev/null || true)"
+          if [ -n "$PUB" ]; then
+            minisign -Vm dist/SHA256SUMS -P "$PUB" >/dev/null || {
+              echo "release signed with a key that does not match packaging/minisign.pub"; exit 1; }
+          fi
+      # ── E1-P3: build provenance ──────────────────────────────────────
+      #
+      # Ties every released artifact to the commit, workflow and runner that
+      # produced it, verifiable by anyone with:
+      #
+      #   gh attestation verify <file> --repo neuralpunk/meshware
+      #
+      # This is a *different* claim from the minisign signature and both are
+      # worth having: minisign says "meshware released this", provenance says
+      # "and here is the build that made it". A release key can be stolen; a
+      # provenance attestation additionally names the source it came from.
+      - name: attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            dist/meshnode-*-unknown-linux-musl
+            dist/*.deb
+            dist/*.rpm
+            dist/*.tar.gz
+
+      # DOC-7: the release page is the CHANGELOG.md entry — what changed,
+      # what might stop working, what to do — not GitHub's list of commit
+      # titles. Its links are relative to the repository, so they are made
+      # absolute here, pinned to the tag the notes describe.
+      - name: release notes, from CHANGELOG.md
+        run: |
+          scripts/changelog-entry.sh --notes "${GITHUB_REF_NAME}" \
+            | sed -E "s#\]\((docs/|CHANGELOG\.md|SECURITY\.md|README\.md)#](https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}/\1#g" \
+            > release-notes.md
+          test -s release-notes.md
+
+      - name: draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: dist/*
+          body_path: release-notes.md

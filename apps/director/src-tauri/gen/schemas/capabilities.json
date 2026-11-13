@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Director main window: core APIs and the app's own commands. No dialog permission: every file dialog opens on the Rust side and the window gets a token for what was picked (SEC-14).","local":true,"windows":["main"],"permissions":["core:default"]}}

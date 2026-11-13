@@ -1,0 +1,21 @@
+---
+source: crates/mesh-core/src/deploy.rs
+expression: system.start_script()
+---
+set -e
+if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
+if systemctl start meshnode; then echo mw.started=systemd; else
+  s=$(systemctl show -p ExecMainStatus --value meshnode 2>/dev/null); printf 'mw.exec_status=%s\n' "$s"
+if [ -d /sys/fs/selinux ]; then
+printf 'mw.exec_context=%s\n' "$(stat -c %C '/usr/local/bin/meshnode' 2>/dev/null)"
+if [ "$(cat /sys/fs/selinux/enforce 2>/dev/null)" = 1 ]; then echo mw.selinux=enforcing; else echo mw.selinux=permissive; fi
+fi
+exit 1
+fi
+elif command -v runuser >/dev/null 2>&1; then
+nohup runuser -u 'meshnode' -- env MESHWARE_DATA_DIR='/var/lib/meshware' XDG_CONFIG_HOME='/etc/meshware' '/usr/local/bin/meshnode' up >'/var/lib/meshware'/meshnode.log 2>&1 </dev/null &
+echo mw.started=nohup
+else
+nohup su -s /bin/sh 'meshnode' -c 'exec env MESHWARE_DATA_DIR='\''/var/lib/meshware'\'' XDG_CONFIG_HOME='\''/etc/meshware'\'' '\''/usr/local/bin/meshnode'\'' up' >'/var/lib/meshware'/meshnode.log 2>&1 </dev/null &
+echo mw.started=nohup
+fi

@@ -1,0 +1,103 @@
+[package]
+name = "meshware-director"
+description = "Meshware Director: the desktop face of the mesh — a view onto this machine's node, over the same socket the CLI uses"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "meshware_director_lib"
+# `rlib` alone. The Tauri template ships `["staticlib", "cdylib", "rlib"]`
+# because iOS links the first and Android loads the second; this workspace
+# has no mobile target — no `gen/apple`, no `gen/android`, nothing in CI or
+# packaging that asks for one — and on the desktop `main.rs` links the rlib.
+#
+# They were not free. `staticlib` and `cdylib` are both *linked* outputs, so
+# each one ran its own fat LTO over the entire dependency graph, on one
+# thread, to produce a 1.2 GB archive and a 6 MB shared object that nothing
+# in the tree opens: 4m08s of every release build, spent twice over on
+# artifacts that were then ignored.
+#
+# Building for iOS or Android means putting them back.
+crate-type = ["rlib"]
+
+[features]
+# Serve the embedded frontend (production builds). `tauri build` enables it
+# automatically; `tauri dev` omits it and loads the Vite dev server instead.
+custom-protocol = ["tauri/custom-protocol"]
+
+[build-dependencies]
+tauri-build = { workspace = true, features = [] }
+
+[dependencies]
+mesh-core = { workspace = true }
+mesh-proto = { workspace = true }
+# The file-copy panel verifies the same BLAKE3 digest the CLI does (M17 §3.7).
+blake3 = { workspace = true }
+
+dirs = { workspace = true }
+getrandom = { workspace = true }
+# Add machines / upgrade over SSH (`src/ssh.rs`, `src/deploy.rs`). A
+# password lives in a `Zeroizing<String>` for one deploy and no longer.
+russh = { workspace = true }
+zeroize = { workspace = true }
+# Cancelling a deploy run (`deploy.rs`).
+tokio-util = { workspace = true }
+# A rolling log file under Director's data directory.
+tracing-appender = { workspace = true }
+# The updater's public key is the minisign file, base64 as a whole.
+data-encoding = { workspace = true }
+# Desktop plugins: one Director per data directory, remembered window
+# geometry, launch at login, OS notifications, the clipboard, and
+# Director's own updater. Each sits behind one Tauri command.
+tauri-plugin-single-instance = { workspace = true }
+tauri-plugin-window-state = { workspace = true }
+tauri-plugin-autostart = { workspace = true }
+tauri-plugin-notification = { workspace = true }
+tauri-plugin-clipboard-manager = { workspace = true }
+tauri-plugin-updater = { workspace = true }
+# The `director://` scheme (L2 P5): registration on all three desktops,
+# plus the event that carries a URL into a Director already running.
+tauri-plugin-deep-link = { workspace = true }
+# "Remember in my keychain" (`credentials.rs`): the OS credential store,
+# pure-Rust backends per platform below.
+keyring = { workspace = true }
+
+gethostname = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+# `tray-icon` is the glance (`src/glance.rs`): Meshware in the menu bar.
+# `image-png` decodes the bundled tray glyph — the icon is a static asset
+# from `meshware-icons/tray/director/`, not a bitmap drawn in process.
+tauri = { workspace = true, features = ["tray-icon", "image-png"] }
+tauri-plugin-dialog = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+ts-rs = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+# A real engine for the tests that need one (DIR-8's build run).
+mesh-testkit = { workspace = true }
+
+[lints]
+workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { workspace = true, features = ["async-secret-service", "tokio", "crypto-rust"] }
+# One question on the session bus: is anything actually *drawing* tray
+# icons (`glance::sni_host_present`). Linux trays are StatusNotifierItem,
+# where registering an item and having it displayed are separate things —
+# GNOME Shell does the first and not the second — and Director has to know
+# which, because it decides whether closing the window may hide it.
+# Already in the tree under `keyring`'s secret-service backend.
+zbus = { workspace = true }
+# The demo owns `meshnode` child processes and has to be able to signal a
+# node it did not spawn — one left behind by a Director that was killed
+# (`demo::reap`). Already in this binary's graph via mesh-core.
+rustix = { workspace = true }

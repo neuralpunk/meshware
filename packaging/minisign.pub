@@ -1,0 +1,2 @@
+untrusted comment: meshware release signing key 6E459B3A4482E21A (install.sh and `meshnode upgrade --self` both pin this line; CI asserts they match)
+RWQa4oJEOptFbp8PrU2VnyoJqZFG36/x4p1goF965ZvZxsXH7mUYxwux

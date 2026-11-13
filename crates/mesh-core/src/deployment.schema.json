@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neuralpunk.github.io/meshware/schema/deployment.schema.json",
+  "title": "meshware deployment",
+  "description": "A deployment definition, as `meshnode deployment put` takes it (TOML, YAML or JSON). Generated with `meshnode deployment schema`; the parser refuses any key not listed here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["deployment"],
+  "properties": {
+    "deployment": { "$ref": "#/$defs/deployment" }
+  },
+  "$defs": {
+    "duration": {
+      "type": "string",
+      "description": "A duration: `30s`, `10m`, `1h 30m`.",
+      "examples": ["10s", "10m"]
+    },
+    "timer": {
+      "type": "string",
+      "description": "A duration, or `never` for no timer.",
+      "examples": ["60s", "never"]
+    },
+    "deployment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "1-64 of letters, digits, `-`, `_`, `.`.",
+          "pattern": "^[A-Za-z0-9._-]{1,64}$"
+        },
+        "service": {
+          "type": "string",
+          "description": "A published service at a pinned version, `collector@7`. Omit it when `container` describes the image inline.",
+          "pattern": "^[^@]+@[0-9]+$"
+        },
+        "count": {
+          "description": "How many instances: a number, or `system` for one on every matching node.",
+          "oneOf": [
+            { "type": "integer", "minimum": 1 },
+            { "const": "system" }
+          ]
+        },
+        "targets": {
+          "type": "string",
+          "description": "Which nodes may run it: `any`, `tag=edge`, `name=a|name=b`, `fact.os=linux`."
+        },
+        "inputs": {
+          "type": "object",
+          "description": "Arguments for the service, checked against its contract."
+        },
+        "paused": { "type": "boolean", "description": "Published but not reconciled." },
+        "description": { "type": "string" },
+        "generation": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Set by `put` itself; only honoured on a rollout or rollback path."
+        },
+        "restart": { "$ref": "#/$defs/restart" },
+        "health": { "$ref": "#/$defs/health" },
+        "update": { "$ref": "#/$defs/update" },
+        "disconnect": { "$ref": "#/$defs/disconnect" },
+        "network": { "$ref": "#/$defs/network" },
+        "register": { "$ref": "#/$defs/register" },
+        "volume": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/volume" }
+        },
+        "resources": { "$ref": "#/$defs/resources" },
+        "container": { "$ref": "#/$defs/container" },
+        "distinct_hosts": {
+          "type": "boolean",
+          "description": "At most one instance per machine, as a rule. Makes a static port with count above 1 possible."
+        },
+        "distinct_property": { "$ref": "#/$defs/distinct_property" },
+        "affinity": {
+          "type": "array",
+          "maxItems": 16,
+          "items": { "$ref": "#/$defs/affinity" }
+        },
+        "spread": { "$ref": "#/$defs/spread" },
+        "migrate": { "$ref": "#/$defs/migrate" },
+        "priority": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "1 to 100, 50 when absent. Above 50, an instance may take a busy machine's slot from a --preemptible job at least 10 below."
+        }
+      }
+    },
+    "migrate": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How instances leave a machine being drained: a replacement first, then the original.",
+      "properties": {
+        "max_parallel": { "type": "integer", "minimum": 1, "description": "Instances moving at once. Defaults to 1." },
+        "min_healthy_time": { "$ref": "#/$defs/duration", "description": "How long a replacement must be healthy before the original stops. Defaults to 10s." },
+        "healthy_deadline": { "$ref": "#/$defs/duration", "description": "How long a replacement has before the next instance may start moving anyway. Defaults to 5m." }
+      }
+    },
+    "distinct_property": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attribute"],
+      "description": "At most `limit` instances on machines sharing one value of `attribute`.",
+      "properties": {
+        "attribute": {
+          "type": "string",
+          "description": "`name`, `tag.<key>` (the value of a key=value tag) or `fact.<key>`.",
+          "examples": ["tag.rack", "fact.site"]
+        },
+        "limit": { "type": "integer", "minimum": 1, "description": "Defaults to 1." }
+      }
+    },
+    "affinity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["select"],
+      "description": "Machines to prefer, or with a negative weight to avoid. A preference, never a filter.",
+      "properties": {
+        "select": { "type": "string", "description": "A selector, as `targets` takes.", "examples": ["tag=ssd"] },
+        "weight": {
+          "type": "integer",
+          "minimum": -100,
+          "maximum": 100,
+          "not": { "const": 0 },
+          "description": "-100 to 100, not 0. Defaults to 50."
+        }
+      }
+    },
+    "spread": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attribute"],
+      "description": "Share the instances out across an attribute's values.",
+      "properties": {
+        "attribute": { "type": "string", "examples": ["tag.site"] },
+        "targets": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 1, "maximum": 100 },
+          "description": "`value: percent`. Empty spreads evenly; values not named share what is left."
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "What each instance needs: a placement filter and, where cgroups enforce, a ceiling.",
+      "properties": {
+        "cpus": { "type": "integer", "minimum": 0, "description": "Whole cores." },
+        "memory_mb": { "type": "integer", "minimum": 0 },
+        "disk_mb": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "container": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["image"],
+      "description": "The image, inline. meshware publishes a service named after the deployment from it.",
+      "properties": {
+        "image": { "type": "string", "examples": ["docker.io/library/nginx:alpine"] },
+        "command": { "type": "string", "description": "Override the image's entry point." },
+        "args": { "type": "array", "items": { "type": "string" } },
+        "working_dir": { "type": "string", "description": "Inside the image." },
+        "env": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "volume": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "description": "A volume a node offers in its own `[[volume]]`." },
+        "path": { "type": "string", "description": "Mount point inside a container." },
+        "mode": { "enum": ["rw", "ro"] }
+      }
+    },
+    "register": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "description": "Register the instances so `<name>.mesh` resolves to the healthy ones.",
+      "properties": {
+        "name": { "type": "string", "pattern": "^[A-Za-z0-9-]{1,63}$" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "port": { "type": "string", "description": "Which port label to publish; absent publishes all." },
+        "shutdown_delay": { "$ref": "#/$defs/duration" },
+        "kill_timeout": { "$ref": "#/$defs/duration" }
+      }
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "enum": ["host"] },
+        "port": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/port" }
+        }
+      }
+    },
+    "port": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label"],
+      "properties": {
+        "label": { "type": "string", "description": "Becomes MESHWARE_PORT_<LABEL>." },
+        "to": { "type": "integer", "minimum": 0, "maximum": 65535, "description": "The port inside the job." },
+        "static": { "type": "integer", "minimum": 0, "maximum": 65535, "description": "A fixed host port; absent or 0 is dynamic." }
+      }
+    },
+    "restart": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "backoff": { "type": "string", "description": "Min and max backoff: `1s..5m`." },
+        "budget": { "type": "string", "description": "Failures allowed in a window: `5 in 10m`." }
+      }
+    },
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["exec", "tcp", "http"] },
+        "command": { "type": "string", "description": "For `exec`. Runs inside a container instance." },
+        "path": { "type": "string", "description": "For `http`." },
+        "port": {
+          "description": "A port number, or the label of a declared port.",
+          "oneOf": [{ "type": "integer" }, { "type": "string" }]
+        },
+        "interval": { "$ref": "#/$defs/duration" },
+        "grace": { "$ref": "#/$defs/duration" },
+        "timeout": { "$ref": "#/$defs/duration" },
+        "failures": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "update": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strategy": { "enum": ["rolling"] },
+        "max_unavailable": { "type": "integer", "minimum": 0 },
+        "gate": { "enum": ["health", "running"] },
+        "canary": { "type": "integer", "minimum": 0, "description": "New instances placed beside the old before anything is cut over." },
+        "auto_promote": { "type": "boolean", "description": "false holds settled canaries until `meshnode deployment promote`. Needs canary." },
+        "auto_revert": { "type": "boolean", "description": "Go back to the newest earlier version that never stalled when this roll stalls." },
+        "progress_deadline": { "$ref": "#/$defs/timer", "description": "Defaults to 10m when canary or auto_revert is set." },
+        "min_healthy_time": { "$ref": "#/$defs/duration" }
+      }
+    },
+    "disconnect": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lost_after": { "$ref": "#/$defs/timer", "description": "Defaults to 60s for a fixed count; `never` waits for the node." },
+        "replace": { "type": "boolean", "description": "Start a replacement as soon as a node is unreachable." },
+        "reconcile": { "enum": ["keep_original", "keep_replacement", "best_score", "longest_running"] }
+      }
+    }
+  }
+}

@@ -1,0 +1,46 @@
+---
+source: crates/mesh-core/src/deploy.rs
+expression: "user.install_script(Some(\"/tmp/meshnode.abc123\"))"
+---
+set -e
+mkdir -p '/home/pi/.local/bin'
+mv -f '/tmp/meshnode.abc123' '/home/pi/.local/bin/meshnode'
+chmod 755 '/home/pi/.local/bin/meshnode'
+if command -v restorecon >/dev/null 2>&1; then restorecon -F '/home/pi/.local/bin/meshnode' >/dev/null 2>&1 || true
+fi
+mkdir -p '/home/pi/.meshware' '/home/pi/.config'
+chmod 700 '/home/pi/.meshware'
+if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
+mkdir -p "$HOME/.config/systemd/user"
+  cat > "$HOME/.config/systemd/user/meshnode.service" <<'MW_EOF'
+# Meshware Node — user service, written by Director / `meshnode adopt`.
+# Runs as this account. It stops at logout unless lingering is on:
+#   loginctl enable-linger $USER
+[Unit]
+Description=Meshware Node — governed compute mesh daemon (user)
+After=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+Type=notify
+NotifyAccess=main
+WatchdogSec=90
+ExecStart=/home/pi/.local/bin/meshnode up
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=2
+RestartPreventExitStatus=65 78
+Environment=MESHWARE_DATA_DIR=/home/pi/.meshware
+Environment=XDG_CONFIG_HOME=/home/pi/.config
+
+[Install]
+WantedBy=default.target
+MW_EOF
+  systemctl --user daemon-reload
+if systemctl --user enable meshnode >/dev/null 2>&1; then echo mw.enabled=yes; else echo mw.enabled=no; fi
+echo mw.service=systemd-user
+else
+echo mw.service=none
+fi
+echo mw.installed=ok

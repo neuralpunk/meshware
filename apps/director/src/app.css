@@ -1,0 +1,3349 @@
+/* Meshware Director — design system.
+ *
+ * Rebuilt twice: against the 2026-08 design review (tokens, contrast, dark
+ * mode) and now against the 2026-09 commercial pass
+ * (design/DIRECTION-2026-09-commercial.md). The rules from the first
+ * rebuild still hold — every value is a token, every token has one job,
+ * every text token states its contrast floor and meets it, themes are
+ * re-pointed rather than inverted. What the second rebuild changed:
+ *
+ *   1. **One surface.** The chrome (rail, header) follows the theme. It
+ *      used to be fixed navy in both themes, which in light mode made the
+ *      window two products: a dark admin shell around a light document.
+ *   2. **Own the hue.** The accent is the brand's teal — the one the app
+ *      icon is drawn in — rather than a framework default one step away
+ *      from it, and every neutral is derived in OKLCH from the same cool
+ *      hue at a whisper of chroma, so the greys agree with the accent
+ *      instead of pulling blue against it. Status hues were re-tuned off
+ *      the defaults for the same reason. Values are written as hex because
+ *      the contrast audit reads computed rgb(); the OKLCH source of each
+ *      ramp is in the comment beside it.
+ *   3. **Tone, then hairline, then shadow.** A card is white on a near-
+ *      white canvas with one hairline. Shadow is for things that float.
+ *
+ * Light is the default; dark is a first-class citizen, not an inversion.
+ */
+
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LIGHT — the default. Every value below is the light half of one pair;
+   the dark half is the same token re-pointed, never an inversion. Ratios
+   are quoted against the worst surface a token actually sits on.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root {
+  color-scheme: light;
+
+  /* -- surfaces ---------------------------------------------------------
+     The same four-tone story as dark, pointed the other way: the rail is
+     the darkest, the canvas sits above it, and a card is white. The rail
+     being UNDER the canvas rather than over it is the one asymmetry, and
+     it is the one macOS has too — a sidebar recedes on light and comes
+     forward on dark, because in both cases the content must be the
+     brightest thing on screen. */
+  --bg-app: #eef1f5; /* the window's own ground */
+  --bg-sidebar: #e9edf2; /* the rail */
+  --bg-canvas: #f3f5f8; /* the scrolling work area, and the toolbar */
+  --surface-1: #ffffff; /* cards, rows, grouped surfaces, popovers */
+  --surface-2: #f0f3f7; /* search field, chips, meter tracks, segmented */
+  --surface-3: #e4e8ee; /* pressed / hovered sunken */
+  --surface-graph: #f8fafc; /* the topology and code ground */
+  --surface-inline: #eef1f5; /* inline code inside a card */
+  /* One tone per grouped surface — see the dark block. */
+  --surface-subtle: #ffffff;
+  --surface-code: #0f1520; /* terminal panes + trust surfaces */
+  --surface-code-2: #151c29;
+  --surface-modal: #0f1520;
+
+  /* -- edges ------------------------------------------------------------
+     Achromatic hairlines. `--edge-card` is the .5px ring a card wears
+     instead of a border. */
+  --edge: #e3e7ed; /* separators inside a group */
+  --edge-inner: #e9ecf1;
+  --edge-row: #eceff3;
+  --edge-card: rgba(15, 23, 42, 0.07); /* the ring, never a border */
+  --edge-strong: #d3d9e2; /* controls: buttons, inputs, chips */
+  --edge-hover: #aeb7c4; /* a control under the pointer */
+  --edge-dashed: #c6cdd8;
+  --edge-pre: #e3e7ed;
+  --edge-drawer: #cbd2dc;
+  --edge-connector: #bcc4d0;
+  --edge-code: rgba(255, 255, 255, 0.12);
+
+  /* -- ink --------------------------------------------------------------
+     Ratios quoted against --surface-3 (#e4e4e7), the darkest ground any
+     of these sits on. --ink-faint and below are NOT text colours: icons,
+     chevrons and rules only. */
+  --ink-1: #0f172a; /* 14.4:1 — figures, headings, table names */
+  --ink-2: #253041; /* 10.4:1 — body, table cells */
+  --ink-3: #465163; /*  6.0:1 — icon strokes, meter labels */
+  --ink-4: #505b6c; /*  5.3:1 — table headers, meta */
+  --ink-5: #566174; /*  5.1:1 — secondary */
+  --ink-6: var(--ink-5);
+  --ink-muted: #5a6477; /*  4.6:1 on the sidebar's search field, which is
+                            the darkest ground it sits on */
+  --ink-faint: #7f8998; /*  3.0:1 on the sidebar, 3.5:1 on a card — ICONS AND RULES ONLY, never text.
+                          3:1 is the floor for a graphic that means something (WCAG 1.4.11). */
+  --ink-faintest: #a3acb9; /*  2.3:1 — GLYPHS ONLY: em-dashes, chevrons */
+  --ink-disabled: #7a8494; /*  3.5:1 — a disabled label still says its word */
+
+  /* ink on the dark trust/terminal surfaces */
+  --ink-code-1: #e4e8ec; /* never #ffffff: pure white vibrates */
+  --ink-code-2: #c8cfd5;
+  --ink-code-3: #9aa4ad;
+  --ink-code-4: #86909a;
+
+  /* -- the tint ---------------------------------------------------------
+     `--accent` is the same #2fd4b0 in both themes — it is the app icon's
+     colour, and an identity that changes with the room is not one. What
+     changes is only the step used AS TEXT: #2fd4b0 on white is 1.8:1, so
+     light gets a deepened teal for words and keeps the bright one for
+     fills, dots and bars. */
+  --accent: #2fd4b0; /* fills, dots, bars, the selected rail row */
+  --accent-solid: #2fd4b0; /* the primary button's base */
+  --accent-solid-hover: #22c2a0;
+  --accent-on-solid: #04261d; /* 8.6:1 on the fill */
+  /* accent AS TEXT — 6.0:1 on white, 4.9:1 on the palest section wash.
+     One step darker since UX-16: #1b7a65 was 4.4:1 on the washes a selected
+     row takes, so a 13px link on one (Activity's "in warehouse →") failed. */
+  --accent-ink: #187060;
+  --accent-wash: #daf7f1; /* tinted backgrounds */
+  --accent-wash-2: #eefbf8; /* the palette / list hover */
+  --accent-row: #f0fbf8; /* this peer's row */
+  /* A SELECTED row, which is a lighter tint than `--accent-wash` on
+     purpose: a row can hold tinted chips of its own, and a 16% wash under
+     an 18% chip is two tints stacked — the chip's ink then has to read on
+     a ground neither of them chose. Selection is quiet here and loud in
+     the rail, which is where a person is actually looking for it. */
+  --accent-select: #e9faf6;
+  --accent-ring: rgba(47, 212, 176, 0.35);
+  --accent-bright: #64e4ca; /* dark surfaces only */
+  --accent-bright-hover: #8df1db;
+  --accent-on-bright: #04261d;
+  --brand-mark: #eafaf7; /* solid, both themes: the logotype dot + pairing digits */
+  /* -- the first-run wave ------------------------------------------------
+     Trough and crest of the mesh dot-field behind the wizard
+     (`components/MeshWave.svelte`). A pair, not a colour and an opacity:
+     the crest is the value that has to read AGAINST the canvas, so on
+     light it is the darker of the two and on dark the brighter. */
+  --wave-trough: #a9c6c1;
+  --wave-crest: #0d5e4d;
+
+  /* -- companions -------------------------------------------------------
+     Muted companions — desaturated and deepened from the system-palette
+     values they started as, so eight of them side by side read as a
+     product and not a toybox; each `-ink` clears 4.5:1 on white. Where they go is decided once,
+     in `lib/hues.ts`: these are the sidebar's icon tiles and the section
+     marks — wayfinding — and nothing else in the product wears a hue. */
+  --hue-teal: var(--accent);
+  --hue-teal-ink: var(--accent-ink);
+  --hue-teal-wash: var(--accent-wash);
+  --hue-coral: #c4463e;
+  --hue-coral-ink: #a3362f; /* 5.6:1 on white */
+  --hue-coral-wash: #f7e6e4;
+  --hue-amber: #b9791f;
+  --hue-amber-ink: #85560e; /* 5.4:1 */
+  --hue-amber-wash: #f6ecdb;
+  --hue-indigo: #4d5bb3;
+  --hue-indigo-ink: #404d9a; /* 7.0:1 */
+  --hue-indigo-wash: #e7e9f5;
+  --hue-plum: #7d5aa6;
+  --hue-plum-ink: #67488a; /* 6.4:1 on white */
+  --hue-plum-wash: #eee8f5;
+  --hue-sky: #3571b6;
+  --hue-sky-ink: #2a5e99; /* 6.3:1 on white */
+  --hue-sky-wash: #e3ecf6;
+  --hue-green: #2f8f66;
+  --hue-green-ink: #236f4f; /* 5.9:1 */
+  --hue-green-wash: #e0f0e8;
+  --hue-gray: #7a7c85;
+  --hue-gray-ink: #5b5d66; /* 6.3:1 */
+  --hue-gray-wash: #eeeef0;
+  /* The ink that reads on a hue used as a FILL — see the dark block. */
+  --hue-on: #04261d;
+
+  /* -- vendor hints -----------------------------------------------------
+     A silicon vendor is a fact about a machine. Deliberately weak: these
+     tint one small square in one column and are never a fill behind text. */
+  --vendor-amd: #ff3b30;
+  --vendor-nvidia: #34c759;
+  --vendor-intel: #007aff;
+
+  /* -- the load meter ---------------------------------------------------
+     Teal at rest running into indigo at full: the brand colour for "alive"
+     travelling toward the hue that means "this is what the hardware is".
+     Only the healthy range wears it — a bar past 70% is amber and past 90%
+     is red, because a gradient that looked the same at 40% and at 95% would
+     have thrown away the one thing the column is there to say. */
+  --meter-load: linear-gradient(90deg, var(--accent) 0%, var(--hue-indigo) 100%);
+
+  /* -- the title wash ---------------------------------------------------
+     Retired by the 6c pass and kept as a no-op so nothing that still asks
+     for it breaks: a page title in this direction is 30px of ink on the
+     canvas, and a gradient behind it was the last piece of decoration
+     left in the chrome. */
+  --wash-title: none;
+
+  /* runtime badges — one tinted chip per language, both themes */
+  --rt-sh-bg: #daf7f1;
+  --rt-sh-fg: #1b7a65;
+  --rt-py-bg: #e2eefe;
+  --rt-py-fg: #0067d8;
+  --rt-ans-bg: #fff0da;
+  --rt-ans-fg: #9f5d00;
+  --rt-bin-bg: #f0f0f2;
+  --rt-bin-fg: #5f5f65;
+  /* N4 — containers. Indigo, so it does not read as another language:
+     a container is a different *kind* of thing from bash or python, and
+     the badge should say so before the word is read. */
+  --rt-oci-bg: #e6e4fb;
+  --rt-oci-fg: #4b3fc4;
+
+  /* -- tint pairs -------------------------------------------------------
+     A tinted ground and the foreground that reads on it are one pair. */
+  --tint-teal-bg: #daf7f1;
+  --tint-teal-fg: #1b7a65;
+  --tint-blue-bg: #e2eefe;
+  --tint-blue-fg: #0067d8;
+  --tint-purple-bg: #f6e7fc;
+  --tint-purple-fg: #9546bd;
+  --tint-amber-bg: #fff0da;
+  --tint-amber-fg: #9f5d00;
+  --tint-red-bg: #ffe4e2;
+  --tint-red-fg: #c62e25;
+
+  /* -- step kinds and task categories (the workflow canvas) -------------
+     One colour per kind of step; every one clears 3:1 on --surface-1. */
+  --cat-command: #047857;
+  --cat-bash: #65a30d;
+  --cat-python: #0284c7;
+  --cat-ansible: #c2410c;
+  --cat-service: #be123c;
+  --cat-flow: #0d9488;
+  --cat-logic: #b45309;
+  --cat-text: #7c3aed;
+  --cat-number: #1d4ed8;
+  --cat-list: #0e7490;
+  --cat-json: #a21caf;
+  --cat-data: #15803d;
+  --cat-encoding: #52525b;
+  --cat-hash: #78716c;
+  --cat-path: #a16207;
+  --cat-time: #9333ea;
+  --cat-random: #db2777;
+
+  /* -- status: fill vs ink, same split, same reason --------------------- */
+  --status-ok: #2fd4b0;
+  --status-ok-ink: #1b7a65;
+  --status-ok-wash: #daf7f1;
+  --status-warn: #ff9500;
+  --status-warn-ink: #9f5d00; /* 5.2:1 on white, 4.6:1 on its wash */
+  --status-warn-wash: #fff0da;
+  --status-warn-soft: #9f5d00; /* a heartbeat that has gone stale */
+  --status-warn-ring: #ffd79a;
+  --status-error: #ff3b30;
+  --status-error-ink: #c62e25; /* 5.5:1 on white, 4.6:1 on its wash */
+  --status-error-wash: #ffe4e2;
+  --status-error-edge: rgba(198, 46, 37, 0.32);
+  --status-running: #007aff;
+  --status-running-ink: #0067d8; /* 5.3:1 on white, 4.6:1 on its wash */
+  --status-running-wash: #e2eefe;
+  /* the status ink that reads on a dark surface */
+  --status-error-on-code: #ff9d94;
+  --status-warn-on-code: #ffb340;
+
+  /* -- liveness (topology + dots) --------------------------------------- */
+  --liveness-alive: #2fd4b0;
+  --liveness-alive-ring: rgba(47, 212, 176, 0.25);
+  --liveness-suspect: #ff9500;
+  --liveness-suspect-ring: #ffd79a;
+  --liveness-dead: #bcc4cf;
+  --liveness-dead-ring: #dde2e8;
+  /* How hard a machine is working, as five bands.
+   *
+   * Banded rather than a continuous ramp because nobody reads 61% off a hue:
+   * "steady" and "hot" are the words an operator already uses, and a band is
+   * the only thing a legend can honestly show. Sequential on purpose — load is
+   * the one quantity on this drawing, and it owns colour alone. Liveness is
+   * carried by shape, so a busy machine and a failing one never look alike. */
+  --load-none: #c2c9d3; /* alive, but has not reported yet */
+  --load-idle: #8ca6bd;
+  --load-light: #34c759;
+  --load-steady: #d8bb2e;
+  --load-busy: #ff9500;
+  --load-hot: #ff3b30;
+  --graph-edge-alive: #93e8d5;
+  --graph-edge-suspect: #ffd79a;
+  --graph-edge-dead: #e3e7ed;
+  --graph-guide: #e3e7ed;
+  --graph-guide-2: #edf0f4;
+  --graph-dots: #d5dbe3; /* the canvas dot grid */
+  --graph-hub: #2fd4b0; /* the one accent-filled figure on the canvas */
+  --graph-hub-ink: #04261d;
+  --graph-hub-sub: #0d5e4d;
+  --graph-halo: #daf7f1;
+  --graph-node-fill: #ffffff;
+
+  /* -- controls ----------------------------------------------------------
+     A raised control (secondary button, icon button) is a fill plus a
+     half-pixel ring — never a 1px border, which at this radius reads as an
+     outline drawn around a shape rather than as the shape's own edge.
+     The segmented control is the one sunken thing in the set. */
+  --ctl-bg: #ffffff; /* secondary / ghost button, icon button */
+  --ctl-bg-hover: #f8fafc;
+  --seg-track: rgba(15, 23, 42, 0.06);
+  --seg-knob: #ffffff;
+  --seg-knob-ink: var(--ink-1);
+  --seg-knob-shadow: 0 1px 3px rgba(0, 0, 0, 0.14), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  --track: rgba(15, 23, 42, 0.08); /* meter and bar grounds */
+  --hover: rgba(15, 23, 42, 0.035); /* a row or nav item under the pointer */
+
+  --focus-ring: #2fd4b0;
+  --focus-ring-offset: #ffffff;
+  --shadow-focus: 0 0 0 2px var(--focus-ring-offset), 0 0 0 4px var(--focus-ring);
+
+  /* -- elevation ---------------------------------------------------------
+     A card is white on the canvas with a .5px ring and the faintest lift.
+     Real shadow is kept for things that genuinely float. */
+  --sh-card: 0 0 0 1px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px -8px rgba(15, 23, 42, 0.08);
+  --sh-card-lg: 0 0 0 1px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 28px -14px rgba(15, 23, 42, 0.14);
+  --sh-nav-active: none;
+  --sh-control: 0 0 0 1px rgba(15, 23, 42, 0.09), 0 1px 2px rgba(15, 23, 42, 0.05);
+  --sh-pop: 0 0 0 1px rgba(15, 23, 42, 0.07), 0 16px 40px -12px rgba(15, 23, 42, 0.22), 0 3px 8px -3px rgba(15, 23, 42, 0.08);
+  --sh-code: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 20px 40px -30px rgba(13, 18, 25, 0.8);
+  --sh-drawer: -24px 0 60px -30px rgba(0, 0, 0, 0.45);
+  --sh-modal: 0 0 0 1px rgba(15, 23, 42, 0.06), 0 40px 90px -24px rgba(15, 23, 42, 0.45);
+  --sh-toast: 0 20px 44px -22px rgba(5, 8, 12, 0.5);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DARK — the same tokens, re-pointed. Declared twice on purpose: once for
+   the system preference and once for the explicit choice, so the toggle
+   wins both ways. The two bodies are identical and must stay that way —
+   if you edit one, edit the other.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    /* -- surfaces: three flat greys and two above them ------------------
+       Graphite, not near-black. The old ground was #131416 with the rail
+       and the canvas on the same tone; this direction separates them —
+       the rail is a step ABOVE the canvas, and a card a step above that —
+       which is what lets a card exist without an outline. */
+    --bg-app: #0b0f15; /* the window's own ground */
+    --bg-sidebar: #0f141b; /* the rail, one step above the canvas */
+    --bg-canvas: #0b0f15; /* the scrolling work area, and the toolbar */
+    --surface-1: #141a23; /* cards, rows, grouped surfaces, popovers */
+    --surface-2: #1b222d; /* search field, chips, meter tracks, segmented */
+    --surface-3: #242c39; /* pressed / hovered sunken */
+    --surface-graph: #090d12; /* the topology and code ground */
+    --surface-inline: #1b222d;
+    /* A grouped surface has ONE tone. The half-step under the panel that
+       used to separate a table header from its rows is gone: the hairline
+       does that job, and the third tone only ever made a card look like
+       two cards. */
+    --surface-subtle: #141a23;
+    --surface-code: #080b10;
+    --surface-code-2: #0d1118;
+    --surface-modal: #141a23;
+
+    /* -- edges: white at low alpha, not a blue-grey -----------------------
+       The neutral ramp is achromatic now, so a separator tinted 210° read
+       as a colour against it. `--edge-card` is the .5px ring a card wears
+       instead of a border. */
+    --edge: rgba(148, 163, 184, 0.12); /* separators inside a group */
+    --edge-inner: rgba(148, 163, 184, 0.09);
+    --edge-row: rgba(148, 163, 184, 0.09);
+    --edge-card: rgba(148, 163, 184, 0.1); /* the ring, never a border */
+    --edge-strong: rgba(148, 163, 184, 0.2);
+    --edge-hover: rgba(148, 163, 184, 0.34);
+    --edge-dashed: rgba(255, 255, 255, 0.2);
+    --edge-pre: rgba(255, 255, 255, 0.1);
+    --edge-drawer: rgba(255, 255, 255, 0.14);
+    --edge-connector: rgba(255, 255, 255, 0.24);
+    --edge-code: rgba(255, 255, 255, 0.12);
+
+    /* -- ink --------------------------------------------------------------
+       Every step is one notch brighter than the ramp it replaces, because
+       every surface under it went up two. Ratios are quoted against
+       --surface-2 (#343436), the darkest ground any of these sits on. */
+    --ink-1: #f1f5f9; /* 11.4:1 — figures, headings, table names */
+    --ink-2: #d9e0ea; /*  9.1:1 — body, table cells */
+    --ink-3: #bcc5d2; /*  6.8:1 — icon strokes, meter labels */
+    --ink-4: #aab4c2; /*  5.8:1 — table headers, meta */
+    --ink-5: #a4aebd; /*  5.5:1 — secondary */
+    --ink-6: var(--ink-5);
+    --ink-muted: #a7b1c0; /*  5.6:1 — micro labels, definition keys */
+    --ink-faint: #7a8494; /*  4.2:1 or better — ICONS AND RULES ONLY, never text */
+    --ink-faintest: #5a6372; /*  2.9:1 — GLYPHS ONLY: em-dashes, chevrons */
+    --ink-disabled: #8a94a3; /*  3.7:1 — a disabled label still says its word */
+
+    --ink-code-1: #e4e8ec;
+    --ink-code-2: #c8cfd5;
+    --ink-code-3: #9aa4ad;
+    --ink-code-4: #86909a;
+
+    --rt-sh-bg: rgba(47, 212, 176, 0.16);
+    --rt-sh-fg: #5fe3c4;
+    --rt-py-bg: rgba(98, 174, 245, 0.18);
+    --rt-py-fg: #92c8fb;
+    --rt-ans-bg: rgba(255, 179, 64, 0.16);
+    --rt-ans-fg: #ffbe5c;
+    --rt-bin-bg: rgba(255, 255, 255, 0.1);
+    --rt-bin-fg: #bfbfc8;
+    --rt-oci-bg: rgba(140, 128, 255, 0.18);
+    --rt-oci-fg: #b3aaff;
+
+    --tint-teal-bg: rgba(47, 212, 176, 0.16);
+    --tint-teal-fg: #5fe3c4;
+    --tint-blue-bg: rgba(98, 174, 245, 0.18);
+    --tint-blue-fg: #92c8fb;
+    --tint-purple-bg: rgba(191, 90, 242, 0.2);
+    --tint-purple-fg: #d9a6f5;
+    --tint-amber-bg: rgba(255, 179, 64, 0.16);
+    --tint-amber-fg: #ffbe5c;
+    --tint-red-bg: rgba(255, 69, 58, 0.18);
+    --tint-red-fg: #ff9d9e;
+
+    --cat-command: #34d399;
+    --cat-bash: #bef264;
+    --cat-python: #38bdf8;
+    --cat-ansible: #fb923c;
+    --cat-service: #fb7185;
+    --cat-flow: #2fd4b0;
+    --cat-logic: #fbbf24;
+    --cat-text: #c4b5fd;
+    --cat-number: #93c5fd;
+    --cat-list: #22d3ee;
+    --cat-json: #f0abfc;
+    --cat-data: #86efac;
+    --cat-encoding: #a8a8b2;
+    --cat-hash: #d6d3d1;
+    --cat-path: #fcd34d;
+    --cat-time: #d8b4fe;
+    --cat-random: #f9a8d4;
+
+    /* -- the tint ---------------------------------------------------------
+       One colour, and it is the app icon's own teal. A fill, a text step
+       that reads on the graphite, and the near-black that reads on the
+       fill. Everything tinted in the product comes out of these three. */
+    --accent: #2fd4b0; /* fills, dots, bars, the selected rail row */
+    --accent-solid: #2fd4b0; /* the primary button's base */
+    --accent-solid-hover: #5fe3c4;
+    --accent-on-solid: #04261d; /* 8.6:1 on the fill */
+    --accent-ink: #5fe3c4; /* accent AS TEXT — 8.8:1 on --surface-1 */
+    --accent-wash: rgba(47, 212, 176, 0.16);
+    --accent-wash-2: rgba(47, 212, 176, 0.08);
+    --accent-row: rgba(47, 212, 176, 0.06); /* this peer's row */
+  --accent-select: rgba(47, 212, 176, 0.09); /* see the light block */
+    --accent-ring: rgba(47, 212, 176, 0.3);
+    --accent-bright: #5fe3c4;
+    --accent-bright-hover: #8df1db;
+    --accent-on-bright: #04261d;
+    --wave-trough: #1d5f57;
+    --wave-crest: #c9fff3;
+
+    /* -- companions -------------------------------------------------------
+       The same muted companions at dark values. These are wayfinding, not
+       decoration: they are the sidebar's icon tiles and the section marks,
+       one per surface, and nothing else in the product is allowed a hue. */
+    --hue-teal: var(--accent);
+    --hue-teal-ink: var(--accent-ink);
+    --hue-teal-wash: var(--accent-wash);
+    --hue-coral: #d4655d;
+    --hue-coral-ink: #eea39c;
+    --hue-coral-wash: rgba(212, 101, 93, 0.16);
+    --hue-amber: #cf9a3c;
+    --hue-amber-ink: #e6c07e;
+    --hue-amber-wash: rgba(207, 154, 60, 0.14);
+    --hue-indigo: #7381d6;
+    --hue-indigo-ink: #b0b8ec;
+    --hue-indigo-wash: rgba(115, 129, 214, 0.18);
+    --hue-plum: #a181c6;
+    --hue-plum-ink: #cdb6e6;
+    --hue-plum-wash: rgba(161, 129, 198, 0.18);
+    --hue-sky: #5b93d3;
+    --hue-sky-ink: #a0c3ea;
+    --hue-sky-wash: rgba(91, 147, 211, 0.18);
+    --hue-green: #4faf86;
+    --hue-green-ink: #91d5b5;
+    --hue-green-wash: rgba(79, 175, 134, 0.16);
+    --hue-gray: #8b8d96;
+    --hue-gray-ink: #b9bbc4;
+    --hue-gray-wash: rgba(255, 255, 255, 0.08);
+    /* The ink that reads on a hue used as a FILL — the icon inside a tile,
+       the label on the teal selected row. Near-black in both themes: every
+       one of these fills is a bright, saturated colour. */
+    --hue-on: #04261d;
+
+    --vendor-amd: #ff453a;
+    --vendor-nvidia: #30d158;
+    --vendor-intel: #0a84ff;
+
+    --status-ok: #2fd4b0;
+    --status-ok-ink: #5fe3c4;
+    --status-ok-wash: rgba(47, 212, 176, 0.16);
+    --status-warn: #ff9f0a;
+    --status-warn-ink: #ffbe5c;
+    --status-warn-soft: #ffbe5c;
+    --status-warn-wash: rgba(255, 159, 10, 0.16);
+    --status-warn-ring: rgba(255, 159, 10, 0.5);
+    --status-error: #ff453a;
+    --status-error-ink: #ff9d94;
+    --status-error-wash: rgba(255, 69, 58, 0.16);
+    --status-error-edge: rgba(255, 69, 58, 0.42);
+    --status-running: #0a84ff;
+    --status-running-ink: #7cbcff;
+    --status-running-wash: rgba(10, 132, 255, 0.2);
+
+    --liveness-alive: #2fd4b0;
+    --liveness-alive-ring: rgba(47, 212, 176, 0.25);
+    --liveness-suspect: #ff9f0a;
+    --liveness-suspect-ring: rgba(255, 159, 10, 0.45);
+    --liveness-dead: #4b5462;
+    --liveness-dead-ring: rgba(255, 255, 255, 0.16);
+    --load-none: #3a4352;
+    --load-idle: #93aec6;
+    --load-light: #30d158;
+    --load-steady: #e8cc45;
+    --load-busy: #ff9f0a;
+    --load-hot: #ff453a;
+    --graph-edge-alive: rgba(47, 212, 176, 0.55);
+    --graph-edge-suspect: rgba(255, 159, 10, 0.5);
+    --graph-edge-dead: rgba(255, 255, 255, 0.12);
+    --graph-guide: rgba(255, 255, 255, 0.11);
+    --graph-guide-2: rgba(255, 255, 255, 0.06);
+    --graph-dots: rgba(255, 255, 255, 0.12);
+    --graph-hub: #2fd4b0;
+    --graph-hub-ink: #04261d;
+    --graph-hub-sub: #06483c;
+    --graph-halo: rgba(47, 212, 176, 0.16);
+    --graph-node-fill: #1b222d;
+
+    /* -- controls — see the light block ------------------------------------ */
+    --ctl-bg: rgba(148, 163, 184, 0.08);
+    --ctl-bg-hover: rgba(148, 163, 184, 0.14);
+    --seg-track: rgba(148, 163, 184, 0.1);
+    --seg-knob: #2b3442;
+    --seg-knob-ink: #f5f5f7;
+    --seg-knob-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --track: rgba(148, 163, 184, 0.14);
+    --hover: rgba(148, 163, 184, 0.07);
+
+    --focus-ring: #5fe3c4;
+    --focus-ring-offset: #0b0f15;
+    --shadow-focus: 0 0 0 2px var(--focus-ring-offset), 0 0 0 4px var(--focus-ring);
+
+    /* -- elevation ---------------------------------------------------------
+       A card is a tone and a hairline ring — the ONLY "border" it gets.
+       Real shadow is kept for things that genuinely float. */
+    --sh-card: 0 0 0 1px rgba(148, 163, 184, 0.09), 0 8px 24px -14px rgba(0, 0, 0, 0.7);
+    --sh-card-lg: 0 0 0 1px rgba(148, 163, 184, 0.09), 0 12px 32px -16px rgba(0, 0, 0, 0.8);
+    --sh-nav-active: none;
+    --sh-control: 0 0 0 1px rgba(148, 163, 184, 0.14);
+    --sh-pop: 0 0 0 1px rgba(148, 163, 184, 0.12), 0 16px 40px -10px rgba(0, 0, 0, 0.75), 0 2px 6px -2px rgba(0, 0, 0, 0.5);
+    --sh-code: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 20px 40px -30px rgba(0, 0, 0, 0.9);
+    --sh-drawer: -24px 0 60px -30px rgba(0, 0, 0, 0.9);
+    --sh-modal: 0 0 0 1px rgba(148, 163, 184, 0.12), 0 40px 90px -20px rgba(0, 0, 0, 0.9);
+    --sh-toast: 0 20px 44px -22px rgba(0, 0, 0, 0.8);
+  }
+}
+
+/* …and again, for the explicit choice. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* -- surfaces: three flat greys and two above them ------------------
+     Graphite, not near-black. The old ground was #131416 with the rail
+     and the canvas on the same tone; this direction separates them —
+     the rail is a step ABOVE the canvas, and a card a step above that —
+     which is what lets a card exist without an outline. */
+  --bg-app: #0b0f15; /* the window's own ground */
+  --bg-sidebar: #0f141b; /* the rail, one step above the canvas */
+  --bg-canvas: #0b0f15; /* the scrolling work area, and the toolbar */
+  --surface-1: #141a23; /* cards, rows, grouped surfaces, popovers */
+  --surface-2: #1b222d; /* search field, chips, meter tracks, segmented */
+  --surface-3: #242c39; /* pressed / hovered sunken */
+  --surface-graph: #090d12; /* the topology and code ground */
+  --surface-inline: #1b222d;
+  /* A grouped surface has ONE tone. The half-step under the panel that
+     used to separate a table header from its rows is gone: the hairline
+     does that job, and the third tone only ever made a card look like
+     two cards. */
+  --surface-subtle: #141a23;
+  --surface-code: #080b10;
+  --surface-code-2: #0d1118;
+  --surface-modal: #141a23;
+
+  /* -- edges: white at low alpha, not a blue-grey -----------------------
+     The neutral ramp is achromatic now, so a separator tinted 210° read
+     as a colour against it. `--edge-card` is the .5px ring a card wears
+     instead of a border. */
+  --edge: rgba(148, 163, 184, 0.12); /* separators inside a group */
+  --edge-inner: rgba(148, 163, 184, 0.09);
+  --edge-row: rgba(148, 163, 184, 0.09);
+  --edge-card: rgba(148, 163, 184, 0.1); /* the ring, never a border */
+  --edge-strong: rgba(148, 163, 184, 0.2);
+  --edge-hover: rgba(148, 163, 184, 0.34);
+  --edge-dashed: rgba(255, 255, 255, 0.2);
+  --edge-pre: rgba(255, 255, 255, 0.1);
+  --edge-drawer: rgba(255, 255, 255, 0.14);
+  --edge-connector: rgba(255, 255, 255, 0.24);
+  --edge-code: rgba(255, 255, 255, 0.12);
+
+  /* -- ink --------------------------------------------------------------
+     Every step is one notch brighter than the ramp it replaces, because
+     every surface under it went up two. Ratios are quoted against
+     --surface-2 (#343436), the darkest ground any of these sits on. */
+  --ink-1: #f1f5f9; /* 11.4:1 — figures, headings, table names */
+  --ink-2: #d9e0ea; /*  9.1:1 — body, table cells */
+  --ink-3: #bcc5d2; /*  6.8:1 — icon strokes, meter labels */
+  --ink-4: #aab4c2; /*  5.8:1 — table headers, meta */
+  --ink-5: #a4aebd; /*  5.5:1 — secondary */
+  --ink-6: var(--ink-5);
+  --ink-muted: #a7b1c0; /*  5.6:1 — micro labels, definition keys */
+  --ink-faint: #7a8494; /*  4.2:1 or better — ICONS AND RULES ONLY, never text */
+  --ink-faintest: #5a6372; /*  2.9:1 — GLYPHS ONLY: em-dashes, chevrons */
+  --ink-disabled: #8a94a3; /*  3.7:1 — a disabled label still says its word */
+
+  --ink-code-1: #e4e8ec;
+  --ink-code-2: #c8cfd5;
+  --ink-code-3: #9aa4ad;
+  --ink-code-4: #86909a;
+
+  --rt-sh-bg: rgba(47, 212, 176, 0.16);
+  --rt-sh-fg: #5fe3c4;
+  --rt-py-bg: rgba(98, 174, 245, 0.18);
+  --rt-py-fg: #92c8fb;
+  --rt-ans-bg: rgba(255, 179, 64, 0.16);
+  --rt-ans-fg: #ffbe5c;
+  --rt-bin-bg: rgba(255, 255, 255, 0.1);
+  --rt-bin-fg: #bfbfc8;
+
+  --tint-teal-bg: rgba(47, 212, 176, 0.16);
+  --tint-teal-fg: #5fe3c4;
+  --tint-blue-bg: rgba(98, 174, 245, 0.18);
+  --tint-blue-fg: #92c8fb;
+  --tint-purple-bg: rgba(191, 90, 242, 0.2);
+  --tint-purple-fg: #d9a6f5;
+  --tint-amber-bg: rgba(255, 179, 64, 0.16);
+  --tint-amber-fg: #ffbe5c;
+  --tint-red-bg: rgba(255, 69, 58, 0.18);
+  --tint-red-fg: #ff9d9e;
+
+  --cat-command: #34d399;
+  --cat-bash: #bef264;
+  --cat-python: #38bdf8;
+  --cat-ansible: #fb923c;
+  --cat-service: #fb7185;
+  --cat-flow: #2fd4b0;
+  --cat-logic: #fbbf24;
+  --cat-text: #c4b5fd;
+  --cat-number: #93c5fd;
+  --cat-list: #22d3ee;
+  --cat-json: #f0abfc;
+  --cat-data: #86efac;
+  --cat-encoding: #a8a8b2;
+  --cat-hash: #d6d3d1;
+  --cat-path: #fcd34d;
+  --cat-time: #d8b4fe;
+  --cat-random: #f9a8d4;
+
+  /* -- the tint ---------------------------------------------------------
+     One colour, and it is the app icon's own teal. A fill, a text step
+     that reads on the graphite, and the near-black that reads on the
+     fill. Everything tinted in the product comes out of these three. */
+  --accent: #2fd4b0; /* fills, dots, bars, the selected rail row */
+  --accent-solid: #2fd4b0; /* the primary button's base */
+  --accent-solid-hover: #5fe3c4;
+  --accent-on-solid: #04261d; /* 8.6:1 on the fill */
+  --accent-ink: #5fe3c4; /* accent AS TEXT — 8.8:1 on --surface-1 */
+  --accent-wash: rgba(47, 212, 176, 0.16);
+  --accent-wash-2: rgba(47, 212, 176, 0.08);
+  --accent-row: rgba(47, 212, 176, 0.06); /* this peer's row */
+  --accent-select: rgba(47, 212, 176, 0.09); /* see the light block */
+  --accent-ring: rgba(47, 212, 176, 0.3);
+  --accent-bright: #5fe3c4;
+  --accent-bright-hover: #8df1db;
+  --accent-on-bright: #04261d;
+  --wave-trough: #1d5f57;
+  --wave-crest: #c9fff3;
+
+  /* -- companions -------------------------------------------------------
+     The same muted companions at dark values. These are wayfinding, not
+     decoration: they are the sidebar's icon tiles and the section marks,
+     one per surface, and nothing else in the product is allowed a hue. */
+  --hue-teal: var(--accent);
+  --hue-teal-ink: var(--accent-ink);
+  --hue-teal-wash: var(--accent-wash);
+  --hue-coral: #d4655d;
+  --hue-coral-ink: #eea39c;
+  --hue-coral-wash: rgba(212, 101, 93, 0.16);
+  --hue-amber: #cf9a3c;
+  --hue-amber-ink: #e6c07e;
+  --hue-amber-wash: rgba(207, 154, 60, 0.14);
+  --hue-indigo: #7381d6;
+  --hue-indigo-ink: #b0b8ec;
+  --hue-indigo-wash: rgba(115, 129, 214, 0.18);
+  --hue-plum: #a181c6;
+  --hue-plum-ink: #cdb6e6;
+  --hue-plum-wash: rgba(161, 129, 198, 0.18);
+  --hue-sky: #5b93d3;
+  --hue-sky-ink: #a0c3ea;
+  --hue-sky-wash: rgba(91, 147, 211, 0.18);
+  --hue-green: #4faf86;
+  --hue-green-ink: #91d5b5;
+  --hue-green-wash: rgba(79, 175, 134, 0.16);
+  --hue-gray: #8b8d96;
+  --hue-gray-ink: #b9bbc4;
+  --hue-gray-wash: rgba(255, 255, 255, 0.08);
+  /* The ink that reads on a hue used as a FILL — the icon inside a tile,
+     the label on the teal selected row. Near-black in both themes: every
+     one of these fills is a bright, saturated colour. */
+  --hue-on: #04261d;
+
+  --vendor-amd: #ff453a;
+  --vendor-nvidia: #30d158;
+  --vendor-intel: #0a84ff;
+
+  --status-ok: #2fd4b0;
+  --status-ok-ink: #5fe3c4;
+  --status-ok-wash: rgba(47, 212, 176, 0.16);
+  --status-warn: #ff9f0a;
+  --status-warn-ink: #ffbe5c;
+  --status-warn-soft: #ffbe5c;
+  --status-warn-wash: rgba(255, 159, 10, 0.16);
+  --status-warn-ring: rgba(255, 159, 10, 0.5);
+  --status-error: #ff453a;
+  --status-error-ink: #ff9d94;
+  --status-error-wash: rgba(255, 69, 58, 0.16);
+  --status-error-edge: rgba(255, 69, 58, 0.42);
+  --status-running: #0a84ff;
+  --status-running-ink: #7cbcff;
+  --status-running-wash: rgba(10, 132, 255, 0.2);
+
+  --liveness-alive: #2fd4b0;
+  --liveness-alive-ring: rgba(47, 212, 176, 0.25);
+  --liveness-suspect: #ff9f0a;
+  --liveness-suspect-ring: rgba(255, 159, 10, 0.45);
+  --liveness-dead: #4b5462;
+  --liveness-dead-ring: rgba(255, 255, 255, 0.16);
+  --load-none: #3a4352;
+  --load-idle: #93aec6;
+  --load-light: #30d158;
+  --load-steady: #e8cc45;
+  --load-busy: #ff9f0a;
+  --load-hot: #ff453a;
+  --graph-edge-alive: rgba(47, 212, 176, 0.55);
+  --graph-edge-suspect: rgba(255, 159, 10, 0.5);
+  --graph-edge-dead: rgba(255, 255, 255, 0.12);
+  --graph-guide: rgba(255, 255, 255, 0.11);
+  --graph-guide-2: rgba(255, 255, 255, 0.06);
+  --graph-dots: rgba(255, 255, 255, 0.12);
+  --graph-hub: #2fd4b0;
+  --graph-hub-ink: #04261d;
+  --graph-hub-sub: #06483c;
+  --graph-halo: rgba(47, 212, 176, 0.16);
+  --graph-node-fill: #1b222d;
+
+  /* -- controls — see the light block ------------------------------------ */
+  --ctl-bg: rgba(148, 163, 184, 0.08);
+  --ctl-bg-hover: rgba(148, 163, 184, 0.14);
+  --seg-track: rgba(148, 163, 184, 0.1);
+  --seg-knob: #2b3442;
+  --seg-knob-ink: #f5f5f7;
+  --seg-knob-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --track: rgba(148, 163, 184, 0.14);
+  --hover: rgba(148, 163, 184, 0.07);
+
+  --focus-ring: #5fe3c4;
+  --focus-ring-offset: #0b0f15;
+  --shadow-focus: 0 0 0 2px var(--focus-ring-offset), 0 0 0 4px var(--focus-ring);
+
+  /* -- elevation ---------------------------------------------------------
+     A card is a tone and a hairline ring — the ONLY "border" it gets.
+     Real shadow is kept for things that genuinely float. */
+  --sh-card: 0 0 0 1px rgba(148, 163, 184, 0.09), 0 8px 24px -14px rgba(0, 0, 0, 0.7);
+  --sh-card-lg: 0 0 0 1px rgba(148, 163, 184, 0.09), 0 12px 32px -16px rgba(0, 0, 0, 0.8);
+  --sh-nav-active: none;
+  --sh-control: 0 0 0 1px rgba(148, 163, 184, 0.14);
+  --sh-pop: 0 0 0 1px rgba(148, 163, 184, 0.12), 0 16px 40px -10px rgba(0, 0, 0, 0.75), 0 2px 6px -2px rgba(0, 0, 0, 0.5);
+  --sh-code: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 20px 40px -30px rgba(0, 0, 0, 0.9);
+  --sh-drawer: -24px 0 60px -30px rgba(0, 0, 0, 0.9);
+  --sh-modal: 0 0 0 1px rgba(148, 163, 184, 0.12), 0 40px 90px -20px rgba(0, 0, 0, 0.9);
+  --sh-toast: 0 20px 44px -22px rgba(0, 0, 0, 0.8);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CHROME — the rail and the header.
+
+   These used to be the only tokens that did NOT move with the theme: fixed
+   navy in light and dark alike, on the theory that navigation is app
+   furniture. The 2026-09 pass reversed that. Every product a buyer will
+   compare Director against draws its sidebar in the same theme as its
+   content, one tone off the canvas, split by a hairline — and the
+   dark-shell-around-a-light-document pattern had become the single
+   strongest "admin template" tell in the product. The names are kept so
+   the chrome components read the same; every value now aliases the
+   content ramp.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root {
+  /* The dark hero band the full-bleed screens open with (Benchmark). Still
+     fixed in both themes: it is a poster, not a page. */
+  --hero-bg: linear-gradient(160deg, #141416 0%, #1a2a2f 55%, #10322c 100%);
+  --hero-edge: rgba(47, 212, 176, 0.18);
+
+  /* The toolbar sits on the CANVAS, not on a surface of its own. A
+     56px band of card-white above a near-white page was a third tone
+     doing no work; the breadcrumb and the two buttons carry the row. */
+  --chrome-masthead: var(--bg-canvas);
+  --chrome-crumb: var(--bg-canvas);
+  --chrome-rail: var(--bg-sidebar);
+  --chrome-card: var(--surface-1);
+  --chrome-control: var(--surface-2);
+  --chrome-hover: var(--surface-2);
+  --chrome-chip: var(--surface-2);
+  --chrome-avatar: var(--accent-wash);
+  --chrome-toggle: var(--surface-1);
+
+  --chrome-edge: var(--edge);
+  --chrome-edge-2: var(--edge);
+  --chrome-edge-3: var(--edge-card);
+  --chrome-edge-4: var(--edge-strong);
+
+  --chrome-ink: var(--ink-1);
+  --chrome-ink-2: var(--ink-2);
+  --chrome-ink-3: var(--ink-3);
+  --chrome-ink-4: var(--ink-4);
+  --chrome-ink-5: var(--ink-5);
+  --chrome-ink-6: var(--ink-5);
+  --chrome-ink-7: var(--ink-faint);
+  --chrome-ink-8: var(--ink-5);
+  --chrome-ink-9: var(--ink-muted);
+  --chrome-ink-10: var(--ink-muted);
+  --chrome-ink-11: var(--ink-faint);
+  --chrome-glyph: var(--ink-3);
+
+  --chrome-accent: var(--accent);
+  --chrome-accent-ink: var(--accent-ink);
+  --chrome-accent-dim: var(--accent-ink);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TAILWIND THEME — `inline` so utilities compile to var() references and
+   follow [data-theme] instead of baking a literal at build time.
+   ═══════════════════════════════════════════════════════════════════════ */
+@theme inline {
+  --color-app: var(--bg-app);
+  --color-sidebar: var(--bg-sidebar);
+  --color-canvas: var(--bg-canvas);
+  --color-surface: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-code: var(--surface-code);
+  --color-code-2: var(--surface-code-2);
+
+  --color-graph: var(--surface-graph);
+  --color-subtle: var(--surface-subtle);
+  --color-inline: var(--surface-inline);
+
+  --color-edge: var(--edge);
+  --color-edge-inner: var(--edge-inner);
+  --color-edge-row: var(--edge-row);
+  --color-edge-card: var(--edge-card);
+  --color-edge-strong: var(--edge-strong);
+  --color-edge-hover: var(--edge-hover);
+  --color-edge-dashed: var(--edge-dashed);
+  --color-edge-pre: var(--edge-pre);
+  --color-edge-connector: var(--edge-connector);
+  --color-edge-code: var(--edge-code);
+
+  --color-ink: var(--ink-1);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-ink-5: var(--ink-5);
+  --color-ink-6: var(--ink-6);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-ink-faintest: var(--ink-faintest);
+  --color-ink-disabled: var(--ink-disabled);
+
+  --color-inkcode: var(--ink-code-1);
+  --color-inkcode-2: var(--ink-code-2);
+  --color-inkcode-3: var(--ink-code-3);
+  --color-inkcode-4: var(--ink-code-4);
+
+  --color-accent: var(--accent);
+  --color-accent-solid: var(--accent-solid);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-wash: var(--accent-wash);
+  --color-accent-row: var(--accent-row);
+  --color-bright: var(--accent-bright);
+
+  /* Chrome utilities. Fixed in both themes — see the CHROME block. */
+  --color-chrome: var(--chrome-masthead);
+  --color-chrome-crumb: var(--chrome-crumb);
+  --color-chrome-rail: var(--chrome-rail);
+  --color-chrome-card: var(--chrome-card);
+  --color-chrome-control: var(--chrome-control);
+  --color-chrome-hover: var(--chrome-hover);
+  --color-chrome-chip: var(--chrome-chip);
+  --color-chrome-edge: var(--chrome-edge);
+  --color-chrome-edge-2: var(--chrome-edge-2);
+  --color-chrome-edge-3: var(--chrome-edge-3);
+  --color-chrome-edge-4: var(--chrome-edge-4);
+  --color-chrome-ink: var(--chrome-ink);
+  --color-chrome-ink-2: var(--chrome-ink-2);
+  --color-chrome-ink-3: var(--chrome-ink-3);
+  --color-chrome-ink-4: var(--chrome-ink-4);
+  --color-chrome-ink-5: var(--chrome-ink-5);
+  --color-chrome-ink-6: var(--chrome-ink-6);
+  --color-chrome-ink-7: var(--chrome-ink-7);
+  --color-chrome-ink-8: var(--chrome-ink-8);
+  --color-chrome-ink-9: var(--chrome-ink-9);
+  --color-chrome-ink-10: var(--chrome-ink-10);
+  --color-chrome-ink-11: var(--chrome-ink-11);
+  --color-chrome-glyph: var(--chrome-glyph);
+  --color-chrome-accent: var(--chrome-accent);
+  --color-chrome-bright: var(--chrome-accent-ink);
+  --color-chrome-dim: var(--chrome-accent-dim);
+
+  --color-hue: var(--hue, var(--accent));
+  --color-hue-ink: var(--hue-ink, var(--accent-ink));
+  --color-hue-wash: var(--hue-wash, var(--accent-wash));
+  --color-hue-on: var(--hue-on);
+
+  --color-vendor-amd: var(--vendor-amd);
+  --color-vendor-nvidia: var(--vendor-nvidia);
+  --color-vendor-intel: var(--vendor-intel);
+
+  --color-ok: var(--status-ok);
+  --color-ok-ink: var(--status-ok-ink);
+  --color-warn: var(--status-warn);
+  --color-warn-ink: var(--status-warn-ink);
+  --color-error: var(--status-error);
+  --color-error-ink: var(--status-error-ink);
+  --color-running: var(--status-running);
+  --color-running-ink: var(--status-running-ink);
+
+  /* -- type scale: 8 steps, and nothing outside it ---------------------
+     Ratio ≈1.13 at the dense end (where the eye must rank table text)
+     widening to ≈1.3 at the display end (where a headline must be one).
+     The whole scale moved up one notch in the 2026-09 legibility pass:
+     13px body was defensible as instrument density and indefensible to
+     read for eight hours — the person who does said so. */
+  --text-2xs: 11px; /* mono meta, keycaps, chip text */
+  --text-2xs--line-height: 1.35;
+  --text-xs: 12px; /* eyebrow labels, captions */
+  --text-xs--line-height: 1.4;
+  --text-sm: 13px; /* helper text, dense cells */
+  --text-sm--line-height: 1.5;
+  --text-base: 14px; /* body, nav, buttons, form values */
+  --text-base--line-height: 1.55;
+  --text-md: 16px; /* card titles */
+  --text-md--line-height: 1.4;
+  --text-lg: 18.5px; /* panel headings */
+  --text-lg--line-height: 1.3;
+  --text-lg--letter-spacing: -0.014em;
+  --text-xl: 23px; /* view titles */
+  --text-xl--line-height: 1.2;
+  --text-xl--letter-spacing: -0.02em;
+  --text-2xl: 30px; /* page titles */
+  --text-2xl--line-height: 1.1;
+  --text-2xl--letter-spacing: -0.025em;
+  --text-3xl: 32px; /* metric figures */
+  --text-3xl--line-height: 1.05;
+  --text-3xl--letter-spacing: -0.03em;
+  --text-4xl: initial;
+  --text-5xl: initial;
+  --text-6xl: initial;
+  --text-7xl: initial;
+  --text-8xl: initial;
+  --text-9xl: initial;
+
+  /* -- radius: 6 steps, every one of them smaller ----------------------
+     A console is not a set of floating tiles. 18–22px radii read as cards
+     laid on a desktop; 4–8px reads as panes in one instrument, which is what
+     the whole chrome change is for. Nothing in the app frame is rounded.
+     The 2026-09 teal+indigo pass took cards the last step, 10px → 6px, so
+     a card corner and a button corner are the same corner: at 10px a card
+     still read as a tile sitting on the page rather than as a pane cut into
+     it. Modals stay one step above cards — a dialog that shares the card
+     radius stops reading as a thing in front of the page. */
+  --radius-xs: 4px; /* status squares, the section mark, segment knobs */
+  --radius-sm: 6px; /* chips, inline code, the sidebar's icon tiles */
+  --radius-md: 9px; /* controls: buttons, inputs, segmented, icon cells */
+  --radius-lg: 12px; /* drawer boxes, larger tiles, popovers */
+  --radius-xl: 16px; /* cards and grouped surfaces */
+  --radius-2xl: 20px; /* modals — one step above a card */
+  --radius-3xl: initial;
+  --radius-4xl: initial;
+
+  --font-sans: "Geist Variable", Geist, Inter, "Segoe UI", Helvetica, Arial, sans-serif;
+  /* "JetBrains Mono" was in this stack and is not loaded by anything
+     (L-20) — a fallback naming a font the app does not ship is a fallback
+     that only fires on machines that happen to have it, which is the worst
+     kind of inconsistency to debug. */
+  --font-mono: "Geist Mono Variable", "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --shadow-card: var(--sh-card);
+  --shadow-card-lg: var(--sh-card-lg);
+  --shadow-pop: var(--sh-pop);
+  --shadow-nav: var(--sh-nav-active);
+  --shadow-control: var(--sh-control);
+  --shadow-code: var(--sh-code);
+  --shadow-modal: var(--sh-modal);
+
+  /* One easing curve for the whole application. */
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Duration scale — outside @theme because these are used in raw CSS. */
+:root {
+  --dur-instant: 75ms;
+  --dur-fast: 150ms;
+  --dur-base: 240ms;
+  --dur-slow: 320ms;
+  --dur-slower: 480ms;
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Gossip edges march in peripheral vision for eight hours a day.
+     Slow enough to read as alive, not as scrolling. */
+  --motion-breathe: 2.2s ease-in-out infinite;
+  --motion-gossip: 3s linear infinite;
+  --motion-radar: 2.6s ease-out infinite;
+  --motion-spin: 900ms linear infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   KEYFRAMES — load-bearing only. State transitions animate; dashboards
+   do not dance.
+   ═══════════════════════════════════════════════════════════════════════ */
+@keyframes mw-breathe {
+  50% {
+    opacity: 0.35;
+  }
+}
+@keyframes mw-pulse {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+@keyframes mw-gossip {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+@keyframes mw-radar {
+  from {
+    transform: scale(0.25);
+    opacity: 0.5;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+@keyframes mw-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes mw-rise {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes mw-slide {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes mw-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Rows outside the viewport are not rendered at all (M-27).
+   A hundred-machine Nodes table is a hundred breathing dots, each its own
+   compositor layer, and the ~80 of them scrolled off screen were costing
+   exactly as much as the twenty being looked at. `content-visibility` lets
+   the engine skip layout, paint *and* animation for a row that is not in
+   view; `contain-intrinsic-size` keeps the scrollbar honest while it is
+   skipped, so the page does not jump as rows come and go.
+
+   Opt-in per row rather than a blanket rule: it establishes containment,
+   which would break any row whose content legitimately overflows it. */
+.row-lazy {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 44px;
+}
+
+/* Ambient motion stops when nobody is looking (H-13, M-27, M-28).
+   `lib/stillness.ts` puts `.mw-still` on <html> while the window is hidden
+   or a modal is over the content; `.mw-ambient` is what opts in — the
+   endless decorative loops, never a one-shot enter transition, which would
+   otherwise freeze half-played. Paused rather than cancelled, so coming
+   back resumes mid-stride instead of snapping to the start. */
+:root.mw-still .mw-ambient,
+:root.mw-still .mw-ambient::before,
+:root.mw-still .mw-ambient::after {
+  animation-play-state: paused !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BASE
+   ═══════════════════════════════════════════════════════════════════════ */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--ink-1);
+  /* One notch of negative tracking across the whole app. Geist sets a
+     touch wide at UI sizes next to the system faces this direction is
+     drawn against; -0.005em is the difference between "a webfont" and
+     "the window's own type". */
+  letter-spacing: -0.005em;
+  /* Flat. The original radial gradient existed so the floating window card
+     would photograph well; the app is not a photograph. */
+  background: var(--bg-app);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior: none;
+  /* Chrome is not selectable; data is (see `.mono` / `.num` / .selectable
+     below). An ops tool must never make you retype an identifier by eye. */
+  user-select: none;
+}
+
+#app {
+  height: 100%;
+}
+
+/* The theme swap must not animate. A 240ms cross-fade of every surface in
+   the application is the definition of performative — and it makes the app
+   feel like one mode with an effect rather than two modes. */
+:root.theme-switching *,
+:root.theme-switching *::before,
+:root.theme-switching *::after {
+  transition: none !important;
+}
+
+/* The default focus ring. It lives in `@layer base` deliberately: Tailwind
+   v4 puts utilities in `@layer utilities`, and an *unlayered* rule beats
+   every layer no matter its specificity. Left unlayered, this rule silently
+   defeated `focus-visible:shadow-none` on the inner control of every input
+   group — the ring drew on the child, and the group's `overflow-hidden`
+   clipped it down to a stray vertical line beside the prompt. Grouped
+   controls hand their ring to the wrapper via `focus-within:`. */
+@layer base {
+  :where(button, a, input, textarea, select, [tabindex]):focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-focus);
+  }
+  /* A row opened from the keyboard (`lib/rowaction.ts`, DIR-12). Table rows
+     do not reliably paint a box-shadow, so the same colour as an outline,
+     drawn inside the row so the table's clipping cannot hide it. */
+  :where(tr[data-rowaction]):focus-visible {
+    box-shadow: none;
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+  }
+}
+
+button {
+  font-family: var(--font-sans);
+}
+
+/* Metrics, ids, counts, durations: mono + tabular. Selectable, because
+   these are the strings that get pasted into a terminal. */
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  user-select: text;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  user-select: text;
+}
+
+.selectable {
+  user-select: text;
+}
+
+/* Buttons and headings stay chrome even when they contain mono text. */
+button .mono,
+button .num,
+h1 .mono,
+h2 .mono,
+th .mono {
+  user-select: none;
+}
+
+/* The label: table headers, definition keys, form captions. Sans, 12px,
+   sentence case, medium weight, one step under body ink. It used to be
+   uppercase tracked mono — every table header in the product shouted its
+   column name in the typeface reserved for machine values, which is the
+   second-strongest "dashboard template" tell after a dark shell. A header
+   is read, not pasted, so it is set in the reading face. */
+.label {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-4);
+  user-select: none;
+}
+
+/* Text button — understated enough for an instrument, present enough to be
+   found. Replaces ~20 links that were styled identically to body copy. */
+.linkish {
+  color: var(--accent-ink);
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-ink) 35%, transparent);
+  transition: border-color var(--dur-fast) var(--ease);
+}
+.linkish:hover {
+  border-bottom-color: var(--accent-ink);
+}
+
+/* One field treatment for input, select and textarea alike. The original
+   left <input> unbordered and let <select> render the platform border, so
+   two controls in the same row had different affordances. */
+.field {
+  background: var(--surface-1);
+  border: 1px solid var(--edge-strong);
+  border-radius: var(--radius-md);
+  color: var(--ink-1);
+  box-shadow: 0 1px 2px rgba(13, 23, 33, 0.04);
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+.field::placeholder {
+  color: var(--ink-6);
+  font-family: var(--font-sans);
+}
+.field:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--edge-strong));
+}
+/* A field's focus is a glow, not the 2+4px keyboard ring buttons get: the
+   caret already says where you are, and a hard ring around a 40px control
+   every time you tab into a form is noise. */
+.field:focus,
+.field:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+.field:disabled {
+  background: var(--surface-2);
+  color: var(--ink-disabled);
+  cursor: not-allowed;
+}
+/* A field a form has asked for and not been given.
+   Only ever applied *after* a submit attempt — marking an untouched form in
+   red is scolding somebody for not having typed yet. The ring is the same
+   geometry as the focus glow so the two do not fight when the field is both
+   invalid and focused, which is the normal case immediately after a press. */
+.field.is-missing,
+.field.is-missing:hover:not(:disabled) {
+  border-color: var(--status-warn);
+  background: var(--status-warn-wash);
+}
+.field.is-missing:focus,
+.field.is-missing:focus-visible {
+  border-color: var(--status-warn);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-warn) 32%, transparent);
+}
+
+/* A field on a card. It used to be a sunken grey fill with no border,
+   which is exactly what a *disabled* field looks like. Now: a hairline and
+   the faintest tint, so it still sits a hair under the card. */
+.field-sunken {
+  background: var(--surface-subtle);
+}
+.field-sunken:focus,
+.field-sunken:focus-visible {
+  background: var(--surface-1);
+}
+
+/* A numeric field is typed into, not nudged: the toolkit's stacked
+   spinner is 11px of chrome that reads as a broken glyph on a dark card. */
+input[type="number"].field {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+input[type="number"].field::-webkit-outer-spin-button,
+input[type="number"].field::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* A <select> styled as a field: the platform arrow is hidden and a chevron
+   is drawn in the ink colour, so the control matches its neighbours in
+   both themes instead of taking whatever the toolkit paints. */
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 30px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23768392' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5l3 3 3-3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+}
+
+/* Checkbox and switch, drawn rather than delegated. `accent-color` alone
+   leaves the box shape, the tick and the focus ring to the toolkit, and on
+   Linux that is three different answers in one form. */
+.check {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin: 0;
+  border: 1px solid var(--edge-hover);
+  border-radius: 4px;
+  background: var(--surface-1);
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.check::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  transform: scale(0);
+  background: var(--accent-on-solid);
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.check:checked {
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+}
+.check:checked::before {
+  transform: scale(1);
+}
+.check:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+.check:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.switch {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 34px;
+  height: 20px;
+  flex: none;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--edge-hover);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+.switch::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.switch:checked {
+  background: var(--accent-solid);
+}
+.switch:checked::before {
+  transform: translateX(14px);
+}
+.switch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+.switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* The dropdown list a <select> opens is a native widget, and it does not
+   inherit the control's background — only its `color`. So the moment an
+   author sets `color` on a select (which `.field` and the `text-ink`
+   utility both do), the popup renders that colour on its own default
+   ground: in dark mode, near-white text on white. `color-scheme: dark` is
+   already declared and does not save us, because Chrome on Linux draws
+   this popup as a GTK menu.
+   Both halves stated explicitly, so the popup is legible in either theme
+   regardless of what the platform decides to do. */
+option,
+optgroup {
+  background-color: var(--surface-1);
+  color: var(--ink-1);
+}
+option:disabled {
+  color: var(--ink-disabled);
+}
+
+@supports (border-width: 0.5px) {
+  @media (min-resolution: 1.5dppx) {
+    .field,
+    .hairline {
+      border-width: 0.5px;
+    }
+  }
+}
+
+/* Terminal panes (dark, always — a log is a log in both themes). */
+.term {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  user-select: text;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-anchor: none;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--edge-dashed);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-faint);
+  background-clip: content-box;
+}
+.dark-scroll::-webkit-scrollbar-thumb {
+  background: rgba(160, 176, 200, 0.22);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* `backwards`, not `both`. A filled `transform: none` keyframe does not
+   resolve to `none` — it resolves to the identity *matrix*, and any
+   transform, identity included, makes the element the containing block for
+   every `position: fixed` descendant under it. On `both` that matrix never
+   goes away, so each of these entrances quietly turned its subtree into a
+   private viewport: a full-window sheet opened from inside one came out
+   centred on the pane instead of the window, and clipped by the pane's own
+   scroll box. `backwards` still holds the opening frame before the
+   animation starts — the flash `both` was there to prevent — and lets the
+   element fall back to its own `transform: none` the moment it lands. */
+.fade-in {
+  animation: mw-rise var(--dur-slow) var(--ease) backwards;
+}
+
+.pop-in {
+  animation: mw-pop var(--dur-base) var(--ease) backwards;
+}
+
+.breathe {
+  animation: mw-breathe var(--motion-breathe);
+}
+
+.spin {
+  animation: mw-spin var(--motion-spin);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CONTROLS
+   Hover used to be ~20 `onmouseenter` handlers assigning `style.background`
+   directly: a rendering concern living in the event loop. It cost a style
+   recalculation per pointer move across a row, it never fired for keyboard
+   focus, and it did not survive a re-render mid-hover. It is CSS now, with
+   the keyboard equivalent for free.
+   ═══════════════════════════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    transform var(--dur-instant) var(--ease);
+}
+/* Press feedback. The single cheapest "this is a native application" tell
+   in the field — Linear ships it on every button variant. */
+.btn:active:not(:disabled),
+.tile:active:not(:disabled),
+.iconbtn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  /* The one gradient in the product, and it spans 14% of one channel: a
+     flat fill at this size and radius reads as a coloured rectangle, and
+     the hairline of light along the top edge is what makes it read as a
+     key. Same two steps in both themes — the teal does not move. */
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-solid) 100%, white 14%), var(--accent-solid));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  color: var(--accent-on-solid);
+  font-weight: 600;
+}
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-solid) 100%, white 24%), var(--accent-solid-hover));
+}
+/* A real disabled state, not a transparency. `opacity: .35` on an accent
+   fill put white-on-#a4d5cf at ~1.4:1 — the label was unreadable, and
+   "disabled" was signalled only by the one cue that vanishes for a
+   low-vision user. */
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-ghost:disabled,
+.btn-danger:disabled {
+  cursor: not-allowed;
+  background: var(--surface-2);
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--ink-disabled);
+}
+
+/* White, not transparent, and the hover moves the *ground* rather than the
+   colour: on a page where every band is already white, an outline that turns
+   teal under the pointer reads as a state change on the thing it sits next
+   to. */
+.btn-secondary {
+  background: var(--ctl-bg);
+  box-shadow: var(--sh-control);
+  color: var(--ink-1);
+  font-weight: 500;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--ctl-bg-hover);
+}
+
+/* The third weight: the tint as a label on nothing. `Add machines` beside
+   a section title is not the page's key action and must not look like it,
+   but it is still an action, so it keeps the teal and loses the fill. */
+.btn-ghost {
+  background: transparent;
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--accent-wash);
+}
+
+.btn-danger {
+  background: transparent;
+  border: 1px solid var(--status-error-edge);
+  color: var(--status-error-ink);
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--status-error-wash);
+}
+
+/* The one filled destructive button in the product (revoke). It is a class
+   rather than an inline background so the disabled variant can actually win
+   the cascade — an inline style beat `disabled:bg-*` and left the armed red
+   showing under a disabled label. */
+.btn-destructive {
+  background: var(--status-error);
+  color: #ffffff;
+  font-weight: 700;
+}
+.btn-destructive:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--status-error) 86%, #000);
+}
+.btn-destructive:disabled {
+  cursor: not-allowed;
+  background: var(--surface-3);
+  color: var(--ink-disabled);
+}
+
+/* Bright fill — the trust surfaces only, where the ground is dark. */
+.btn-bright {
+  background: var(--accent-bright);
+  color: var(--accent-on-bright);
+  font-weight: 700;
+}
+.btn-bright:hover:not(:disabled) {
+  background: var(--accent-bright-hover);
+}
+.btn-bright:disabled {
+  cursor: not-allowed;
+  background: rgba(160, 176, 200, 0.14);
+  color: var(--ink-code-4);
+}
+
+/* Segmented control — a *local* toggle (Ring/Force, Capacity/Guests, a
+   filter strip). It is no longer used to switch pages: the 2026-09 pass
+   found the same shape meaning "change the page" on one screen and
+   "change a layout" on the next, and moved every page-level one to `.tab`. */
+.seg {
+  display: inline-flex;
+  border-radius: var(--radius-md);
+  background: var(--seg-track);
+  padding: 2px;
+}
+.seg > button {
+  border-radius: var(--radius-xs);
+  padding: 3px 10px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--ink-5);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+.seg > button:hover:not([aria-selected="true"]):not([data-selected="true"]):not(:disabled) {
+  color: var(--ink-1);
+}
+.seg > button[aria-selected="true"],
+.seg > button[data-selected="true"] {
+  background: var(--seg-knob);
+  box-shadow: var(--seg-knob-shadow);
+  color: var(--seg-knob-ink);
+  font-weight: 600;
+}
+.seg > button:disabled {
+  cursor: not-allowed;
+  color: var(--ink-disabled);
+}
+
+/* Interactive row / tile: the border reacts, and it reacts to focus too. */
+.tile {
+  border: 1px solid var(--edge-card);
+  border-radius: var(--radius-lg);
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+.tile:hover:not(:disabled),
+.tile:focus-visible {
+  border-color: var(--accent);
+  box-shadow: var(--sh-control);
+}
+.tile:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ON-CODE — surfaces that are dark in BOTH themes: terminal panes, the
+   pairing rail mid-handshake, the confirmation modals, the "what will run"
+   previews.
+
+   These were the one place the theme system could quietly break. A token
+   like --status-error-ink is #b42318 in light (correct on a white card,
+   unreadable on near-black) and #fca5a5 in dark; a component sitting on a
+   permanently dark surface needs the dark value regardless of theme. Rather
+   than hand-picking a -on-code variant at every call site, re-point the
+   whole ramp for the subtree and let custom-property inheritance carry it.
+   ═══════════════════════════════════════════════════════════════════════ */
+.on-code {
+  /* The one thing the token trick above cannot carry, because it is not a
+     custom property: `color-scheme` decides how the *browser* paints native
+     widgets — select popups, scrollbars, checkboxes, date pickers. Without
+     it, a select inside a modal is handed this ramp's light-on-dark colours
+     while Chrome draws its popup on the page's light ground, and the list
+     comes out near-white text on white. Declaring it here means every
+     permanently dark surface gets dark native chrome to match, in both
+     themes. */
+  color-scheme: dark;
+
+  --ink-1: var(--ink-code-1);
+  --ink-2: var(--ink-code-2);
+  --ink-3: var(--ink-code-3);
+  --ink-4: var(--ink-code-3);
+  --ink-5: var(--ink-code-4);
+  --ink-6: var(--ink-code-4);
+  --ink-faint: rgba(160, 176, 200, 0.42);
+  --ink-disabled: #98a3b4;
+
+  --surface-1: var(--surface-code-2);
+  --surface-2: rgba(160, 176, 200, 0.1);
+  --surface-3: rgba(160, 176, 200, 0.16);
+  /* Left out until UX-19, so a field or a note using it inside a dark pane
+     came out white in the light theme — latent only because nothing had
+     yet put one there. */
+  --surface-subtle: var(--surface-code-2);
+  --bg-canvas: var(--surface-code-2);
+
+  --edge: var(--edge-code);
+  --edge-strong: var(--edge-code);
+  --edge-dashed: rgba(160, 176, 200, 0.26);
+
+  --accent-ink: var(--accent-bright);
+  --accent-wash: color-mix(in srgb, var(--accent-bright) 13%, transparent);
+  --status-error-ink: var(--status-error-on-code);
+  --status-warn-ink: var(--status-warn-on-code);
+  --status-ok-ink: var(--accent-bright);
+  --status-running-ink: #93c5fd;
+  /* The washes have to travel with their inks. Re-pointing only the ink left
+     the light-theme mint wash under bright-mint text on every state badge in
+     a terminal pane — 1.29:1, and invisible in a screenshot at thumbnail
+     size. A tinted-background token and its foreground are one pair. */
+  --status-ok-wash: color-mix(in srgb, var(--accent-bright) 14%, transparent);
+  --status-error-wash: color-mix(in srgb, var(--status-error-on-code) 16%, transparent);
+  --status-warn-wash: color-mix(in srgb, var(--status-warn-on-code) 16%, transparent);
+  --status-running-wash: color-mix(in srgb, #93c5fd 16%, transparent);
+  --status-error-edge: color-mix(in srgb, var(--status-error-on-code) 42%, transparent);
+  --liveness-dead: #6b7688;
+
+  /* Controls on a pane that is dark in BOTH themes take the dark values,
+     whatever the window is set to. */
+  --ctl-bg: rgba(255, 255, 255, 0.09);
+  --ctl-bg-hover: rgba(255, 255, 255, 0.14);
+  --seg-track: rgba(255, 255, 255, 0.08);
+  --seg-knob: #5a5a5e;
+  --seg-knob-ink: #f5f5f7;
+  --seg-knob-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --track: rgba(255, 255, 255, 0.12);
+  --hover: rgba(255, 255, 255, 0.06);
+
+  --focus-ring: var(--accent-bright);
+  --focus-ring-offset: var(--surface-code);
+  --shadow-focus: 0 0 0 2px var(--surface-code), 0 0 0 4px var(--accent-bright);
+
+  color: var(--ink-code-1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CONSOLE — the primitives the Mesh and Workflows screens are built from.
+
+   Every one of these exists because the console spec repeats it four or
+   five times across two screens. They are written as classes rather than as
+   utility strings because the values are the *spec* — a 9px status square
+   and a 108px definition key are decisions, and a decision that lives
+   inline in six places is a decision nobody can change.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* A horizontal band inside the content region. Bands are separated by a
+   hairline and nothing else: no gap, no shadow, no radius. */
+.band {
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--edge);
+}
+
+/* -- tabs -------------------------------------------------------------- */
+.tabrow {
+  display: flex;
+  align-items: center;
+}
+.tab {
+  position: relative;
+  padding: 10px 2px 9px;
+  margin-right: 20px;
+  border-bottom: 2px solid transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-4);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+/* The count that trails a tab label ("Previous runs · 5"). */
+.tab > .n {
+  margin-left: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink-5);
+}
+.tab[aria-selected="true"] > .n {
+  background: var(--hue-wash, var(--accent-wash));
+  color: var(--hue-ink, var(--accent-ink));
+}
+.tab:hover {
+  color: var(--ink-1);
+}
+/* The selected tab underlines in the page's hue (`--hue` is set on the
+   document column by App.svelte; outside one it falls back to the accent). */
+.tab[aria-selected="true"] {
+  font-weight: 600;
+  color: var(--ink-1);
+  border-bottom-color: var(--hue, var(--accent));
+}
+/* The panel variant: same anatomy, tightened for a 300–344px column. */
+.tab-sm {
+  padding: 9px 2px 8px;
+  margin-right: 16px;
+  border-bottom: 2px solid transparent;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-4);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease);
+}
+.tab-sm:hover {
+  color: var(--ink-1);
+}
+.tab-sm[aria-selected="true"] {
+  color: var(--ink-1);
+  border-bottom-color: var(--hue, var(--accent));
+}
+
+/* -- micro type -------------------------------------------------------- */
+/* The section label. `.label` (mono) still exists for the older views; this
+   is the console's, which is set in the UI face because it labels a region
+   rather than naming a machine value. */
+.microlabel {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  user-select: none;
+}
+
+/* -- chips ------------------------------------------------------------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--ink-5);
+  white-space: nowrap;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink-5);
+  white-space: nowrap;
+}
+/* A status word, not a status colour: uppercase, tinted ground, its own
+   foreground. Set `--tone-bg` / `--tone-fg` on it. */
+.statuspill {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  background: var(--tone-bg, var(--surface-2));
+  color: var(--tone-fg, var(--ink-5));
+  white-space: nowrap;
+}
+/* The keycap the palette and the drawer footer use. */
+.keycap {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-2);
+  color: var(--ink-muted);
+  user-select: none;
+}
+
+/* -- status marks ------------------------------------------------------ */
+/* Squares, not circles. A circle is a dot is a bullet; the legend, the table
+   and the inspector all mean the same thing by this mark, so it is one
+   shape everywhere and the round one is reserved for "live". */
+.mark {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 2px;
+  background: var(--tone, var(--liveness-dead));
+}
+.mark-sm {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 2px;
+  background: var(--tone, var(--liveness-dead));
+}
+
+/* -- definition rows --------------------------------------------------- */
+.defrow {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--edge-row);
+}
+.defrow > .k {
+  width: var(--key-w, 108px);
+  flex: none;
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+}
+.defrow > .v {
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+  word-break: break-word;
+  user-select: text;
+}
+.defrow > .v.mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* -- code block -------------------------------------------------------- */
+.pre {
+  margin: 0;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-graph);
+  border: 1px solid var(--edge-pre);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.65;
+  color: var(--ink-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+
+/* -- icon controls ----------------------------------------------------- */
+.iconbtn {
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+.iconbtn:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.iconbtn:disabled {
+  cursor: not-allowed;
+  color: var(--ink-disabled);
+}
+/* A cluster of icon cells split by hairlines — zoom groups, pagers. */
+.cluster {
+  display: flex;
+  border: 1px solid var(--edge-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  overflow: hidden;
+}
+.cluster > * {
+  display: grid;
+  place-items: center;
+  border-right: 1px solid var(--edge-pre);
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+.cluster > *:last-child {
+  border-right: none;
+}
+.cluster > *:hover:not(:disabled) {
+  background: var(--bg-canvas);
+}
+.cluster > *:disabled {
+  cursor: not-allowed;
+  color: var(--ink-faint);
+}
+
+/* -- a filter input at console density --------------------------------- */
+.minifield {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--edge-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  color: var(--ink-2);
+  transition: border-color var(--dur-fast) var(--ease);
+}
+.minifield:focus-within {
+  border-color: var(--accent);
+}
+.minifield > input {
+  min-width: 0;
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.minifield > input::placeholder {
+  color: var(--ink-muted);
+}
+
+/* -- canonical page furniture (2026-08 consistency pass) ----------------
+   The audit that preceded this pass counted six primary-button heights,
+   five destructive-button treatments, two card radii, two empty-state
+   styles and a dozen hand-copied error boxes across the views. These are
+   the one form of each. Spacing stays composable with utilities;
+   *identity* — what a card, an error, an empty state IS — lives here,
+   because an identity that lives inline in ninety places is an identity
+   nobody can keep. */
+
+/* THE card. Radius-xl, one shadow. */
+.card {
+  background: var(--surface-1);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--sh-card-lg);
+}
+
+/* An inline error, colours included — the helper used to carry only the
+   geometry, so every call site re-typed the wash and the ink. */
+.errbox {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--status-error-wash);
+  color: var(--status-error-ink);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  user-select: text;
+}
+
+/* The empty state: a title, a reason, nothing else competing. */
+.empty {
+  padding: 38px 24px;
+  text-align: center;
+}
+.empty-title {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.empty-sub {
+  margin: 6px auto 0;
+  max-width: 54ch;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--ink-4);
+}
+
+/* Button sizes: two, not six. `md` lives in headers, toolbars and rows;
+   `lg` in forms, modals and the wizard — anywhere a person is about to
+   commit to something. */
+.btn-md {
+  height: 32px;
+  padding: 0 13px;
+  font-size: var(--text-sm);
+}
+.btn-lg {
+  height: 40px;
+  padding: 0 20px;
+  font-size: var(--text-base);
+}
+
+/* A stat tile: the figure, its label, and a note only when it earns one.
+   Replaces two competing KPI-card vocabularies. */
+.stat-fig {
+  font-size: var(--text-2xl);
+  line-height: 1.1;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  color: var(--ink-1);
+}
+.stat-label {
+  margin-top: 6px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-4);
+  user-select: none;
+}
+.stat-note {
+  margin-top: 3px;
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+}
+
+/* The page terminates. Every standard page ends in this rule and one
+   quiet line — a count, a freshness stamp — so the eye has a bottom edge
+   and the space under it reads as headroom rather than as a page that
+   stopped loading. */
+.pagefoot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 12px;
+  border-top: 1px solid var(--edge);
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+.pagefoot .mono {
+  font-size: var(--text-2xs);
+}
+
+/* A keycap: 1–6 on the rail, ⌘K in the header, ↵ in the palette footer. */
+.kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--surface-1);
+  box-shadow: 0 0 0 1px var(--edge-strong), 0 1px 0 var(--edge-strong);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1;
+  color: var(--ink-5);
+  user-select: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CHROME primitives
+   ═══════════════════════════════════════════════════════════════════════ */
+.mast-btn {
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  color: var(--ink-3);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.mast-btn:hover {
+  background: var(--surface-2);
+  color: var(--ink-1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   THE SIDEBAR (6c "Settings · Nested")
+
+   The rail holds everything now: the mesh, a search field, the sections,
+   the sub-sections of whichever section has them, and the account. The
+   content area has no tab bar at all — a screen's panels are rows in the
+   sidebar, indented under their section, exactly as System Settings nests
+   Displays under Displays.
+
+   Three row shapes, and no others: a 30px section row with a 20px colour
+   tile, a 26px sub-row on a 1px left rule, and the two 40px switchers at
+   the ends. The current row — section or sub-section — is a solid teal
+   fill with near-black on it. One filled row per window.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* The search field. A real field rather than the header's old button:
+   it is the first thing in the sidebar, so it is the first thing a person
+   tries, and a doorway shaped like a field must accept typing. */
+.rail-field {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  height: 30px;
+  padding: 0 9px;
+  border-radius: var(--radius-md);
+  /* An alpha, not a surface token: the field sits on the SIDEBAR, which is
+     under the canvas on light and over it on dark, so a flat fill picked
+     for one theme's ground disappears into the other's. */
+  background: var(--seg-track);
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: text;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+.rail-field:hover {
+  background: var(--track);
+}
+.rail-field > .rail-field-glyph {
+  color: var(--ink-faint);
+  flex: none;
+}
+
+/* A group's name. Not uppercase and not tracked out: System Settings sets
+   these as plain small words, and a rail with three shouted labels in it
+   spends attention the sections themselves need. */
+.rail-group {
+  padding: 0 10px 4px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--ink-muted);
+  user-select: none;
+}
+
+.rail-item {
+  /* Positioned for the collapsed rail's corner badge. Safe for the
+     travelling marker: an element's own `position` does not change its
+     offsetParent — only an ancestor's does, which is why `.rail-sub` is
+     static. */
+  position: relative;
+  display: flex;
+  /* The rail is a scrolling flex column, and a flex item shrinks by
+     default: with a section open, the rows under it squashed to their text
+     and the last ones left the rail entirely (UX-5). A row is a fixed
+     height; the column scrolls instead. */
+  flex: none;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink-1);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.rail-item:hover {
+  background: var(--hover);
+}
+
+/* The icon tile: 20px of the section's own colour with the glyph knocked
+   out of it. This is the whole wayfinding system — after a week the tile
+   IS the label, which is why the words beside them can be set in one
+   weight and one colour instead of shouting their state. */
+.rail-tile {
+  display: grid;
+  place-items: center;
+  /* 24px since the Lucide set (2026-09-22): a 14px glyph in a 20px tile
+     touched its edges, and a tile is only a tile with air round it. */
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 7px;
+  /* A wash with the glyph in the hue's ink — not a solid fill. Eight
+     solid tiles down one column were the loudest thing on every screen,
+     and the section's colour still identifies it at a tenth of the
+     volume. */
+  background: var(--hue-wash, var(--accent-wash));
+  color: var(--hue-ink, var(--accent-ink));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hue, var(--accent)) 14%, transparent);
+}
+/* On the selected row the tile goes solid, so the row's fill and the
+   tile's fill read as one object rather than a wash inside a wash. */
+.rail-item[aria-current="page"] .rail-tile {
+  background: var(--hue, var(--accent));
+  color: var(--hue-on);
+  box-shadow: none;
+}
+
+/* The current row. Teal, filled, near-black on it — and the tile keeps its
+   own colour, as it does in System Settings, because a tile that changed
+   with selection would break the one thing the tile is for.
+   
+   The fill is on the ROW, not on a travelling element behind it. The rail
+   used to move a single washed pill between entries so a change of section
+   had a direction; a wash could do that because its ink still read against
+   the sidebar underneath. A solid teal pill cannot — near-black on the
+   sidebar is 1:1 — so the contrast of the one row a person is looking at
+   would have depended on an element that is not its ancestor and is, for
+   240ms at a time, somewhere else entirely. The state moved into the row
+   and the motion became a fade. */
+/* 2026-09: a wash with the accent as ink, not a solid mint block. The
+   solid row was the brightest object on every screen and the last thing
+   that read as consumer rather than console; the wash keeps the row
+   unmistakable, and the tile going solid gives it its one point of weight. */
+.rail-item[aria-current="page"],
+.rail-subitem[aria-current="page"] {
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.rail-item[aria-current="page"]:hover,
+.rail-subitem[aria-current="page"]:hover {
+  background: var(--accent-wash);
+}
+.rail-item[aria-current="page"] .rail-count,
+.rail-subitem[aria-current="page"] .rail-count {
+  color: color-mix(in srgb, var(--accent-ink) 74%, transparent);
+}
+
+/* The sub-list. The 1px rule runs the height of the group and is what
+   makes seven indented words read as one nested list rather than as seven
+   more sections that happen to start further in. */
+/* The rule is a border rather than a positioned pseudo-element, and that
+   is load-bearing: the travelling marker measures `offsetTop` against its
+   own offsetParent, so a `position: relative` anywhere between it and the
+   <nav> silently re-anchors every sub-row to the top of this list. The
+   marker landed on the section header instead of the selected panel. */
+.rail-sub {
+  display: flex;
+  flex-direction: column;
+  /* Under the centre of the section's 24px tile. */
+  margin: 2px 0 2px 19px;
+  padding-left: 11px;
+  /* `--edge-strong`, not `--edge`: this rule is on the sidebar, which is
+     a tone closer to the hairline than the canvas is, and the separator
+     weight that reads inside a card vanishes out here. */
+  border-left: 1px solid var(--edge-strong);
+}
+.rail-subitem {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink-5);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.rail-subitem:hover {
+  background: var(--hover);
+  color: var(--ink-1);
+}
+
+/* The disclosure (2026-09-14). A chevron at the row's far end that turns a
+   quarter when the row is open — always drawn, not only on hover, because
+   it is also the mark that says this row has anything under it. */
+.rail-chev {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-left: 2px;
+  color: var(--ink-faint);
+  transition:
+    transform var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.rail-chev[data-open] {
+  transform: rotate(90deg);
+}
+.rail-item:hover .rail-chev {
+  color: var(--ink-4);
+}
+
+/* The fold: a one-row grid whose track goes 0fr → 1fr, which animates the
+   rows' real height without measuring it — so a section with eight rows
+   and one with three open at the same speed and nothing below jumps. The
+   rows stay mounted and are `inert` while closed, so Tab never lands on a
+   row you cannot see. */
+.rail-fold {
+  display: grid;
+  /* Same reason as `.rail-item`: an open fold is as tall as its rows, and
+     the rail scrolls. Shrinkable, it was the first thing squeezed — an
+     `overflow: hidden` grid track gives way to nothing at all. */
+  flex: none;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-base) var(--ease);
+}
+.rail-fold[data-open] {
+  grid-template-rows: 1fr;
+}
+.rail-fold-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* A closed row that holds the page you are on. Not the current-row wash —
+   the page is one of its children, not the row — but a ring round its
+   tile, so a folded rail still says where you are. */
+.rail-item[data-here] .rail-tile {
+  box-shadow:
+    0 0 0 1.5px var(--bg-sidebar),
+    0 0 0 3px var(--hue, var(--accent));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-fold,
+  .rail-chev {
+    transition: none;
+  }
+}
+
+/* No digit beside each entry (2026-09-14). The hotkeys still work, but
+   drawn on hover they were noise, and once rows nested under folding
+   sections they no longer ran in an even order down the rail. */
+.rail-item .rail-count,
+.rail-subitem .rail-count {
+  margin-left: auto;
+  color: var(--ink-muted);
+}
+
+/* The chrome uses the same focus ring as the document now. */
+.chrome-focus :where(button, a, input, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TRAVELLING INDICATORS — the underline and the rail pill are single
+   elements moved by anime.js (motion.ts: `tabline`, `railMarker`), so a
+   change of tab or section has a *direction*. The per-tab border and the
+   per-item pill that used to say "active" are switched off where the
+   travelling one exists, and only there.
+   ═══════════════════════════════════════════════════════════════════════ */
+.tabline {
+  position: relative;
+}
+.tabline .tab[aria-selected="true"],
+.tabline .tab-sm[aria-selected="true"] {
+  border-bottom-color: transparent;
+}
+.tabline-bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 0;
+  border-radius: 1px;
+  background: var(--hue, var(--accent));
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* -- the page hue, worn --------------------------------------------------
+   `--hue`, `--hue-ink` and `--hue-wash` are set per section on the document
+   column (App.svelte) and per role / tag where a chip carries its own. */
+
+/* Retired by the 6c pass, kept as an inert hook: a page title is 30px of
+   ink on the canvas now, and the tint behind it was the last decoration
+   left in the chrome. */
+.hue-band {
+  background: none;
+}
+
+/* A role, a tag, a kind: a small chip in its own hue. Mono, because the
+   word is an identifier, not a sentence. */
+.hue-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  background: var(--hue-wash, var(--surface-2));
+  color: var(--hue-ink, var(--ink-4));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hue, var(--accent)) 18%, transparent);
+}
+.hue-chip::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--hue, var(--accent));
+  flex: none;
+}
+
+/* Settings: every card carries a hairline of its pane's hue on the left,
+   so seven panes of otherwise identical white cards read as seven places. */
+.settings-pane .card {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--hue, var(--accent)) 70%, transparent), var(--sh-card);
+}
+
+/* -- the second colour pass (2026-09) ------------------------------------
+   The first pass gave each section a hue and spent it on the rail's active
+   pill, the page band, the tab underline and the chips. Everything between
+   those was still grey: every glyph on the rail, every table header, every
+   label, every segmented control, every name. This pass lets the hue into
+   those, quietly — always mixed with the neutral it replaces, never a flat
+   fill — so a screen reads as *coloured* without any one element shouting.
+   Two rules hold throughout: status colours (ok/warn/error/running) keep
+   their own meaning and are never borrowed for decoration, and the brand
+   teal is still the only colour a primary button wears. */
+
+/* Labels — table headers, definition keys, stat captions — lean toward
+   the page's hue. A header row in the section's colour is what tells two
+   identical white tables on two screens apart.
+
+   The lean was 72% hue in the second pass, which is not a lean: on a dark
+   ground every caption in the product came out teal, and a colour that is
+   on every label is a colour that means nothing. The third pass pulled it
+   back to a whisper and moved the actual signal into `.section-head`'s 8px
+   square, where it is a solid block of the hue in exactly one place per
+   card. One loud pixel beats forty quiet ones, and it leaves teal free to
+   go on meaning "alive". */
+.label,
+.microlabel,
+.stat-label {
+  color: var(--ink-4);
+}
+/* A table header is the card's own top row, not a band of another colour:
+   one tone per grouped surface, the hairline under it doing the dividing. */
+thead {
+  background: var(--surface-subtle);
+}
+
+/* A count that trails a filter or tab, in the colour of the thing it
+   counts. The status ones are set inline where the state is known. */
+.count-pill {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--hue-wash, var(--surface-2));
+  color: var(--hue-ink, var(--ink-5));
+}
+
+/* A name — a person, a machine — as a small dot in its own stable hue
+   (`hueOf`) beside the word. The same name is the same colour on every
+   screen, which is what lets a column of names be scanned rather than
+   read. Sits inline in tables and chips; the word stays mono. */
+.name-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--hue, var(--accent));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--hue, var(--accent)) 18%, transparent);
+}
+
+/* An initials avatar in the person's own hue — the rail's account row,
+   the roster, the join queue. One shape, three sizes by class. */
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  user-select: none;
+  background: var(--hue-wash, var(--surface-2));
+  color: var(--hue-ink, var(--ink-3));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hue, var(--accent)) 22%, transparent);
+}
+.avatar-sm {
+  width: 24px;
+  height: 24px;
+  font-size: 10.5px;
+}
+.avatar-md {
+  width: 30px;
+  height: 30px;
+  font-size: var(--text-xs);
+}
+
+/* The settings index: each pane in its own hue, the current one washed. */
+.settings-index {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.settings-index::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex: none;
+  background: color-mix(in srgb, var(--hue, var(--accent)) 70%, transparent);
+  transition: background-color var(--dur-fast) var(--ease);
+}
+.settings-index[aria-current="page"] {
+  background: var(--hue-wash, var(--accent-wash));
+  color: var(--hue-ink, var(--accent-ink));
+  font-weight: 600;
+}
+.settings-index[aria-current="page"]::before {
+  background: var(--hue, var(--accent));
+}
+
+/* The empty state's title picks up a whisper of the hue, so an empty
+   screen is still visibly *this* screen. */
+.empty-title {
+  color: color-mix(in srgb, var(--hue-ink, var(--ink-2)) 55%, var(--ink-2));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   THE THIRD COLOUR PASS (2026-09, "teal + indigo")
+
+   The second pass let each section's hue into its own screen. This one
+   answers a narrower question that the second pass left open: *within* a
+   screen, what is a colour allowed to mean? The rule the whole app now
+   follows, one line:
+
+       teal   = the brand, and "alive"
+       indigo = a fact about hardware or identity
+       amber  = something wants attention
+       ink    = everything else
+
+   That is why a GPU count, a node's identity string and the Accelerators
+   section marker are all indigo while sitting next to a teal liveness dot
+   in the same row. It is not decoration by column; it is the same
+   sentence said three times.
+
+   The pieces below are the furniture that rule needs: a section header
+   that can carry its own colour, a card footer that is visibly the card's
+   floor and not another row, an id chip, and a row action that is a link
+   rather than a button.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* -- a section header inside a card -------------------------------------
+   A small square in the section's colour, the name, and a mono summary of
+   what the table below actually contains. The square is the cheapest
+   possible legend: two cards stacked down a page are told apart before
+   either title is read, and after a week the colour *is* the title. */
+/* The 6c pass moved this OUT of the card. A grouped surface in this
+   grammar has no header row of its own — it starts at the first thing it
+   holds — so the title, its one-line summary and the group's controls sit
+   above it on the page ground, the way System Settings labels a group. */
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 2px 9px;
+}
+.section-title {
+  font-size: var(--text-md);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink-1);
+  user-select: none;
+}
+/* The summary is mono because every part of it is a count. */
+.section-sum {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  color: var(--ink-5);
+  user-select: text;
+}
+
+/* -- a card's floor ------------------------------------------------------
+   Footnotes used to sit on the card's own fill under a hairline, which
+   made them read as one more table row that happened to be prose. On the
+   header's tone they read as what they are: the bottom edge of the card,
+   matching the top edge, with the rows between them. */
+/* A footnote under a group — 12px, muted, indented to the group's first
+   column. It is prose ABOUT the table, so it stops being a row of it.
+   `.cardfoot` is the same thing for the views still holding theirs inside
+   the card; both land on the same type and the same colour. */
+.footnote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px 0;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--ink-5);
+}
+.cardfoot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  border-top: 1px solid var(--edge);
+  font-size: var(--text-xs);
+  color: var(--ink-5);
+}
+
+/* -- an identifier, as a chip -------------------------------------------
+   A mesh id next to a mesh's name is a different kind of thing from the
+   name — it is a string you copy, not a word you read — so it gets an
+   outline and a ground and stops competing with the title for the same
+   reading. The copy button lives inside the chip: the thing you press is
+   part of the thing you are copying. */
+.idchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 4px 0 9px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--ink-5);
+  user-select: text;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+.idchip:hover {
+  background: var(--surface-3);
+}
+.idchip > button {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: var(--radius-xs);
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition:
+    color var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease);
+}
+.idchip > button:hover {
+  background: var(--surface-3);
+  color: var(--accent-ink);
+}
+
+/* -- a row's one action, as a link --------------------------------------
+   `Facts` was a bordered secondary button repeated down every row of the
+   fleet, which put a column of grey rectangles beside the data and made
+   the table's densest column its loudest. It is one link per row now; the
+   arrow says it opens something rather than doing something. */
+.rowlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--accent-ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rowlink::after {
+  content: "→";
+  font-weight: 400;
+  transform: translateX(0);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.rowlink:hover::after {
+  transform: translateX(2px);
+}
+
+/* -- the vitals strip ----------------------------------------------------
+   A row of eight figures is eight figures. The three that answer "is this
+   mesh *well*" — its status, whether every member is alive, whether every
+   peer is caught up — get a 2px teal edge along the top and their value in
+   teal, so the health of the mesh is one glance at a stripe rather than
+   three readings. The other five are facts, and facts are ink.
+
+   The edge is on top rather than under because the strip sits directly
+   below the mesh's name: a rule under the name, broken into the three
+   places it is true, reads as an underline of the title. */
+.vital {
+  position: relative;
+}
+.vital-well::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: var(--accent);
+}
+
+/* See `.hue-band`: retired, kept inert. */
+.titlewash {
+  background-image: var(--wash-title);
+}
+
+/* -- meters --------------------------------------------------------------
+   The healthy range of a load bar is the brand gradient; warn and hot keep
+   their status fills, because a bar that says the same thing at every
+   value is a bar that says nothing. */
+.meter-track {
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--track);
+}
+.meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--meter-load);
+  transition: background var(--dur-slower) var(--ease);
+}
+.meter-fill[data-load="warn"] {
+  background: var(--status-warn);
+}
+.meter-fill[data-load="hot"] {
+  background: var(--status-error);
+}
+
+/* -- a table that is wider than its card ---------------------------------
+   A card clips (it has to: the corners are rounded), so a fleet table that
+   outgrows the window silently lost its last columns — on a 1361px window
+   the Nodes table is 13 columns and ~1300px, and Joined and Facts were
+   simply not there, with nothing on screen to say so. The table scrolls
+   inside the card instead. The header and the footer stay put because they
+   are the card's own edges, not the table's. */
+.tablewrap {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+.tablewrap > table {
+  min-width: max-content;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   GROUPED SURFACES (6c "Settings · Nested")
+
+   Everything below is one grammar said four ways: a rounded surface with
+   no border, holding rows split by hairlines that stop short of nothing —
+   they run the full width, because an inset separator inside a 12px radius
+   is a hairline pointing at a corner it never reaches.
+
+       .card     the surface
+       .kv       a fact: name left, value right, 40px
+       .metric   a number worth its own tile
+       .capsule  a state, as one word and a dot
+       .grouprow a row in a table inside a card, 46px
+
+   The rule the whole set follows: separators are 1px INSIDE a card, never
+   between cards. Two cards are told apart by the gap.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* -- a key/value row ----------------------------------------------------
+   The 8 mesh vitals used to be a 52px strip of eight cells, which is a
+   shape that says "dashboard" and reads as none of the eight. As two
+   side-by-side groups of four rows they are eight sentences, and the four
+   that are answers rather than measurements can say so in the tint. */
+.kv {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--edge);
+}
+.kv:last-child {
+  border-bottom: none;
+}
+.kv > .k {
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+.kv > .v {
+  margin-left: auto;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-1);
+  user-select: text;
+  white-space: nowrap;
+}
+/* A value that is *well* — healthy, all alive, all caught up — is the one
+   thing on the card allowed a colour. A figure that is merely a fact is
+   ink, so the tint keeps meaning "yes". */
+.kv > .v.ok {
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+/* -- a metric tile ------------------------------------------------------
+   Label, figure, and a bar that is drawn at zero too: a card whose bar
+   appears only once there is load is a card that changes shape under you,
+   and an empty track is itself the reading. */
+.metric {
+  padding: 15px 17px 16px;
+}
+.metric-label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink-5);
+}
+.metric-fig {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 5px;
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-1);
+}
+.metric-fig > .sub {
+  font-size: var(--text-sm);
+  font-weight: 400;
+  letter-spacing: normal;
+  color: var(--ink-5);
+}
+.metric-note {
+  margin-top: 10px;
+  font-size: var(--text-sm);
+  color: var(--ink-5);
+}
+/* The segmented bar: one 5px cell per node, so "4 of 4 alive" is a shape
+   before it is a fraction. `.metric-bar` on its own is the single-run
+   version for a percentage. */
+.metric-bar {
+  display: flex;
+  gap: 4px;
+  margin-top: 13px;
+  height: 5px;
+}
+.metric-bar > span {
+  flex: 1;
+  border-radius: 999px;
+  background: var(--track);
+}
+.metric-bar > span[data-on] {
+  background: var(--accent);
+}
+.metric-bar > span[data-on="info"] {
+  background: var(--hue-indigo);
+}
+
+/* -- a state, as one word -----------------------------------------------
+   The dot carries a 25% halo so a 6px circle still reads as lit at arm's
+   length, and the ground is the same tint at 16% — the pair is what makes
+   this a capsule rather than a coloured word. */
+.capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px 0 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tone, var(--accent)) 16%, transparent);
+  color: var(--tone-ink, var(--accent-ink));
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  user-select: none;
+}
+.capsule::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--tone, var(--accent));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tone, var(--accent)) 25%, transparent);
+}
+/* The same capsule without the dot — a tag on a row, not a state. */
+.capsule-flat {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tone, var(--accent)) 18%, transparent);
+  color: var(--tone-ink, var(--accent-ink));
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* -- a table inside a card ----------------------------------------------
+   46px rows, a hairline between them, and the last column is a chevron
+   rather than a button: the row is the target, so the affordance says
+   "this opens" instead of putting a second, smaller target inside it. */
+.grouprow {
+  height: 46px;
+  border-bottom: 1px solid var(--edge);
+  transition: background-color var(--dur-fast) var(--ease);
+}
+tbody > .grouprow:last-child {
+  border-bottom: none;
+}
+.grouprow:hover {
+  background: var(--hover);
+}
+.rowchev {
+  color: var(--ink-faintest);
+  transition:
+    color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+.grouprow:hover .rowchev {
+  color: var(--ink-3);
+  transform: translateX(2px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   THE TOOLBAR — 56px, on the canvas, no fill of its own.
+
+   Back and forward, where you are, and what you can do here. The page's
+   own actions are pushed up into it by the view (`chrome.actions`), so a
+   screen never grows a second row of buttons under the first.
+   ═══════════════════════════════════════════════════════════════════════ */
+.navchev {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: var(--radius-sm);
+  color: var(--ink-3);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.navchev:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--ink-1);
+}
+.navchev:disabled {
+  color: var(--ink-faintest);
+  cursor: default;
+}
+/* The breadcrumb. The parent is muted and clickable, the current one is
+   600 and is not — which is the whole difference between a trail you can
+   walk back up and a title with a slash in it. */
+.crumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: var(--text-base);
+}
+.crumb-parent {
+  flex: none;
+  color: var(--ink-5);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease);
+}
+.crumb-parent:hover {
+  color: var(--ink-1);
+}
+.crumb-sep {
+  flex: none;
+  color: var(--ink-faintest);
+}
+.crumb-current {
+  min-width: 0;
+  font-weight: 600;
+  color: var(--ink-1);
+}
+
+/* -- the page's own name ------------------------------------------------
+   30px/700 at −0.025em, with the mesh's state beside it as a capsule and
+   one line of plain words under it. */
+.pagetitle {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--ink-1);
+}
+.pagesub {
+  font-size: var(--text-sm);
+  color: var(--ink-5);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   2026-09-22 UPLIFT — atmosphere, depth, and the dashboard grammar.
+
+   The token pass above moved every neutral onto a cool slate ramp and the
+   dark theme from graphite onto blue-black; this block is what tokens
+   alone cannot say. Three things:
+
+     1. **Atmosphere.** The canvas carries two faint glows — the brand teal
+        top-left, indigo top-right — so a page has a light source and the
+        cards on it have somewhere to sit. Under 12% in both themes: it is
+        read as depth, never as a gradient.
+     2. **Depth.** Cards get a layered shadow and a larger radius; the
+        primary button gets a coloured glow; the selected rail row a
+        gradient wash. One step more physical, still an instrument.
+     3. **The dashboard grammar** the Fleet, Capacity and Updates panels
+        are rebuilt in: a `.panel` with an `.panel-head`, `.icon-tile`s in
+        a tone, `.gauge` cards built round a `Ring`, and `.lift` for
+        anything that opens when clicked.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root {
+  --brand-grad: linear-gradient(135deg, #2fd4b0 0%, #22b8cf 48%, #6366f1 100%);
+  --brand-grad-soft: linear-gradient(135deg, rgba(47, 212, 176, 0.14) 0%, rgba(99, 102, 241, 0.1) 100%);
+  --canvas-glow:
+    radial-gradient(1100px 420px at -5% -12%, rgba(47, 212, 176, 0.1), transparent 62%),
+    radial-gradient(900px 420px at 105% -12%, rgba(99, 102, 241, 0.08), transparent 60%);
+  --sh-lift: 0 0 0 1px rgba(15, 23, 42, 0.07), 0 2px 4px rgba(15, 23, 42, 0.04), 0 18px 36px -18px rgba(15, 23, 42, 0.26);
+  --sh-primary: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 1px 2px rgba(4, 38, 29, 0.16), 0 6px 16px -6px rgba(47, 212, 176, 0.6);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas-glow:
+      radial-gradient(1100px 440px at -5% -12%, rgba(47, 212, 176, 0.11), transparent 62%),
+      radial-gradient(900px 440px at 105% -12%, rgba(99, 102, 241, 0.13), transparent 60%);
+    --sh-lift: 0 0 0 1px rgba(148, 163, 184, 0.16), 0 20px 40px -18px rgba(0, 0, 0, 0.85);
+    --sh-primary: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 6px 20px -6px rgba(47, 212, 176, 0.45);
+  }
+}
+:root[data-theme="dark"] {
+  --canvas-glow:
+    radial-gradient(1100px 440px at -5% -12%, rgba(47, 212, 176, 0.11), transparent 62%),
+    radial-gradient(900px 440px at 105% -12%, rgba(99, 102, 241, 0.13), transparent 60%);
+  --sh-lift: 0 0 0 1px rgba(148, 163, 184, 0.16), 0 20px 40px -18px rgba(0, 0, 0, 0.85);
+  --sh-primary: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 6px 20px -6px rgba(47, 212, 176, 0.45);
+}
+
+/* The document column: the canvas colour under its two glows. */
+.canvas-ground {
+  background: var(--canvas-glow), var(--bg-canvas);
+  background-attachment: local;
+}
+
+/* -- depth on the shared controls --------------------------------------- */
+.btn-primary {
+  box-shadow: var(--sh-primary);
+}
+.btn-primary:hover:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 1px 2px rgba(4, 38, 29, 0.16),
+    0 8px 22px -6px rgba(47, 212, 176, 0.7);
+}
+.btn-primary:disabled {
+  box-shadow: none;
+}
+.seg {
+  border-radius: 10px;
+  padding: 3px;
+}
+.seg > button {
+  border-radius: 7px;
+}
+.pagetitle {
+  font-weight: 750;
+  letter-spacing: -0.032em;
+}
+.rail-item[aria-current="page"],
+.rail-subitem[aria-current="page"] {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent) 20%, transparent),
+    color-mix(in srgb, var(--accent) 7%, transparent)
+  );
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.rail-item[aria-current="page"]:hover,
+.rail-subitem[aria-current="page"]:hover {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent) 24%, transparent),
+    color-mix(in srgb, var(--accent) 9%, transparent)
+  );
+}
+.capsule {
+  height: 26px;
+  padding: 0 11px 0 9px;
+}
+
+/* -- a panel: a card with a head ----------------------------------------- */
+.panel {
+  background: var(--surface-1);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--sh-card-lg);
+  padding: 18px 20px 20px;
+  min-width: 0;
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.panel-title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: var(--ink-1);
+  line-height: 1.25;
+}
+.panel-sub {
+  margin: 1px 0 0;
+  font-size: var(--text-xs);
+  color: var(--ink-5);
+  line-height: 1.4;
+}
+
+/* -- an icon in a tone ----------------------------------------------------
+   `--tone` is the fill colour, `--tone-ink` the glyph; both default to the
+   section's hue. The wash is mixed from the tone, so any status or hue
+   token can be handed in without a third variable. */
+.icon-tile {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--tone, var(--hue, var(--accent))) 15%, transparent);
+  color: var(--tone-ink, var(--hue-ink, var(--accent-ink)));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone, var(--hue, var(--accent))) 18%, transparent);
+}
+.icon-tile.sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+.icon-tile.lg {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+}
+
+/* -- anything that opens -------------------------------------------------- */
+.lift {
+  cursor: pointer;
+  transition:
+    transform var(--dur-base) var(--ease),
+    box-shadow var(--dur-base) var(--ease);
+}
+.lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh-lift);
+}
+.lift:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus), var(--sh-lift);
+}
+
+/* -- a figure and what it is --------------------------------------------- */
+.big-fig {
+  font-size: 28px;
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-1);
+}
+.big-fig .unit {
+  margin-left: 3px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-5);
+}
+.fig-label {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--ink-5);
+}
+
+/* A legend row: a swatch, a word, a count. */
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.legend-row > .sw {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 3px;
+  background: var(--sw);
+}
+.legend-row > .n {
+  margin-left: auto;
+  padding-left: 14px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--ink-1);
+}
+
+/* A soft chip of a fact — "8.7 TB poolable", "uptime 1h 30m". */
+.fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: var(--text-xs);
+  color: var(--ink-4);
+  white-space: nowrap;
+}
+.fact > b {
+  font-weight: 600;
+  color: var(--ink-1);
+  font-variant-numeric: tabular-nums;
+}
+.fact.ok > b {
+  color: var(--accent-ink);
+}
+
+/* A banner that says something is going on, and opens it. */
+.callout {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--tone, var(--accent)) 9%, var(--surface-1));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone, var(--accent)) 22%, transparent);
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+  text-align: left;
+  width: 100%;
+}

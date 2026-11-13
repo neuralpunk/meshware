@@ -1,0 +1,26 @@
+/target
+**/*.rs.bk
+*.pdb
+node_modules/
+dist/
+.DS_Store
+*.local
+/apps/director/src-tauri/target
+
+# Local release configuration (signing key paths, upload targets).
+packaging/release.conf
+
+# Python build and cache artefacts, from the scripts under `scripts/`.
+__pycache__/
+*.egg-info/
+
+# meshnode binaries bundled into Director at build time (scripts/build-director-release.sh)
+/apps/director/src-tauri/resources/meshnode/meshnode-*
+/apps/director/src-tauri/resources/meshnode/VERSION
+
+# throwaway mesh scratch
+/.mesh-lab/
+
+# Local AI-assistant notes
+CLAUDE.md
+.claude/

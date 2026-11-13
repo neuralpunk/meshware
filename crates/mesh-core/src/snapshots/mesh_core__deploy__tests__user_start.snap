@@ -1,0 +1,13 @@
+---
+source: crates/mesh-core/src/deploy.rs
+expression: user.start_script()
+---
+set -e
+if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
+systemctl --user start meshnode
+loginctl enable-linger "$(id -un)" >/dev/null 2>&1 && echo mw.linger=on || echo mw.linger=off
+echo mw.started=systemd-user
+else
+nohup sh -c 'exec env MESHWARE_DATA_DIR='/home/pi/.meshware' XDG_CONFIG_HOME='/home/pi/.config' '/home/pi/.local/bin/meshnode' up' >'/home/pi/.meshware'/meshnode.log 2>&1 </dev/null &
+echo mw.started=nohup
+fi

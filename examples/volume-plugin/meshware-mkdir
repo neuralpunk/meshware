@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+# The reference volume plugin for meshware (N5 P2).
+#
+# It provisions the simplest thing that is genuinely useful: a directory
+# under a root the operator chose, owned by this node. No LVM, no ZFS, no
+# storage appliance — those are what a *real* plugin does, and this one
+# exists to be read in two minutes and copied.
+#
+# ## The contract
+#
+#   <plugin> create        make it; print {"path":…,"capacity_mb":…,"detail":…}
+#   <plugin> delete        remove it; must be idempotent
+#   <plugin> fingerprint   optional; anything worth showing an operator
+#
+# Inputs arrive in the environment, never in argv:
+#
+#   MESHWARE_VOLUME_NAME             the name jobs will claim it by
+#   MESHWARE_VOLUME_CAPACITY_MB      what was asked for; 0 = you decide
+#   MESHWARE_VOLUME_PARAMS           --param key=value, as a JSON object
+#   MESHWARE_VOLUME_PATH             where meshware expects it, when it has
+#                                    an opinion; absent means you choose
+#   MESHWARE_VOLUME_PLUGIN_CONFIG    your own config file — the first of the
+#                                    two holes this design closes
+#
+# ## What is different from Nomad's
+#
+# This is Nomad's Dynamic Host Volume interface on purpose — any
+# executable, operation in `$1`, environment in, one JSON object out.
+# Three things about it are different here:
+#
+#  1. **A configuration path.** Nomad's convention is "put a file next to
+#     the binary and work it out", so every deployment invents a different
+#     answer. `MESHWARE_VOLUME_PLUGIN_CONFIG` is the declared path, set from
+#     `[runtime] volume_plugin_config`. meshware never reads it: it has no
+#     opinion about what your plugin needs to know.
+#
+#  2. **No request chooses the plugin.** A Nomad create request names a
+#     plugin, and one that named a path outside the plugin directory ran
+#     another program as the agent: CVE-2026-7474, fixed in Nomad 2.0.1,
+#     1.11.5 and 1.10.11. Here the node runs the one program its operator
+#     set in `[runtime] volume_plugin`, and nothing in a request can name
+#     another.
+#
+#  3. **Every value is checked before it leaves.** Names and parameters
+#     with shell metacharacters are refused before this script runs — so
+#     the line below that forgets to quote is merely careless rather than a
+#     way in. Quote anyway.
+#
+# ## Configuring it
+#
+#   [runtime]
+#   volume_plugin = "/usr/local/libexec/meshware-mkdir"
+#   volume_plugin_config = "/etc/meshware/volumes.conf"
+#
+# where `volumes.conf` is one line:
+#
+#   ROOT=/srv/meshware/volumes
+
+set -euo pipefail
+
+# The root everything lands under: from the operator's config file, or a
+# sane default. **Never from the request** — not the volume name, and not a
+# parameter. Whoever may create a volume should not also be able to choose
+# where on this machine it goes; that is the operator's line.
+ROOT="${MESHWARE_VOLUME_ROOT:-/srv/meshware/volumes}"
+if [ -n "${MESHWARE_VOLUME_PLUGIN_CONFIG:-}" ] && [ -r "$MESHWARE_VOLUME_PLUGIN_CONFIG" ]; then
+  # `.`-sourcing a config file is fine when the operator wrote it; it is
+  # their machine and their line. Reading a *parameter* this way would not
+  # be, which is why the parameters go through jq below.
+  . "$MESHWARE_VOLUME_PLUGIN_CONFIG"
+fi
+
+params() {
+  # jq for the same reason the container plugin uses it: hand-parsing JSON
+  # in bash is how a plugin ends up executing a volume name.
+  command -v jq >/dev/null 2>&1 || {
+    echo "meshware-mkdir needs jq" >&2
+    exit 1
+  }
+  jq -r --arg k "$1" '.[$k] // empty' <<<"${MESHWARE_VOLUME_PARAMS:-{\}}"
+}
+
+name="${MESHWARE_VOLUME_NAME:-}"
+case "${1:-}" in
+  create)
+    [ -n "$name" ] || { echo "no MESHWARE_VOLUME_NAME" >&2; exit 1; }
+    # A `root` parameter used to override the operator's root, which let
+    # anybody who could create a volume put it anywhere this account can
+    # write. Refused rather than ignored, so the person asking finds out.
+    if [ -n "$(params root)" ]; then
+      echo "the root is set by this machine's operator (ROOT= in volume_plugin_config), not by a parameter" >&2
+      exit 1
+    fi
+    path="${MESHWARE_VOLUME_PATH:-$ROOT/$name}"
+
+    # **Idempotent, and it cleans up after itself.** Both are contract, not
+    # courtesy: meshware may ask twice after a timeout, and a partial
+    # create that left a directory behind would be a volume nothing
+    # remembers and nothing can remove.
+    trap 'rmdir "$path" 2>/dev/null || true' ERR
+    mkdir -p "$path"
+    chmod 0700 "$path"
+
+    want_mb="${MESHWARE_VOLUME_CAPACITY_MB:-0}"
+    # This plugin does not enforce a quota — it says so rather than
+    # implying one. A plugin that claims a size it does not enforce is a
+    # plugin whose operator finds out at 3am.
+    detail="a directory under $ROOT; this plugin enforces no quota"
+    [ "$want_mb" != "0" ] && detail="$detail (asked for ${want_mb} MB)"
+
+    jq -n --arg path "$path" --arg detail "$detail" \
+      '{path: $path, capacity_mb: 0, detail: $detail}'
+    ;;
+
+  delete)
+    [ -n "$name" ] || { echo "no MESHWARE_VOLUME_NAME" >&2; exit 1; }
+    path="${MESHWARE_VOLUME_PATH:-$ROOT/$name}"
+    # **`rm -rf` is deliberate and it is the dangerous line.** meshware has
+    # already refused to call this while any job holds a lease on the
+    # volume, which is the check that makes it safe — a plugin cannot know
+    # that on its own, and one that deleted on its own judgement would be
+    # deleting live data.
+    #
+    # Guarded anyway, because a bug on this line is unrecoverable: the path
+    # must be under ROOT and must not be ROOT itself.
+    case "$path" in
+      "$ROOT"/?*) rm -rf -- "$path" ;;
+      *)
+        echo "refusing to remove $path: not under $ROOT" >&2
+        exit 1
+        ;;
+    esac
+    # Idempotent: already gone is success. The alternative is a volume that
+    # cannot be forgotten because the thing that would forget it keeps
+    # failing.
+    ;;
+
+  fingerprint)
+    echo "mkdir under $ROOT (no quota enforcement)"
+    ;;
+
+  *)
+    echo "usage: $(basename "$0") {create|delete|fingerprint}" >&2
+    exit 2
+    ;;
+esac
