@@ -64,6 +64,19 @@ ignore = [
     # ignore that matches nothing as `advisory-not-detected`, and a list
     # of dead exceptions teaches people to stop reading this file.
 
+    # ── zbus 5's companion crates, merged into zbus 6 ─────────────────
+    # 2026-11-13. `zvariant`, `zvariant_derive` and `zbus_names` are no
+    # longer published on their own: zbus 6.0 absorbed them as its `wire`
+    # and `names` modules (z-galaxy/zbus#2043). Informational
+    # "unmaintained", not a vulnerability. They reach Director only,
+    # through zbus 5 (`keyring`'s secret-service backend and the tray-host
+    # probe); `cargo tree -p meshware-node -i zvariant` matches nothing.
+    # OUT WHEN: `keyring` releases on zbus 6 and the workspace's own zbus
+    # moves with it; then delete these three lines.
+    "RUSTSEC-2026-0370", # zvariant
+    "RUSTSEC-2026-0371", # zbus_names
+    "RUSTSEC-2026-0372", # zvariant_derive
+
     # ── unmaintained build-time transitives ────────────────────────────
     # 2026-09-06. `proc-macro-error` and the `unic-*` family are compile-time
     # only and do not exist in any shipped binary. Unmaintained, not

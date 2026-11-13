@@ -641,7 +641,15 @@ where
     ) {
         tracing::debug!("pty master non-blocking failed: {e}");
     }
-    let master = match tokio::io::unix::AsyncFd::new(master) {
+    // tokio 1.54 deprecated `AsyncFd::new` (RUSTSEC-2026-0386): it accepts
+    // any `AsRawFd`, including one that closes its descriptor while still
+    // registered. Its replacement, `AsyncFd::register`, is `unsafe`, and the
+    // workspace denies `unsafe_code`. The call is sound here: `master` is an
+    // `OwnedFd`, moved into the `AsyncFd`, which deregisters it before the
+    // descriptor is dropped, and nothing else can close it.
+    #[allow(deprecated)]
+    let watched = tokio::io::unix::AsyncFd::new(master);
+    let master = match watched {
         Ok(fd) => std::sync::Arc::new(fd),
         Err(e) => {
             let _ = child.kill().await;

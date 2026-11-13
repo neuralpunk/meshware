@@ -121,7 +121,7 @@ tauri = "2"
 # on the same `ring` the transport links. The CLI keeps shelling out to
 # `ssh(1)` on purpose — see `meshware-node/src/adopt.rs` — and this is the
 # one place a password can be taken from a person rather than a prompt.
-russh = { version = "0.63", default-features = false, features = ["ring", "rsa"] }
+russh = { version = "0.65", default-features = false, features = ["ring", "rsa"] }
 tauri-build = "2"
 # Native file/folder pickers (push a bundle dir, save a backup, open a
 # contract) — the desktop-native half of CLI parity.
@@ -192,7 +192,10 @@ tauri-plugin-window-state = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-clipboard-manager = "2"
-tauri-plugin-updater = "2"
+# No `zip` feature: on Linux it only unpacks legacy `.AppImage.tar.gz`
+# updates, Meshware ships no AppImage, and it pulled in `zip` 4.x with
+# four open extraction advisories (RUSTSEC-2026-0367/0368/0369/0429).
+tauri-plugin-updater = { version = "2", default-features = false, features = ["rustls-tls", "system-proxy"] }
 # `director://jobs/job-…` — a job id somebody pasted into a chat opens on
 # the reader's machine at the right screen (L2 P5).
 tauri-plugin-deep-link = "2"
