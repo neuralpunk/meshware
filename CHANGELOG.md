@@ -100,6 +100,16 @@ if the project goes quiet.
   0.11.19 (peer-triggered panics in the QUIC transport), `rustls` 0.23.46 and `rustls-webpki`
   0.103.17, `tokio` 1.54, `zstd`, `russh` 0.65 in Director, and others. Director's updater no
   longer pulls in `zip` at all.
+- **A node could crash while a mesh was forming.** Choosing which peers to ask about this
+  node's public address sorted them by live connection state, re-read on every comparison; when
+  a connection opened mid-sort the order stopped being consistent and the sort panicked. Seen on
+  a loaded machine joining 100 nodes. Each peer is now read once before sorting.
+- The `list.sort` task in `number` mode no longer panics on a list containing `NaN`.
+- **Gangs: `pack` puts a gang on the fewest machines.** It filled machines in load order, so an
+  idle four-core node took the first member beside a sixteen-core node that could hold the whole
+  gang. It now fills the machine with the most room first.
+- A script's saved run defaults (`env`, `inputs`) read back in the same order whatever the
+  binary was built with.
 - A test still expected the workflow, schedule, policy and host rows removed in 1.0.
 
 ---
