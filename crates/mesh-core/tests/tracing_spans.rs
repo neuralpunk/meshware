@@ -234,6 +234,11 @@ async fn a_request_and_the_job_it_starts_are_both_correlated() {
     //    Counted over spans rather than over events, because a request
     //    that logs nothing still has to be traceable — and `Jobs` is
     //    exactly such a request.
+    //
+    //    Waited for: a span is recorded when it closes, and the Run
+    //    request's span lives on in the job task it started, so it closes
+    //    a moment after "job finished" — on a slow runner, after this line.
+    mesh_testkit::wait_until(Duration::from_secs(10), || capture.spans("ipc").len() >= 2).await;
     let requests = capture.spans("ipc");
     assert!(
         requests.len() >= 2,

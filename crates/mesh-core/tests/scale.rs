@@ -51,6 +51,12 @@ fn run_req(command: &str, on: Option<&str>) -> IpcRequest {
 /// long the slowest node takes to materialize the full member set.
 async fn certify(n: usize, join_fanout: usize, target: Duration) {
     raise_nofile();
+    // Joins in flight at once, bounded by the CPUs this runs on. Sixteen
+    // concurrent handshakes against one founder, on a two-CPU CI runner in
+    // a debug build, timed out before any convergence was measured — and
+    // convergence is what this certifies, not a join burst.
+    let cpus = std::thread::available_parallelism().map_or(1, usize::from);
+    let join_fanout = join_fanout.min(cpus * 2).max(2);
     let founder = spawn_founder("s0", "scale").await;
 
     let names: Vec<String> = (1..n).map(|i| format!("s{i}")).collect();
