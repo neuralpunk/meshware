@@ -254,8 +254,8 @@ is black-holed and every address stays dialable, so the only variable is whether
 forwards. Cutting and healing are safe to call mid-flight, which is how a test cuts the link
 *during* a job.
 
-And for the scale question, a different gate: the release workflow refuses to build unless a
-**1,000-node simulation** converges (`--test scale`, `thousand_node_certification`).
+And for the scale question, a different test: a **1,000-node simulation** that has to converge
+(`--test scale`, `thousand_node_certification`), run on demand with `--ignored`.
 
 ---
 

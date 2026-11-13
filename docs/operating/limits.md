@@ -26,7 +26,7 @@ be simple.
 
 | | Figure | How |
 |---|---|---|
-| Nodes per mesh | **1,000** | In-process simulation, a **release gate** — a release does not build unless it converges |
+| Nodes per mesh | **1,000** | In-process simulation that must converge (`--test scale`, run on demand) |
 | Design envelope | 1 to 1,000 | The size the design is built for |
 | Cold start (zero to scheduling) | Measured on every commit | `scripts/cold-start.sh`, published |
 | Partition detection | Not alive 5–10 s, Dead 10–13 s | Measured, 4 nodes; tested ≤ 15 s |

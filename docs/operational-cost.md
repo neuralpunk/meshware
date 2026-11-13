@@ -192,8 +192,8 @@ zero in the first row.
 | 1,000-node fan-out, fully dispatched | < 2 s | `crates/mesh-core/tests/scale.rs` |
 | 1 GB bundle to 10 peers, gigabit | < 30 s | content distribution |
 
-Scale certification runs 100 nodes on every CI run and 1,000 nodes as a
-release gate:
+Scale certification runs 100 nodes on every CI run; the 1,000-node run is
+on demand:
 
 ```console
 $ cargo test --release --test scale -- --ignored

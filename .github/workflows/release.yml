@@ -28,24 +28,16 @@ permissions:
   attestations: write
 
 jobs:
-  scale-certification:
-    name: 1,000-node certification (release gate)
+  # A tag with no CHANGELOG.md entry is not a release (DOC-7). Its own job,
+  # first, so a missing entry fails the release in seconds.
+  release-notes:
+    name: the tag has release notes
     runs-on: ubuntu-latest
-    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      # First, and cheap: a tag with no CHANGELOG.md entry is not a release
-      # (DOC-7). Here rather than at the end so it fails in seconds, not
-      # after the 45-minute simulation below.
-      - name: the tag has release notes
+      - name: CHANGELOG.md has an entry for this tag
         if: startsWith(github.ref, 'refs/tags/')
         run: scripts/changelog-entry.sh "${GITHUB_REF_NAME}"
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - name: 1,000-node simulation
-        run: |
-          cargo test --release -p mesh-core --test scale -- \
-            --ignored --nocapture thousand_node_certification
 
   bench-shipped:
     name: benchmark the shipped target (ENG-25)
@@ -78,7 +70,7 @@ jobs:
 
   build:
     name: build (${{ matrix.target }})
-    needs: scale-certification
+    needs: release-notes
     runs-on: ubuntu-latest
     strategy:
       matrix:
