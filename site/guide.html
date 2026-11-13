@@ -1,0 +1,1328 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Meshware User Guide</title>
+  <meta name="description" content="The complete Meshware User Guide: installing, pairing machines, running work across the mesh, deployments, people and access, Director, upgrades, operations and troubleshooting.">
+  <meta name="theme-color" content="#08090a">
+  <meta property="og:title" content="Meshware User Guide">
+  <meta property="og:description" content="Everything you need to build and run a Meshware mesh, from first install to a fleet in production.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://neuralpunk.github.io/meshware/guide.html">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+  <link rel="preload" href="assets/fonts/geist.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/css/site.css">
+  <link rel="stylesheet" href="assets/css/guide.css">
+  <script src="assets/js/guide.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#guide">Skip to content</a>
+<div class="progress" aria-hidden="true"><i></i></div>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="./"><img src="assets/img/director-mark-white.svg" alt="" width="24" height="24">Meshware <span class="ver">1.1</span></a>
+    <nav aria-label="Primary">
+      <ul class="nav-links" id="nav-links">
+        <li><a href="./#how">How it works</a></li>
+        <li><a href="./#measured">Performance</a></li>
+        <li><a href="./#director">Director</a></li>
+        <li><a href="./#install">Install</a></li>
+        <li><a href="guide.html" aria-current="page">User Guide</a></li>
+      </ul>
+    </nav>
+    <div class="nav-end">
+      <a class="nav-gh" href="https://github.com/neuralpunk/meshware" aria-label="Meshware on GitHub">
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+      <a class="btn btn-primary" href="./#install">Get Meshware</a>
+      <button class="nav-menu" id="nav-menu" aria-controls="nav-links" aria-expanded="false" aria-label="Menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<header class="g-head">
+  <div class="wrap">
+    <h1 class="h-display">User Guide. <span class="dim">Everything, start to finish.</span></h1>
+    <p class="lead">How to install Meshware, pair your machines into a mesh, run work across them, keep services running, manage people and access, and operate a fleet with confidence.</p>
+    <div class="g-meta"><span>Version <b>1.1.0</b></span><span>Linux · x86_64 and aarch64</span><span>Press <kbd>/</kbd> to search</span></div>
+  </div>
+</header>
+
+<div class="wrap g-layout">
+  <aside class="g-toc" id="g-toc" aria-label="Contents">
+    <div class="g-search">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.6"/><path d="M10.5 10.5L14 14"/></svg>
+      <input type="search" id="g-search" placeholder="Search the guide" aria-label="Search the guide" autocomplete="off">
+    </div>
+    <nav aria-label="Guide contents"><ol id="g-toc-list"></ol></nav>
+    <p class="g-empty" id="g-empty" hidden>No section matches.</p>
+  </aside>
+
+  <main class="g-article" id="guide">
+    <button class="g-toc-btn" id="g-toc-btn" type="button" aria-controls="g-toc" aria-expanded="false">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 4h10M3 8h10M3 12h6"/></svg>Contents
+    </button>
+<section class="g-sec" id="overview">
+<h2>What Meshware is</h2>
+<p class="g-intro">Meshware turns the Linux machines you already have into one computer. Install one binary on each, pair them, and they pool their CPUs, memory and GPUs, with no server to set up first.</p>
+
+<p>Most tools that spread work across machines begin with "first, stand up the control plane": servers, a database and a quorum that must be kept alive before any real work can run. Meshware begins with "run this on any machine". Every machine is equal, holds a copy of everything the mesh knows, and keeps working if the others go away.</p>
+
+<h3 id="overview-pieces">How the pieces fit</h3>
+<p>There are only two things to install, and only the first is required.</p>
+<ul>
+<li><strong><code>meshnode</code></strong> is one static binary that is both the node and the command line. Run on a machine, it joins that machine to the mesh. Typed in a terminal, it is how you talk to the mesh.</li>
+<li><strong>Meshware Director</strong> is the desktop app. It shows the whole mesh live and does everything the command line does, with buttons. It is a view onto your own computer's node, not a server of its own.</li>
+</ul>
+<p>When you ask for something, you ask one machine: the one you are on, or any other. That machine decides where the work should run and sends it there. Every request carries your signature, and every machine checks it against the roles you have been given. A machine that is down is simply not chosen.</p>
+
+<h3 id="overview-no-control-plane">No control plane</h3>
+<p>"No control plane" means there is no special machine in charge: no database to run, no quorum to maintain and no master to fail over. Each machine keeps its own copy of the mesh's shared state (members, people, roles, deployments, schedules and audit history), and the copies converge over the network. So installing Meshware is installing one file, any machine can answer for the whole mesh, and a machine cut off from the others keeps running what it has and catches up by itself later.</p>
+<p>The trade is that state converges rather than being agreed by a vote. If two admins change the same thing on both sides of a network split, both changes succeed and the later one wins when the halves meet. That is the right trade for a fleet of machines, and the wrong one for something like a bank ledger.</p>
+
+<h3 id="overview-keys">Keys, pairing and roles</h3>
+<p>Meshware has no passwords, no login screen and no certificates to manage. Instead, <strong>every machine and every person is a key</strong>.</p>
+<ul>
+<li>A <strong>machine</strong> joins the mesh by pairing with a six-digit code on the local network, or with a single-use invite token from anywhere. Both screens show the same code, so you know the machine you let in is the one you meant.</li>
+<li>A <strong>person</strong> is a key that lives on their own computer, in <code>~/.meshware/identity/user.key</code>. Every request they make is signed with it.</li>
+<li>Whoever founds a mesh becomes its first <strong>admin</strong>. Everyone else asks to be let in, and an admin gives them a <strong>role</strong>: <code>admin</code>, <code>operator</code>, <code>developer</code>, <code>auditor</code> or <code>viewer</code>. A role can apply to the whole mesh or to some machines, and can expire.</li>
+</ul>
+<p>Every connection between machines is encrypted, and every job is confined to its own directory and held to its own CPU and memory limits.</p>
+
+<h3 id="overview-good-for">What it is good for</h3>
+<ul>
+<li><strong>Running commands across machines.</strong> Check every server's disk, patch level or configuration in one command, and get one answer per machine.</li>
+<li><strong>Spreading a big batch.</strong> Process thousands of files or hosts, with each machine pulling the next item when it finishes one, so a 32-core box does about twice the work of a 16-core one.</li>
+<li><strong>Keeping services up.</strong> Describe a web server or worker once, and Meshware keeps the copies running, rolls out changes carefully and moves copies off machines that fail.</li>
+<li><strong>GPU and multi-machine jobs.</strong> Ask for real, assigned GPUs, or for several machines that must start together.</li>
+<li><strong>Faster builds.</strong> Put <code>meshnode cc</code> in front of your compiler and a C or C++ build spreads across the mesh, and never compiles the same file twice.</li>
+<li><strong>Letting a team in safely.</strong> Give each person the smallest role they need, keep passwords out of scripts with secrets, and keep a signed audit log of who did what.</li>
+</ul>
+
+<h3 id="overview-not-for">What it is not for</h3>
+<p>Meshware is built for <strong>trusted administrator automation and semi-trusted team workloads</strong>. It is not a multi-tenant sandbox for arbitrary untrusted code, and you should not use it as one.</p>
+<p>Each job is confined to its own directory by Linux Landlock and held to its CPU and memory by its own cgroup, but there is no seccomp filter, no per-job user separation and no network restriction beyond what the host imposes. If you need to run code from people you do not trust, use a tool built for that.</p>
+<p>A few other things it deliberately does not try to be: a secrets-management platform (it integrates with Vault rather than replacing it), a service mesh, an image builder or registry, or a workflow engine. Teams that must not see each other's work should run two separate meshes, because there is no namespace concept inside one mesh.</p>
+<p>Meshware is free and open source under your choice of the MIT or Apache 2.0 licence, with no plans, tiers, machine limits, accounts or telemetry.</p>
+
+<h3 id="overview-glossary">The words you will meet</h3>
+<dl class="g-dl">
+<dt>Machine, or node</dt>
+<dd>A computer running <code>meshnode</code>. Each one runs work, and each one can answer for the whole mesh.</dd>
+<dt>Mesh</dt>
+<dd>Every machine that has joined together. A machine belongs to one mesh.</dd>
+<dt>Job</dt>
+<dd>One command run once, on one machine or on many. It ends, and its output and result are kept.</dd>
+<dt>Deployment</dt>
+<dd>Something that should keep running, such as a web server or a queue worker. Meshware starts the copies you asked for and replaces any that stop.</dd>
+<dt>Schedule</dt>
+<dd>A job that runs itself on a clock: every hour, or at 03:00.</dd>
+<dt>Person</dt>
+<dd>Somebody allowed to use the mesh. A person is a key on their own computer, not a password.</dd>
+<dt>Role and grant</dt>
+<dd>A role is what a person may do: <code>admin</code>, <code>operator</code>, <code>developer</code>, <code>auditor</code> or <code>viewer</code>. A grant gives a role, optionally narrowed to some machines and for a limited time.</dd>
+<dt>Secret</dt>
+<dd>A password or token a job needs, stored encrypted and handed only to the job that uses it.</dd>
+<dt>Tag</dt>
+<dd>A label on a machine, like <code>gpu</code> or <code>dc=east</code>, used to choose where work goes.</dd>
+<dt>Selector</dt>
+<dd>The expression that chooses machines, such as <code>any</code>, <code>web-01</code> or <code>tag=gpu</code>.</dd>
+<dt>Runtime</dt>
+<dd>The kind of thing a job is: a binary, a shell script, Python, an Ansible playbook or a container. Each machine detects what it can run.</dd>
+<dt>Director</dt>
+<dd>The desktop app. It does everything the command line does, and shows the mesh live.</dd>
+</dl>
+<p>More: <a href="https://github.com/neuralpunk/meshware/blob/main/docs/introduction.md">What Meshware is</a> · <a href="https://github.com/neuralpunk/meshware/blob/main/docs/no-control-plane.md">How it works without a control plane</a></p>
+</section>
+
+<section class="g-sec" id="install">
+<h2>Installing Meshware</h2>
+<p class="g-intro">Meshware is one static binary with no runtime dependencies, so installing it means putting that file on each machine. There are several ways to do it; pick the one that suits how you already manage machines.</p>
+
+<h3 id="install-requirements">What you need</h3>
+<ul>
+<li><strong>Linux</strong>, on <code>x86_64</code> or <code>aarch64</code>. The binary is statically linked (musl), so the distribution and its glibc version do not matter. There is no macOS or Windows build, by design.</li>
+<li><strong>UDP port 7777</strong> open between every pair of machines in the mesh. The mesh speaks QUIC, which runs over UDP, so opening TCP 7777 does nothing.</li>
+<li>Optionally, <code>sudo</code> to put the binary in <code>/usr/local/bin</code>, and the <a href="https://cli.github.com">GitHub CLI</a> (<code>gh</code>) to prove where a download came from.</li>
+</ul>
+<p>Nothing else: no database, no server to set up first, no certificates and no account. Some features turn on when the machine has more to offer: a 5.13 or newer kernel for job sandboxing, cgroups v2 with systemd for enforced CPU and memory limits, and podman or docker, Python 3, <code>ansible-playbook</code> or GPU drivers for those kinds of work. Each machine finds these by itself, and <code>meshnode doctor</code> tells you what is missing.</p>
+
+<h3 id="install-tarball">From a release tarball</h3>
+<p>This is the one to start with, and it works on any machine. Download <code>meshnode-v&lt;version&gt;-&lt;arch&gt;-unknown-linux-musl.tar.gz</code> and <code>SHA256SUMS</code> from the <a href="https://github.com/neuralpunk/meshware/releases">Releases page</a>, where <code>&lt;arch&gt;</code> is what <code>uname -m</code> prints.</p>
+<p>Check the download before you run anything. The checksum catches a file that was cut short or corrupted. The build-provenance attestation goes further: it proves the file was built from the Meshware repository by its release workflow, which a checksum served beside the file cannot.</p>
+<pre class="g-code"><code>$ sha256sum --ignore-missing -c SHA256SUMS
+$ gh attestation verify meshnode-v1.1.0-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware
+$ tar xzf meshnode-v1.1.0-x86_64-unknown-linux-musl.tar.gz
+$ sudo install -m755 meshnode /usr/local/bin/
+$ meshnode --version</code></pre>
+<p>If the attestation check fails, the file is not one Meshware's release workflow built. Do not install it. The tarball also carries the systemd unit (<code>meshnode.service</code>), the man page and the licences.</p>
+<aside class="g-note"><p><strong>Why no signing key?</strong> Meshware has no project-wide signing key, on purpose. Nobody has to keep one safe for your mesh to keep working, and nobody outside your mesh, the maintainers included, can push a binary onto it. Once your mesh is running, it installs upgrades only when one of your own admins has signed them. <a href="#upgrades">Upgrading</a> explains how.</p></aside>
+
+<h3 id="install-script">With the one-line installer</h3>
+<p>For one machine, one command:</p>
+<pre class="g-code"><code>$ curl -fsSL https://raw.githubusercontent.com/neuralpunk/meshware/main/packaging/install.sh | sh</code></pre>
+<p>It detects the architecture, downloads the tarball and installs the binary to <code>/usr/local/bin</code>, or to <code>~/.local/bin</code> without root. It does not start anything or write any configuration.</p>
+<p>It always checks the download against <code>SHA256SUMS</code>. When the GitHub CLI is installed and logged in, it also runs <code>gh attestation verify</code>; when it cannot, it says so in capitals. Set <code>MESHWARE_REQUIRE_SIGNATURE=1</code> to make a missing provenance check a hard failure, and <code>MESHWARE_VERSION</code> to pin a release.</p>
+
+<h3 id="install-packages">From a .deb or .rpm package</h3>
+<p>If you already manage machines with configuration management, use the packages, so upgrades go through apt or dnf like everything else.</p>
+<pre class="g-code"><code>$ sudo dpkg -i meshnode_1.1.0_x86_64.deb
+# or
+$ sudo rpm -i meshnode-1.1.0.x86_64.rpm</code></pre>
+<p>A package installs to <code>/usr/bin</code>, creates the <code>meshnode</code> system user and installs a hardened systemd unit. Packages need systemd. Do not start the service yet if the machine should join an existing mesh: see <a href="#install-service">Running it as a service</a>.</p>
+
+<h3 id="install-adopt">On machines you can already reach over SSH</h3>
+<p>Once you have one machine in a mesh, you can install and join many more from it in one step:</p>
+<pre class="g-code"><code>$ meshnode adopt ops@rack-{1..10}</code></pre>
+<p><code>adopt</code> installs the binary, sets it up as a system service with its own account, opens the mesh port in the firewall, pairs each machine (showing you the confirmation codes) and starts it. After this, SSH is never needed again. Director does the same from <em>Mesh › Fleet › Add machines</em>. <a href="#machines-adopt">Adding machines over SSH</a> has the details.</p>
+
+<h3 id="install-source">From source</h3>
+<p>Building needs Linux, <a href="https://rustup.rs">Rust</a> and a C compiler. Clone the repository and let <code>make</code> do the rest:</p>
+<pre class="g-code"><code>$ git clone https://github.com/neuralpunk/meshware &amp;&amp; cd meshware
+$ make doctor                     # what this machine has, and what each build needs
+$ make                            # meshnode and meshware-archive, optimised
+$ sudo make install               # binaries, man pages, bash/zsh/fish completions
+$ sudo make install-service       # optional: the systemd unit and the meshnode account</code></pre>
+<p><code>make STATIC=1</code> builds the static musl binaries the releases ship, and needs <code>musl-gcc</code>. <code>make install-service</code> installs the unit and never starts it. <code>make help</code> lists every target.</p>
+
+<h3 id="install-director">Director, the desktop app</h3>
+<p>Director runs on Linux desktops. Packaged installers are not published yet, so for now you build it from the source tree on the machine that will run it, or on one like it:</p>
+<pre class="g-code"><code>$ make doctor                     # says whether Node.js and WebKitGTK are installed
+$ make director WITH_NODE=1       # about four minutes; carries a meshnode for this machine
+$ sudo make install-director      # optional: /usr/local/bin/meshware-director</code></pre>
+<p>The build needs Node.js 20 or newer and the WebKitGTK 4.1 development packages, as well as Rust; <code>make doctor</code> names the package for your distribution. Plain <code>make director</code> works too; <code>WITH_NODE=1</code> carries a static <code>meshnode</code> inside Director so it can install this computer's node for you. <a href="#director">The Director section</a> covers what happens on first start.</p>
+
+<h3 id="install-service">Running it as a service</h3>
+<p>For a server, you want the node to start at boot and keep running after you log out. The packaged unit runs it as the unprivileged <code>meshnode</code> system user, in <code>/var/lib/meshware</code>. Root is never required.</p>
+<aside class="g-note g-warn"><p><strong>Important.</strong> The first start of a node that is not in a mesh <em>founds a new one</em>. On a machine that should join an existing mesh, join first and start the service second. <code>meshnode adopt</code> and Director's <em>Add machines</em> do this in the right order for you.</p></aside>
+<pre class="g-code"><code># on a machine that should join an existing mesh:
+$ sudo -u meshnode meshnode join mwj1…       # or: sudo -u meshnode meshnode pair
+$ sudo systemctl enable --now meshnode</code></pre>
+<p>On the machine founding a new mesh, <code>sudo systemctl enable --now meshnode</code> on its own is right.</p>
+<p>If you installed from the tarball, create the service account and unit by hand, once:</p>
+<pre class="g-code"><code>$ sudo useradd --system --home-dir /var/lib/meshware --shell /usr/sbin/nologin meshnode
+$ sudo install -d -o meshnode -g meshnode -m 0750 /var/lib/meshware
+$ sudo install -d /etc/meshware
+$ sudo install -m755 meshnode /usr/local/bin/
+$ sudo install -m644 meshnode.service /etc/systemd/system/
+$ sudo mkdir -p /etc/systemd/system/meshnode.service.d
+$ printf '[Service]\nExecStart=\nExecStart=/usr/local/bin/meshnode up\n' | \
+      sudo tee /etc/systemd/system/meshnode.service.d/path.conf
+$ sudo systemctl daemon-reload</code></pre>
+<p>The unit names <code>/usr/bin/meshnode</code>, where the packages put it; the drop-in points it at <code>/usr/local/bin</code>. To run containers under the service, the account also needs a sub-ID range; see <a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/runtimes.md">Runtimes</a>.</p>
+<p>After you edit the configuration, <code>sudo systemctl reload meshnode</code> applies most settings without a restart, and the journal names anything that needs one. A stop gives running jobs 30 seconds to finish (<code>[shutdown] grace_secs</code>).</p>
+
+<h3 id="install-paths">Where things live</h3>
+<table class="g-table">
+<thead><tr><th>What</th><th>Packaged service</th><th>Started by you with <code>meshnode up</code></th></tr></thead>
+<tbody>
+<tr><td>Binary</td><td><code>/usr/bin/meshnode</code> (package) or <code>/usr/local/bin/meshnode</code> (tarball)</td><td>wherever you installed it</td></tr>
+<tr><td>Data: identity, state, jobs, content</td><td><code>/var/lib/meshware</code></td><td><code>~/.meshware</code></td></tr>
+<tr><td>Configuration (optional)</td><td><code>/etc/meshware/meshnode.toml</code></td><td><code>~/.meshware/meshnode.toml</code></td></tr>
+<tr><td>Logs</td><td>journald (<code>journalctl -u meshnode</code>)</td><td>the terminal, or journald for a user service</td></tr>
+</tbody>
+</table>
+<p>One directory holds everything a node is. <code>meshnode config paths</code> prints every path a node uses, and whether it exists.</p>
+
+<h3 id="install-server-cli">Using the command line on a server</h3>
+<p>A packaged node runs as the <code>meshnode</code> account, and only that account can reach its socket. On the server, run commands as that account, with <code>sudo -u meshnode</code> rather than plain <code>sudo</code> (as root, the command line looks in <code>/root/.meshware</code>):</p>
+<pre class="g-code"><code>$ sudo -u meshnode meshnode doctor
+$ sudo -u meshnode meshnode status
+$ journalctl -u meshnode -n 50</code></pre>
+<p>Most of the time you will not need to be on the server at all. Run a node or Director on your workstation, have your own key enrolled with a role, and manage every machine from there.</p>
+<p>More: <a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/install.md">Installing a node</a> · <a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/platforms.md">Platforms</a></p>
+</section>
+
+<section class="g-sec" id="first-mesh">
+<h2>Your first mesh</h2>
+<p class="g-intro">From nothing to two machines running your commands, in about ten minutes. If you only have one machine, start with the demo: it is a real mesh, on loopback, gone when you stop it.</p>
+
+<h3 id="first-mesh-demo">Try it on one machine</h3>
+<p>No second machine, or not ready to install anything yet? Run the demo:</p>
+<pre class="g-code"><code>$ meshnode demo</code></pre>
+<p>This starts three real nodes on <code>127.0.0.1</code>, joins them together, runs a command across all of them, and removes every trace when you press <kbd>Ctrl</kbd>+<kbd>C</kbd>. These are the shipped daemon, scheduler and transport, not a simulation. Nothing touches <code>~/.meshware</code>, nothing is announced on your network, and a demo node cannot join a real mesh.</p>
+<ul>
+<li><code>meshnode demo --nodes 6</code> pretends to be six machines (2 to 16 are allowed).</li>
+<li><code>meshnode demo --stop</code> tears a demo down from another shell.</li>
+<li>From a clone of the repository, <code>make demo</code> builds <code>meshnode</code> the first time and then runs the demo; <code>make demo-stop</code> stops it.</li>
+<li>Director's welcome screen offers the same thing as <strong>Just show me</strong>.</li>
+</ul>
+
+<h3 id="first-mesh-start">Start the first machine</h3>
+<p>Install <code>meshnode</code> on every machine that will be in the mesh (see <a href="#install">Installing Meshware</a>). Then, on the first machine:</p>
+<pre class="g-code"><code>$ meshnode up
+  Welcome. This machine is founding a new mesh.
+
+    mesh       alpha-mesh
+    node       alpha
+    listening  0.0.0.0:7777
+    …</code></pre>
+<p><code>meshnode up</code> runs in the foreground, so leave it running and open a second terminal. The first time it runs it creates this machine's identity and founds a new mesh, with <strong>you as its administrator</strong>. (<code>meshnode up --detach</code> installs and starts it as your own systemd user service instead.) Check it:</p>
+<pre class="g-code"><code>$ meshnode status
+Meshware Node 1.1.0
+  node      mw1xqka4662aop7  (alpha)
+  mesh      alpha-mesh  (mesh-t33bwjcpisf7izqu3m7t6xncge)
+  members   1 alive / 1 total
+  jobs      0 running, 0 queued (16 slots)
+  runtimes  exec, bash, python, ansible, container
+  …
+
+$ meshnode doctor</code></pre>
+<p><code>doctor</code> runs every check this machine can make on itself: network, clock, disk, ports and sandbox. A one-machine mesh already works: <code>meshnode run 'uname -a'</code> runs a command on it.</p>
+
+<h3 id="first-mesh-second">Add a second machine</h3>
+<p>The second machine needs <code>meshnode</code> installed and must be able to reach the first on UDP 7777. Pick whichever of these fits.</p>
+<p><strong>On the same network: pair.</strong> Run the same command on the new machine and, at the same time, on the first machine (in your second terminal):</p>
+<pre class="g-code"><code>$ meshnode pair</code></pre>
+<p>Both screens show the same six digits and the same two words. If they match, confirm on both. Then start the node on the new machine with <code>meshnode up</code>. <code>pair</code> works out which side it is on by itself: a machine that is not in a mesh asks to join, and a machine that is lets it in.</p>
+<p><strong>Anywhere else: an invite.</strong> On the first machine, create a single-use invite:</p>
+<pre class="g-code"><code>$ meshnode invite create --uses 1
+invite inv-yyarmcox7vk7g (1 use(s)). On the new node, run:
+
+meshnode join mwj1t33bwjcpisf7izqu3m7t6xncghdacfqj276vl44nx6t4hu72…</code></pre>
+<p>On the new machine, paste that command, then start the node:</p>
+<pre class="g-code"><code>$ meshnode join mwj1t33bwjcpisf7izqu3m7t6xncghdacfqj276vl44nx6t4hu72…
+joined mesh 'alpha-mesh' (accepted by mw1xqka4662aop7) — 2 member(s)
+run `meshnode up` to start participating.
+
+$ meshnode up</code></pre>
+<aside class="g-note g-warn"><p><strong>Important.</strong> An invite token is a password for as long as it is valid. Keep <code>--uses 1</code> for one machine, and send it the way you would send a password. <code>meshnode invite revoke</code> cancels one that went somewhere it should not have.</p></aside>
+<p><strong>Several machines you can SSH to: adopt.</strong> <code>meshnode adopt ops@rack-{1..3}</code> from the first machine installs, pairs and starts each one. SSH to each host by hand once first, so its host key is known.</p>
+<p>Check that both machines are there:</p>
+<pre class="g-code"><code>$ meshnode nodes
+ST  NODE             NAME          ADDRESS            CAPACITY            TAGS  JOINED
+●   mw1xqka4662aop7  alpha (self)  192.168.1.20:7777  16c/61G/30G x86_64  -     2m ago
+●   mw1onj6yndtp6pi  beta          192.168.1.31:7777  16c/61G/30G x86_64  -     11s ago</code></pre>
+
+<h3 id="first-mesh-run">Run something</h3>
+<p>From the first machine:</p>
+<pre class="g-code"><code>$ meshnode run 'uname -sr' --on any
+▸ uname -sr  on beta · job-agqljao2xx
+
+Linux 6.11.0-200.fc44.x86_64
+
+✓ succeeded · beta · 41ms
+
+$ meshnode run 'hostname' --fanout all
+▸ hostname  on 2 machines · fan-agqljao25j
+
+ alpha  ✓ succeeded · 38ms
+ │ alpha
+
+ beta   ✓ succeeded · 52ms
+ │ beta
+
+✓ alpha     38ms  succeeded
+✓ beta      52ms  succeeded
+
+✓ Both machines succeeded · 52ms</code></pre>
+<p>The first command ran on whichever machine had room. The second ran on every machine at once. The exit code of <code>meshnode run</code> is the exit code of the command, so it fits into scripts like any other command.</p>
+<p>On one machine, output streams back live. On several, each machine's output is printed as one block when that machine finishes, and while they run, a board at the bottom of the terminal shows each one's latest line. Add <code>--stream</code> to see every line the moment it arrives. Sent to a pipe or a file, the output is one line per line, marked with the machine: <code>[alpha] alpha</code>.</p>
+
+<h3 id="first-mesh-enrol">Use the mesh from the second machine</h3>
+<p>Commands work from the first machine because you founded the mesh there. A person is a key, and on every other machine your key is a different one that the mesh has not met yet. To run commands from the second machine, ask the mesh to recognise you there:</p>
+<pre class="g-code"><code># on the second machine:
+$ meshnode enrol --as sam
+Enrolment code: DIZZY-RAVEN-2636
+Show this code to a mesh admin. Waiting for approval…
+
+# on the first machine:
+$ meshnode users approve DIZZY-RAVEN-2636 --role operator</code></pre>
+<p>A machine joining is not the same as a person being let in. Joining adds the computer; the person using it still needs a role. <a href="#people">People, access and secrets</a> covers this properly.</p>
+
+<h3 id="first-mesh-next">Where to go next</h3>
+<ul>
+<li>Keep the node running after you log out: <a href="#install-service">Running it as a service</a>.</li>
+<li>Add more machines, and label them: <a href="#machines">Adding and managing machines</a>.</li>
+<li>Run work across the mesh: <a href="#running-work">Running work</a>.</li>
+<li>Keep a service running: <a href="#deployments">Long-running services</a>.</li>
+<li>Let other people in: <a href="#people">People, access and secrets</a>.</li>
+<li>Use the desktop app: <a href="#director">Meshware Director</a>.</li>
+</ul>
+<p>More: <a href="https://github.com/neuralpunk/meshware/blob/main/docs/quickstart.md">Quickstart</a></p>
+</section>
+
+<section class="g-sec" id="machines">
+<h2>Adding and managing machines</h2>
+<p class="g-intro">Every machine in a mesh runs <code>meshnode</code>. This section covers getting machines in, seeing what they are doing, labelling them so work goes to the right place, pausing them for maintenance, and taking them out again.</p>
+
+<p>There are three ways to add a machine, and they all end the same way: a new machine that knows the mesh, and a mesh that has checked the machine is the one you meant.</p>
+
+<h3 id="machines-pair">On the same network: pairing</h3>
+<p>Pairing is the quickest way to add a machine on your local network. On the new machine, and on any machine already in the mesh, run the same command. Both show a six-digit code; if they match, confirm on the member.</p>
+<pre class="g-code"><code>$ meshnode pair            # on the new machine: waits to be let in
+$ meshnode pair            # on a member: finds it, shows the code, lets it in</code></pre>
+<p>Pairing finds machines with mDNS (UDP 5353) and a broadcast beacon (UDP 7778). If your network drops both, or the machines are on different subnets, name the waiting machine's address from a member instead:</p>
+<pre class="g-code"><code>$ meshnode invite approve --addr 10.0.0.9:7777</code></pre>
+<p>In Director, a machine waiting to pair appears at the top of <strong>Access</strong>, where you check the code and press <strong>Let in…</strong>.</p>
+
+<h3 id="machines-invite">Across networks: invites</h3>
+<p>When the new machine is somewhere you cannot see from here, such as another office or a cloud network, use an invite. On a member, make one; on the new machine, join with it, then start the node.</p>
+<pre class="g-code"><code>$ meshnode invite create --ttl 1h        # prints the token and the command to run
+$ meshnode join mwj1…                    # on the new machine
+$ meshnode up</code></pre>
+<p>An invite works once by default (<code>--uses 5</code> for more) and expires; the default lifetime is 24 hours. <code>meshnode invite ls</code> lists what is still open, and <code>meshnode invite revoke</code> cancels one early. Revoking an invite does not remove machines that already joined with it.</p>
+<p>A machine can take tags as it joins, with <code>meshnode join … --tag gpu</code>. If the only route between machines is an overlay network such as Tailscale or WireGuard, pass <code>--via</code> when joining so the new machine dials the address that actually works.</p>
+
+<h3 id="machines-adopt">Machines you can SSH to: adopt</h3>
+<p>If you already reach machines over SSH, <code>adopt</code> does the whole job from a member:</p>
+<pre class="g-code"><code>$ meshnode adopt ops@rack-{1..10}</code></pre>
+<p>For each machine it installs <code>meshnode</code> as a system service with its own account, opens the mesh port in the firewall (where firewalld or ufw is running), pairs it while showing you each confirmation code, and starts it. It also sets up <code>.mesh</code> name resolution on each machine. It uses SSH once, to install; after that, everything goes through the mesh.</p>
+<p>Useful options: <code>--tag</code> stamps tags on the new machines, <code>--dry-run</code> shows what would happen, and <code>--force</code> replaces an existing install. Director's <em>Mesh › Fleet › Add machines</em> does the same with a form.</p>
+
+<h3 id="machines-see">Seeing what they are doing</h3>
+<pre class="g-code"><code>$ meshnode nodes           # every machine: alive or not, address, capacity, tags
+$ meshnode nodes --devices # every GPU in the mesh, from any node
+$ meshnode top             # live load, running jobs and queue per machine
+$ meshnode status          # this machine's view of itself and the mesh
+$ meshnode doctor          # checks this machine: network, clock, disk, sandbox, containers
+$ meshnode facts web-01    # what a machine reports about itself</code></pre>
+<p>A machine that stops answering is marked suspect after 5 to 10 seconds and dead a few seconds later. It is not removed: when it comes back, it catches up by itself, typically within about 51 milliseconds of the network path returning. Only an admin's revocation removes a machine.</p>
+<p>When something fails on only one machine, <code>meshnode nodes diff hq anvil</code> shows what differs between two machines: kernel, libc, drivers, packages and everything else their collectors report.</p>
+
+<h3 id="machines-tags">Tagging machines</h3>
+<p>Tags are labels that choose where work goes: <code>gpu</code>, <code>ssd</code>, <code>dc=east</code>, <code>team=data</code>. A job asks for <code>--on tag=gpu</code>; a deployment says <code>targets: tag=gpu</code>.</p>
+<pre class="g-code"><code>$ meshnode nodes tag gpu-01 --add gpu --add dc=east
+$ meshnode nodes tag gpu-01 --rm dc=east
+$ meshnode nodes tag --add ssd                # this machine</code></pre>
+<p>A tag an admin assigns this way is recorded in the mesh, not in a file on the machine, so it survives the machine being rebuilt. A machine can also tag itself in its own configuration (<code>tags = ["gpu"]</code> in <code>meshnode.toml</code>). Some tags are added for you: each machine announces its cores, memory, GPUs and what it can run, and <code>meshnode runtimes</code> shows what it found.</p>
+
+<h3 id="machines-drain">Pausing and draining a machine</h3>
+<p>There are three ways to stop sending work to a machine, in increasing strength, and all are reversible:</p>
+<table class="g-table">
+<thead><tr><th>To…</th><th>Use</th><th>What happens</th></tr></thead>
+<tbody>
+<tr><td>Stop new work going there</td><td><code>meshnode nodes contribute web-01 --off</code></td><td>Nothing new is placed on it. What runs there keeps running. <code>--on</code> undoes it.</td></tr>
+<tr><td>Empty it of services, and keep it running</td><td><code>meshnode nodes drain web-01</code></td><td>Its deployment copies start somewhere else first, then stop here. Copies have an hour to move; <code>--deadline 4h</code> or <code>--no-deadline</code> changes that. <code>--lift</code> undoes it.</td></tr>
+<tr><td>Isolate a machine you do not trust</td><td><code>meshnode nodes quarantine web-01 --reason "…"</code></td><td>No new work, no new secrets, no terminals. <code>--lift</code> undoes it.</td></tr>
+</tbody>
+</table>
+<p>The <code>nodes</code> commands above can be run by an admin from any machine. The plain <code>meshnode drain</code> command is different: it is run <strong>on the machine itself</strong>, and is the polite way to take that machine out for a while.</p>
+<pre class="g-code"><code>$ meshnode drain --until 06:00 --reason "kernel update"   # a maintenance window
+$ meshnode drain --for 2h
+$ meshnode drain --lift                                   # done early
+$ meshnode drain --move                                   # finish accepted work, move queued work, exit</code></pre>
+<p>A drain with <code>--until</code> or <code>--for</code> is a maintenance window: the node refuses new work, keeps what is running, stays up and rejoins on its own. Work already running is never killed by a drain without <code>--move</code>. The reason shows in <code>meshnode status</code> and the audit log.</p>
+<p>To take a machine down for maintenance, drain it, then stop the service on it with <code>sudo systemctl stop meshnode</code>.</p>
+
+<h3 id="machines-quiet-hours">Quiet hours</h3>
+<p>A machine that is also someone's workstation can give the mesh less of itself at certain times. Quiet hours cap the number of job slots for a time window, in the machine's own local time, set in its <code>meshnode.toml</code>:</p>
+<pre class="g-code" data-lang="toml"><code>[limits]
+quiet = "08:00-23:00 @ 30%"
+# or several windows:
+# quiet = ["00:00-08:00 @ 100%", "08:00-23:00 @ 30%"]</code></pre>
+<p>Without it there are no quiet hours, which is what a machine in a rack should keep. A reload (<code>systemctl reload meshnode</code>) applies the change.</p>
+
+<h3 id="machines-remove">Removing a machine</h3>
+<p>Drain it, stop Meshware on it, then revoke it from another machine so the mesh stops trusting its key:</p>
+<pre class="g-code"><code>$ meshnode nodes contribute web-01 --off
+$ meshnode nodes drain web-01
+$ meshnode jobs ls --state running           # wait until nothing is running on web-01
+# stop Meshware on web-01, then:
+$ meshnode nodes revoke web-01 --yes</code></pre>
+<p>Revoking is permanent. If you ever put the machine back, it joins as a new node with a new key. Revoking does not take back the secrets the machine already held: if it is going somewhere you do not control, set those secrets again with new values. Revoking a machine does not revoke the person who used it either; use <code>meshnode users revoke</code> for that. <a href="#operating-uninstall">Uninstalling</a> lists what to clean up on the machine itself.</p>
+
+<h3 id="machines-reset">Starting the mesh over</h3>
+<p><code>meshnode reset</code> ends the mesh: every machine leaves it and waits to join a new one, without reinstalling anything. Only the founder can do this, in a terminal on the founder's machine. It asks you to type the mesh's name and a random code, so it cannot be run from a script. Nothing is deleted: each machine moves the old mesh's data into <code>reset/&lt;time&gt;/</code> in its home.</p>
+<p>Then found the new mesh on the founder's machine with <code>meshnode up --detach --new-mesh</code> and adopt the other machines again with <code>meshnode adopt &lt;host&gt;</code>.</p>
+<p>More: <a href="https://github.com/neuralpunk/meshware/blob/main/docs/guides/machines.md">Adding and managing machines</a></p>
+</section>
+
+<section class="g-sec" id="running-work">
+<h2>Running work</h2>
+<p class="g-intro">A job is one command, run once. You say what to run and where; Meshware picks the machine, sends the command there and streams the output back as it happens. When the job ends, its output and exit code are kept.</p>
+
+<h3 id="running-work-run">Run a command</h3>
+<pre class="g-code"><code>$ meshnode run 'df -h /' --on any</code></pre>
+<p><code>meshnode run</code> waits for the job and exits with the command's own exit code. A job keeps running if you close your terminal, and you can look at it again from any machine.</p>
+
+<h3 id="running-work-where">Choosing where it runs</h3>
+<p><code>--on</code> says which machines may take the job. Without <code>--fanout</code>, it runs on <strong>one</strong> of them: the one with the most room.</p>
+<table class="g-table">
+<thead><tr><th>To run…</th><th>Use</th></tr></thead>
+<tbody>
+<tr><td>On any machine</td><td><code>--on any</code></td></tr>
+<tr><td>On one machine, by name</td><td><code>--on web-01</code></td></tr>
+<tr><td>On a machine with a tag</td><td><code>--on tag=gpu</code></td></tr>
+<tr><td>On a machine with either tag</td><td><code>--on 'tag=gpu|tag=cuda'</code></td></tr>
+<tr><td>On a machine with both tags</td><td><code>--on 'tag=gpu,tag=dc=east'</code></td></tr>
+</tbody>
+</table>
+<p>A comma means "all of these", and a bar means "any of these". Check where a job would go without running it:</p>
+<pre class="g-code"><code>$ meshnode run 'make test' --on tag=build --dry-run
+$ meshnode plan --on tag=gpu --gpus 2         # where would a two-GPU job land, and when</code></pre>
+
+<h3 id="running-work-fanout">Running on many machines at once</h3>
+<p><code>--fanout all</code> runs the command on <strong>every</strong> matching machine, as one job with a result for each. <code>--fanout 3</code> runs it on three of them.</p>
+<pre class="g-code"><code>$ meshnode run 'uptime' --fanout all
+$ meshnode run 'systemctl is-active nginx' --on tag=web --fanout all
+$ meshnode run './smoke-test.sh' --on tag=web --fanout 3</code></pre>
+<p>A fan-out is how you ask a question of your whole fleet. Add <code>--expect</code> to check every answer and fail if any does not match, and keep each machine's answer as a row you can look at again:</p>
+<pre class="g-code"><code>$ meshnode run 'sshd -T' --fanout all --expect 'contains(stdout, "permitrootlogin no")'
+$ meshnode history results fan-agqljao25j          # one row per machine, by the id run printed
+$ meshnode history results fan-agqljao25j --failed # only the machines where it failed</code></pre>
+<p>On a large fleet, <code>--max-parallel 10</code> runs at most ten at a time, and <code>--halt-on-fail 5%</code> stops starting new ones once more than 5% have failed. <code>--json</code> prints the results as JSON.</p>
+
+<h3 id="running-work-resources">Giving a job what it needs</h3>
+<pre class="g-code"><code>$ meshnode run './train.py' --on tag=gpu --gpus 1 --cpus 8 --mem 32G
+$ meshnode run './deploy.sh' --env TARGET=staging --env 'TOKEN={{secret:deploy-token}}'
+$ meshnode run './long-job.sh' --timeout 3600</code></pre>
+<ul>
+<li><code>--cpus</code>, <code>--mem</code> and <code>--gpus</code> choose a machine with that much free, and hold the job to it where the machine can enforce it. With cgroups v2 delegated (the shipped unit does this), they are real ceilings: a job that exceeds its memory is killed by the kernel and told why.</li>
+<li><code>--vram-mb</code> asks for GPUs with at least that much memory: <code>--gpus 2 --vram-mb 24000</code>. It is a filter, not a preference. GPUs are real, assigned devices, not a tag with a number in it.</li>
+<li><code>--env NAME=VALUE</code> sets an environment variable. <code>{{secret:NAME}}</code> puts in a secret, opened only on the machine that runs the job; see <a href="#people-secrets-use">Using a secret</a>.</li>
+<li><code>--timeout</code> stops the job after that many seconds.</li>
+</ul>
+
+<h3 id="running-work-watch">Watching, waiting and cancelling</h3>
+<pre class="g-code"><code>$ meshnode jobs                      # recent jobs, newest first
+$ meshnode jobs logs job-agqljao2xx  # its output
+$ meshnode jobs wait job-agqljao2xx  # wait for it, then exit with its code
+$ meshnode jobs cancel job-agqljao2xx
+$ meshnode jobs explain job-agqljao2xx   # why it went where it went, or nowhere
+$ meshnode history jobs              # finished jobs, searchable</code></pre>
+<p>Every one of these takes enough of the start of a job's id to be unique. <code>meshnode jobs</code> is the live view; <code>meshnode history</code> is the record of anything that already happened, including <code>history diff</code> to compare two runs of the same thing.</p>
+<p>To be told when something finishes, add <code>--notify</code> to <code>meshnode run</code> or <code>meshnode jobs wait</code>. It sends a desktop notification, or posts to an ntfy or webhook URL, or runs a command, whichever <code>[notify]</code> in <code>meshnode.toml</code> names.</p>
+
+<h3 id="running-work-parallel">One command, many items: parallel</h3>
+<p>To process a list of things (files, hosts, numbers) with the work spread across every machine that has room, use <code>parallel</code>. It uses GNU parallel's syntax: <code>{}</code> is replaced by each item.</p>
+<pre class="g-code"><code>$ meshnode parallel 'gzip -t {}' ::: logs/*.gz
+$ seq 1 1000 | meshnode parallel 'process {}'
+$ meshnode parallel -a hosts.txt -- ./check.sh {}</code></pre>
+<p>Nothing computes a split in advance: every machine pulls the next chunk when it finishes one, so faster machines do more. An item whose machine stops responding is run again elsewhere. <code>--halt-on-fail</code> stops handing out work once too many items fail, and <code>--resume &lt;job&gt;</code> re-runs only the items of an earlier run that did not succeed. <code>--progress</code> prints per-machine throughput while it runs.</p>
+
+<h3 id="running-work-map">Large outputs: map and objects</h3>
+<p><code>meshnode map</code> works like <code>parallel</code>, but keeps each item's output as an object <em>on the machine that computed it</em>. Only a reference travels back, so intermediate data never funnels through your machine.</p>
+<pre class="g-code"><code>$ meshnode map -a logs.txt 'gzip -dc {} | grep -c ERROR'</code></pre>
+<p><code>--reduce &lt;command&gt;</code> merges every output, and runs by default on the machine already holding the most output, so the least data moves. <code>--out &lt;dir&gt;</code> fetches every output into a directory. <code>meshnode objects</code> lists the objects a machine holds, and <code>meshnode objects get</code> fetches one.</p>
+<p>Objects are ephemeral transport, kept for about 15 minutes, not storage. Output you mean to keep belongs in <code>--out</code>, <code>--outputs</code> or <code>--cache-outputs</code>.</p>
+
+<h3 id="running-work-gangs">Work that must start together: gangs</h3>
+<p>Some work, such as distributed training, only makes sense if every part starts at once. A gang is all or nothing: every member starts at the same moment, or none of them does.</p>
+<pre class="g-code"><code>$ meshnode run ./train.sh --gang 8 --cpus 4</code></pre>
+<p>Each member gets its rank and its peers in environment variables (<code>MESHWARE_GANG_RANK</code>, <code>MESHWARE_GANG_SIZE</code>, <code>MESHWARE_GANG_NODES</code>, <code>MESHWARE_GANG_LEADER</code> and <code>MESHWARE_GANG_ID</code>), which is what tools like <code>torchrun</code> need. <code>--gang-placement spread</code> puts one member per machine, <code>--gang-restart</code> re-runs the whole gang if a member dies, and <code>meshnode gangs</code> shows gangs holding or waiting for machines.</p>
+
+<h3 id="running-work-options">Other useful options</h3>
+<ul>
+<li><code>--singleton NAME</code> refuses the run while another job under the same name is still going anywhere in the mesh. Useful for something that must never run twice at once.</li>
+<li><code>--fallback local</code> runs the command right here when the mesh cannot take it, for a laptop that is sometimes on the mesh and sometimes not.</li>
+<li><code>--race N</code> runs the command on N machines at once and keeps the first answer. Your command runs N times, so only race work that has no side effects.</li>
+<li><code>--priority</code> sets the queue priority (<code>low</code>, <code>normal</code> or <code>high</code>), and <code>--preemptible</code> marks work that may be stopped to give someone else back their fair share of the mesh. It is opt-in, never a default.</li>
+</ul>
+
+<h3 id="running-work-cache">Never doing the same work twice</h3>
+<p>If a command is a pure function of its inputs, you can tell Meshware so, and the mesh will remember the answer. The second time anyone runs the same work, on any machine, it is served from the cache instantly.</p>
+<pre class="g-code"><code>$ meshnode run ./build.sh --cacheable --cache-outputs 'out/*'
+$ meshnode cache stats                        # hit rate and bytes saved</code></pre>
+<p><code>--cacheable</code> is a claim you make about your own code, so only use it for work whose output depends on nothing but its inputs. <code>--explain-key</code> prints the cache key and the fields that produced it, without running anything. <code>parallel</code> and <code>map</code> take <code>--cacheable</code> too, per item.</p>
+
+<h3 id="running-work-cc">Compiling across the mesh</h3>
+<p><code>meshnode cc</code> is a compiler wrapper. Put it in front of your compiler and each source file is built on whichever machine has room, and any file the mesh has already built, for you or for anybody else, is not built again. If you know <code>distcc</code> and <code>ccache</code>, this is both of them at once.</p>
+<pre class="g-code"><code>$ make -j64 CC='meshnode cc gcc' CXX='meshnode cc g++'
+$ cmake -DCMAKE_C_COMPILER_LAUNCHER='meshnode cc' -DCMAKE_CXX_COMPILER_LAUNCHER='meshnode cc' …</code></pre>
+<p>The other machines need only a compiler: your machine preprocesses each file against your own headers, so nothing else has to be copied. Pick a <code>-j</code> much larger than your own core count, because the compiles are not happening here. Try it on one file first:</p>
+<pre class="g-code"><code>$ meshnode cc --verbose gcc -c src/parser.c -o parser.o
+meshnode cc: parser.o &lt;- anvil (18240 bytes)
+
+$ meshnode cc --verbose gcc -c src/parser.c -o parser.o
+meshnode cc: parser.o &lt;- cache (18240 bytes)</code></pre>
+<p><strong>It never breaks the build.</strong> Anything the wrapper cannot handle (a link step, several sources at once, no daemon, an empty mesh, a dropped connection) falls back to running your compiler right here. A real compile error is not retried locally. <code>--on tag=build</code> sends compiles only to machines whose toolchain you have matched, and <code>--local-only</code> never distributes but still uses the cache, which is the first thing to try when a build misbehaves.</p>
+
+<h3 id="running-work-scripts">Saved scripts</h3>
+<p>Scripts you run often can be kept in the mesh and run by name, with their inputs described, so anybody allowed can run them anywhere with a form in Director.</p>
+<pre class="g-code"><code>$ meshnode script inspect ./backup.sh     # what it would register as
+$ meshnode add ./backup.sh                # put it on the mesh</code></pre>
+<p>A script can be a shell script, a Python program or an Ansible playbook. Director reads the script's own header to work out its arguments. <a href="https://github.com/neuralpunk/meshware/blob/main/docs/reference/script-definitions.md">Script definitions</a> describes the format.</p>
+
+<h3 id="running-work-stuck">When a job will not run</h3>
+<pre class="g-code"><code>$ meshnode jobs explain job-agqljao2xx   # why it went where it went, or nowhere
+$ meshnode queue                         # what is waiting on this machine, and why
+$ meshnode runtimes                      # what this machine can run</code></pre>
+<p>The usual reasons: no machine matches <code>--on</code>; none has the CPUs, memory or GPUs asked for; or the job needs something, such as Python or a container engine, that no matching machine has.</p>
+<p>More: <a href="https://github.com/neuralpunk/meshware/blob/main/docs/guides/running-work.md">Running work</a> · <a href="https://github.com/neuralpunk/meshware/blob/main/docs/guides/compiling.md">Compiling across the mesh</a></p>
+</section>
+
+<section class="g-sec" id="deployments">
+<h2>Long-running services</h2>
+<p class="g-intro">A deployment is work that is supposed to stay up: a website, an API, a queue worker, one collector on every machine. You say what should run and how many copies, and the mesh keeps it that way.</p>
+
+<h3 id="deployments-what">What a deployment does</h3>
+<p>A job ends; a deployment does not. Once you publish one, Meshware restarts copies that die, replaces copies whose machine goes away, and rolls out changes a few copies at a time, checking each new copy's health before it touches the next. There is no server to install for this and no scheduler to keep alive: every machine knows every deployment, and whichever machine is best placed looks after each one.</p>
+<p>A deployment runs either a <strong>container image</strong> or a <strong>published script or service</strong>. If you know HashiCorp Nomad, the file has the same shape: <code>count</code>, ports by label, canaries and auto-revert, health checks, and <code>count: system</code> for one copy per machine. What is missing is the servers.</p>
+
+<h3 id="deployments-runtimes">Before you start: a machine that can run it</h3>
+<p>For containers, the machines need <code>podman</code> or <code>docker</code>. Install one and restart the node:</p>
+<pre class="g-code"><code>$ sudo dnf install podman        # or: sudo apt install podman
+$ sudo systemctl restart meshnode
+$ meshnode runtimes              # container should now say `ready`</code></pre>
+<p>Nothing else is configured. Every machine checks what it can run when it starts, and work only goes to machines that can run it. If <code>meshnode runtimes</code> says <code>broken</code>, it prints the fix.</p>
+
+<h3 id="deployments-file">A web server on two machines</h3>
+<p>Here is a complete first deployment: nginx, two copies, reachable by name, with a health check and a careful rollout.</p>
+<pre class="g-code" data-lang="yaml"><code># web.yaml
+deployment:
+  name: web
+  count: 2
+
+  container:
+    image: docker.io/library/nginx:alpine
+
+  network:
+    port:
+      - label: http
+        to: 80          # the port inside the container
+
+  resources:
+    cpus: 1
+    memory_mb: 128
+
+  register:
+    name: web           # answers at web.mesh
+
+  health:
+    kind: http
+    port: http          # by label, so it follows whichever port the copy was given
+    path: /
+    interval: 10s
+    grace: 10s
+
+  update:
+    canary: 1
+    auto_revert: true
+    min_healthy_time: 30s</code></pre>
+<p>In words: two copies of the nginx image; a port labelled <code>http</code> mapped to port 80 inside the container, while each machine picks a free port outside; a name, so the copies answer as <code>web.mesh</code>; an HTTP health check; and a rollout that tries one new copy first and goes back automatically if it never becomes healthy.</p>
+<p>You do not have to write this from memory. <code>meshnode deployment init --name web --image docker.io/library/nginx:alpine &gt; web.yaml</code> prints a commented starting file, and <code>meshnode deployment schema</code> prints a JSON Schema for editor autocomplete. YAML, TOML and JSON all work, with the same keys.</p>
+
+<h3 id="deployments-publish">Checking and publishing it</h3>
+<pre class="g-code"><code>$ meshnode deployment validate web.yaml        # the file alone, no mesh needed: fits in CI
+$ meshnode deployment put --dry-run web.yaml   # where it would run, starting nothing
+$ meshnode deployment put web.yaml
+
+SLOT   NODE    GEN  STATE     HEALTH     JOB
+0      web-1   0    running   healthy    job-7u4z3pboiw
+1      web-2   0    running   healthy    job-acemnfdfiq
+
+  2 desired · 2 placed · 2 healthy · 0 unhealthy · 5s
+
+✓ rollout complete — 2/2 healthy in 5s</code></pre>
+<p><code>put</code> follows the rollout until it settles; <code>--detach</code> returns at once. In Director, <em>Services › Deployments › New deployment</em> opens a guided form that writes the same file as you type, with <strong>Plan</strong> to preview and <strong>Publish</strong> to start.</p>
+
+<h3 id="deployments-watching">Watching it</h3>
+<pre class="g-code"><code>$ meshnode deployment ls
+$ meshnode deployment status web             # desired vs running vs healthy, per copy, live
+$ meshnode deployment logs web --slot 1      # one copy's output
+$ meshnode deployment exec web --slot 0 --reason "check config"   # a shell inside a container copy</code></pre>
+<p>A deployment is in one of four states:</p>
+<table class="g-table">
+<thead><tr><th>Status</th><th>Means</th></tr></thead>
+<tbody>
+<tr><td><strong>active</strong></td><td>Every copy is where it should be and healthy.</td></tr>
+<tr><td><strong>updating</strong></td><td>A change is rolling out.</td></tr>
+<tr><td><strong>degraded</strong></td><td>Copies keep failing. Meshware slows its retries instead of restarting them in a tight loop, and keeps trying.</td></tr>
+<tr><td><strong>paused</strong></td><td>Published, but left alone: nothing is started, stopped or replaced until it is resumed.</td></tr>
+</tbody>
+</table>
+<p>A copy that will not start is retried with a growing delay. Within its restart budget (5 failures in 10 minutes by default) it is retried where it is; past that it backs off, up to an hour between attempts, and prefers a machine it has not already failed on. It never gives up, and <strong>degraded</strong> stays visible while the failures continue.</p>
+
+<h3 id="deployments-health">Health checks</h3>
+<p>Without a check, a copy counts as alive while its process runs, even if it answers every request with an error. With one, a rollout only moves on once new copies pass, and <code>web.mesh</code> only hands out copies that are passing. In the example, <code>kind: http</code> requests <code>/</code> on the port labelled <code>http</code> every <code>interval</code>; for the first <code>grace</code> after a copy starts, failed probes do not count, so set it to how long the program takes to warm up.</p>
+
+<h3 id="deployments-rollouts">Rollouts, canaries and rollback</h3>
+<p>To change a deployment, edit the file and publish it again. That is the whole workflow. Publishing an unchanged file does nothing.</p>
+<p>With <code>canary: 1</code>, a change starts <strong>one new copy</strong> beside the old ones. It has to pass its health check and stay healthy for <code>min_healthy_time</code> before anything is replaced; then the old copies are replaced a few at a time. If the new version never becomes healthy within the progress deadline (10 minutes by default when <code>canary</code> or <code>auto_revert</code> is set), <code>auto_revert: true</code> puts the previous working version back on its own.</p>
+<p>A canary that proves itself is promoted automatically. To look at it first, set <code>auto_promote: false</code> under <code>update</code>, and promote it yourself with <code>meshnode deployment promote web</code> or the <strong>Promote</strong> button in Director.</p>
+<p>Some changes are commands rather than edits:</p>
+<pre class="g-code"><code>$ meshnode deployment scale web 4            # count, without restarting the copies that stay
+$ meshnode deployment restart web            # replace every copy, under the update rules
+$ meshnode deployment restart web --slot 1   # …or just one
+$ meshnode deployment pause web              # leave it alone until `resume`
+$ meshnode deployment resume web</code></pre>
+<p>If you keep the file in version control, copy these changes into it too, or the next <code>put</code> of the old file undoes them. To go back:</p>
+<pre class="g-code"><code>$ meshnode deployment rollback web                    # one version back
+$ meshnode deployment history web -p                  # the last ten versions, with what changed
+$ meshnode deployment rollback web --generation 4     # everything as it was at generation 4
+$ meshnode deployment tag web golden                  # keep this version past the last ten
+$ meshnode deployment rollback web --tag golden</code></pre>
+<p>A rollback is an ordinary change: it goes through the same careful rollout as any other.</p>
+
+<h3 id="deployments-ports">Ports and reaching a service</h3>
+<p><strong>A copy answers on the machine it runs on, at the port that machine gave it.</strong> There is no proxy, virtual address or ingress in between. Find where each copy is:</p>
+<pre class="g-code"><code>$ meshnode registry web
+service:  web
+resolves: 2 of 2 instance(s)
+
+NODE             ADDRESS                LABEL      HEALTH     INSTANCE
+forge            192.168.1.31:24112     http       passing    …
+edge-7           192.168.1.40:20417     http       passing    …
+
+$ curl http://192.168.1.31:24112/</code></pre>
+<p>Two things have to be true for that <code>curl</code> to work:</p>
+<ul>
+<li><strong>The port has to be open from wherever you are.</strong> Each copy gets a free port from its machine's range, 20000 to 32000 unless <code>[network] dynamic_ports</code> says otherwise, and Meshware opens no firewall for it.</li>
+<li><strong>The program has to listen on the machine's address, not loopback.</strong> A container with <code>to:</code> is published on every interface for you. A process should listen on <code>$MESHWARE_IP_&lt;LABEL&gt;</code> and <code>$MESHWARE_PORT_&lt;LABEL&gt;</code>, or on <code>0.0.0.0</code>.</li>
+</ul>
+<p>To give a service a name other people can use, put a load balancer (nginx, HAProxy, Caddy, Traefik or a cloud one) in front. The simplest shape is a fixed port on every machine: <code>static: 8080</code> on the port, with <code>count: system</code> so each matching machine runs one copy on 8080. The load balancer then points at the machines. A fixed port is only allowed with one copy per machine. <em>Services › Addresses</em> in Director gives you a ready-to-paste configuration for each of those load balancers. Give the load balancer its own health check too.</p>
+
+<h3 id="deployments-dns">Names on a machine: .mesh</h3>
+<p>Every node answers <code>&lt;name&gt;.mesh</code> for the services registered in the mesh, on port 8600 on loopback. One command tells a machine's resolver to send <code>.mesh</code> there:</p>
+<pre class="g-code"><code>$ sudo meshnode dns install
+wrote /etc/systemd/resolved.conf.d/meshware.conf
+ran systemctl restart systemd-resolved
+this machine now sends .mesh to 127.0.0.1:8600
+
+$ dig +short web.mesh
+192.168.1.31
+192.168.1.40</code></pre>
+<p>Machines added with <code>meshnode adopt</code> or Director's <em>Add machines</em> get this done for them. Only A, AAAA and SRV records are answered, only for copies passing their checks, and anything that is not <code>.mesh</code> is refused rather than forwarded. The SRV records carry each healthy copy's port, for a load balancer that can read them.</p>
+
+<h3 id="deployments-machines-leave">When a machine goes away, or is drained</h3>
+<p>A machine that stops answering is not assumed dead at once. After the mesh notices (5 to 10 seconds of silence), each copy waits <code>lost_after</code>, 60 seconds by default, and is then replaced on a machine that answers. When the original machine comes back, the extra copy is retired.</p>
+<p>Draining a machine (<code>meshnode nodes drain web-7</code>) moves its copies somewhere else first: a replacement starts and proves itself before the copy on the drained machine stops, so a service never has none.</p>
+
+<h3 id="deployments-schedules">Schedules: something on a clock</h3>
+<p>A schedule runs a published script or service on an interval or at a time of day, with nobody watching. It fires one job each time, on whichever matching machine the mesh picks.</p>
+<pre class="g-code" data-lang="toml"><code># nightly-backup.toml
+[schedule]
+name     = "nightly-backup"
+service  = "backup@4"        # a published script or service; `backup` alone runs the newest
+at       = "03:00"
+days     = "mon-fri"
+tz       = "+02:00"          # a fixed offset: schedules never move with daylight saving
+targets  = "tag=db"
+timeout  = "45m"
+catch_up = "once"            # after downtime, fire one missed run, never a backlog</code></pre>
+<pre class="g-code"><code>$ meshnode schedule put --dry-run nightly-backup.toml   # when it would next fire, and where
+$ meshnode schedule put nightly-backup.toml
+$ meshnode schedule ls
+$ meshnode schedule pause nightly-backup</code></pre>
+<p>The vocabulary is deliberately small: <code>every = "15m"</code> or <code>at = "03:00"</code> (with optional <code>days</code>), never a cron string. Schedules fire at most once a minute. <code>catch_up</code> is <code>skip</code> (the default) or <code>once</code>, so a machine that was down for a weekend does not wake up and run 192 backups, and <code>overlap = "skip"</code> (the default) does not start a run while the previous one is still going. A schedule whose script has been removed is marked <strong>orphaned</strong>.</p>
+
+<h3 id="deployments-volumes">Volumes</h3>
+<p>A deployment that keeps data needs to run where the data is. A machine lends a named directory in its own <code>meshnode.toml</code>, and a deployment claims it by name:</p>
+<pre class="g-code" data-lang="toml"><code># meshnode.toml, on each machine that has the data
+[[volume]]
+name = "data"
+path = "/srv/meshware/data"</code></pre>
+<p>A claim is an exclusive lease: one writer excludes everything, readers share. Nothing copies, backs up or synchronises a volume; it is one directory on one machine. <code>meshnode volumes</code> and <code>meshnode ports</code> show what each machine lends and what is holding it.</p>
+
+<h3 id="deployments-placement">Choosing machines and seeing placement</h3>
+<p>A deployment's <code>targets</code> selects on tags and on facts a machine reports:</p>
+<pre class="g-code" data-lang="yaml"><code>targets: any                                  # anywhere that can run it
+targets: tag=edge                             # machines tagged edge
+targets: tag=gpu, tag=canary                  # both
+targets: name=anvil|name=edge-7               # either
+targets: fact.kernel_release:version&gt;=6.1     # a fact, compared as a version</code></pre>
+<p>Beyond which machines may run a copy, a file can say how copies are shared out: never two on one machine (<code>distinct_hosts</code>), at most one per rack (<code>distinct_property</code>), preferring some machines (<code>affinity</code>) or spreading them (<code>spread</code>). <code>meshnode deployment placement</code>, or <em>Mesh › Placement</em> in Director, shows every machine with the copies on it.</p>
+
+<h3 id="deployments-why">When nothing can take it</h3>
+<p>Meshware does not just say "pending". <code>meshnode deployment put --dry-run</code> and <code>meshnode deployment status</code> count every machine looked at, group them by the reason each was ruled out, and say which reasons will clear on their own:</p>
+<pre class="g-code"><code>NOTHING CAN TAKE IT RIGHT NOW:
+  - selector tag=edge excluded 4 of 6 nodes
+  - 1 node cannot run container work — install podman or docker
+    there, or target nodes that have one
+  - 1 node is too small for this: needs 4 cpu, needs 8 GB</code></pre>
+<p>More: <a href="https://github.com/neuralpunk/meshware/blob/main/docs/deployments.md">Deployments</a> · <a href="https://github.com/neuralpunk/meshware/blob/main/docs/reference/deployment-file.md">Deployment file reference</a> · <a href="https://github.com/neuralpunk/meshware/blob/main/docs/reference/schedule-file.md">Schedule file reference</a></p>
+</section>
+
+<section class="g-sec" id="people">
+<h2>People, access and secrets</h2>
+<p class="g-intro">Who may use the mesh, what each person may do, and how to give jobs passwords and tokens without putting them in scripts. Read this before anybody but you uses the mesh.</p>
+
+<h3 id="people-how">How access works</h3>
+<p>There are no passwords and no login screen. A person is a <strong>key</strong> that lives on their own computer, in <code>~/.meshware/identity/user.key</code>. Every request they make is signed with it, and every machine checks the signature and the person's roles before doing anything.</p>
+<ul>
+<li><strong>You are the first admin.</strong> Whoever founded the mesh holds its first admin key.</li>
+<li><strong>Everyone else asks to be let in</strong>, and an admin decides what they may do.</li>
+<li><strong>What they may do is a role</strong>, given for the whole mesh or for some machines, and for as long as you choose.</li>
+</ul>
+<pre class="g-code"><code>$ meshnode whoami           # your key, your name in this mesh, and what you may do</code></pre>
+
+<h3 id="people-enrol">Letting someone in</h3>
+<ol class="g-steps">
+<li><p><strong>They ask.</strong> On their own computer, with <code>meshnode</code> installed and able to reach any machine in the mesh:</p>
+<pre class="g-code"><code>$ meshnode enrol --as mia
+Your identity:  mwu1tt5r…  @ laptop-mia
+Enrolment code: BRAVE-OTTER-4417
+Show this code to a mesh admin. Waiting for approval…</code></pre>
+<p>In Director, a new person does the same from the welcome screen and gives the name people will know them by.</p></li>
+<li><p><strong>You check the code.</strong> Their request reaches every machine by itself. Ask them to read out their code, and compare it with the one you see:</p>
+<pre class="g-code"><code>$ meshnode users pending</code></pre>
+<p>The code is worked out from their key on both sides and never sent, so matching codes mean the request is really theirs.</p></li>
+<li><p><strong>You let them in, with a role:</strong></p>
+<pre class="g-code"><code>$ meshnode users approve BRAVE-OTTER-4417 --role operator</code></pre>
+<p>Without <code>--role</code> they get <code>viewer</code>, which can look but not change anything. <code>meshnode users decline</code> turns a request away, and a request nobody answers expires within the hour.</p></li>
+</ol>
+<p>If you already have someone's key (they can print it with <code>meshnode whoami</code>), you can add them directly: <code>meshnode users add mia --key mwu1tt5r… --role developer</code>.</p>
+
+<h3 id="people-roles">Roles</h3>
+<table class="g-table">
+<thead><tr><th>Role</th><th>Can</th></tr></thead>
+<tbody>
+<tr><td><strong>admin</strong></td><td>Everything: letting people in, giving roles, managing machines and secrets.</td></tr>
+<tr><td><strong>operator</strong></td><td>Keep things running: run work, cancel anybody's work, and manage deployments and schedules.</td></tr>
+<tr><td><strong>developer</strong></td><td>Ship things: run work, manage deployments and schedules, and publish scripts, services and Git sources.</td></tr>
+<tr><td><strong>auditor</strong></td><td>Read everything, including the audit log and which secrets exist, and change nothing.</td></tr>
+<tr><td><strong>viewer</strong></td><td>Read machines, jobs and their history. Not secrets, not the audit log.</td></tr>
+</tbody>
+</table>
+<p>Give each person the smallest role that lets them do their job. You can always add more. Keep more than one admin: an admin key that is lost with nobody else to replace it cannot be recovered.</p>
+
+<h3 id="people-grants">Narrowing a role: where and for how long</h3>
+<p>A role is given as a <strong>grant</strong>, and a grant can apply to some machines only and can expire:</p>
+<pre class="g-code"><code>$ meshnode grants add mia --role operator --nodes tag=staging --expires 30d
+$ meshnode grants add sam --role developer --services 'web-*'
+$ meshnode grants                          # every grant
+$ meshnode grants revoke grant-7f2k…       # take one away</code></pre>
+<p>Grants add up: a second grant joins whatever the person already had. <code>--nodes</code> takes the same selectors as <code>run --on</code>. An expired grant leaves the person in the mesh with nothing to do there, and you can grant again at any time.</p>
+
+<h3 id="people-shell">Terminals on machines</h3>
+<p><code>meshnode shell</code> opens a terminal on a machine through the mesh, with no SSH. The reason is required and goes in the audit log:</p>
+<pre class="g-code"><code>$ meshnode shell web-01 --reason "INC-4412 disk full"</code></pre>
+<p>A terminal needs three things: the machine must accept terminals (<code>[sessions] accept = "on"</code> in its configuration), the person must have a role that runs work on that machine, and a <strong>session policy</strong> must name them:</p>
+<pre class="g-code"><code>$ meshnode sessions policy put oncall --users 'ops-*' --nodes tag=web --allow shell --expires-in 8h
+$ meshnode sessions                        # who has one open right now</code></pre>
+<p>A terminal runs as the account the node runs as, and is confined like a job.</p>
+
+<h3 id="people-service-accounts">Service accounts for pipelines</h3>
+<p>A CI pipeline should not use a person's key. Give it a <strong>service account</strong>: a key of its own, with a role, a scope and an expiry it cannot outlive.</p>
+<pre class="g-code"><code>$ meshnode serviceaccounts create ci-deploy --role developer --on tag=staging --expires-in 90d</code></pre>
+<p>The key is written to <code>ci-deploy.key</code> on your computer and stored nowhere else. Keep it where the pipeline can read it, and point the pipeline at it with <code>MESHWARE_USER_IDENTITY</code>. A service account cannot be an admin. <code>meshnode serviceaccounts</code> lists them and how long each has left.</p>
+
+<h3 id="people-sso">Single sign-on</h3>
+<p>If your organisation has an OpenID Connect identity provider, such as Microsoft Entra ID, a person can prove who they are with it (<code>meshnode login</code>) before enrolling. The admin approving the request then sees their verified name, email and groups, and a suggested role. Single sign-on adds evidence; it does not create or remove people by itself, and approving is still an admin's decision. Setting up a provider is covered in <a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/identity.md">People, machines and roles</a>.</p>
+
+<h3 id="people-keys">Lost keys, people leaving, and protecting your own key</h3>
+<p><strong>A lost or stolen key:</strong> replace it, and the person keeps their name and roles:</p>
+<pre class="g-code"><code>$ meshnode users rotate mia --new-key mwu1…      # the key from their new `meshnode whoami`</code></pre>
+<p><strong>Someone leaves:</strong> revoke them. It is permanent; that key can never be let in again.</p>
+<pre class="g-code"><code>$ meshnode users revoke mia --yes</code></pre>
+<p>Your key is your access. Two ways to keep it safe:</p>
+<ul>
+<li><strong>A passphrase:</strong> <code>meshnode identity protect</code>. You unlock it once per login with <code>meshnode identity unlock</code>, and Director asks for it when it starts. This protects the key at rest, such as in a backup or on a stolen disk.</li>
+<li><strong>A security key:</strong> <code>meshnode identity hardware</code> keeps the key on a YubiKey or similar, through an ssh-agent, so there is nothing on the disk to copy. In Director, <em>Settings › This machine › Security key</em> walks you through it.</li>
+</ul>
+
+<h3 id="people-audit">Who did what</h3>
+<p>Every change (people let in, roles given, jobs run, secrets set, terminals opened) is signed and recorded in the audit log, on every machine. Only admins and auditors can read it.</p>
+<pre class="g-code"><code>$ meshnode audit                          # newest first
+$ meshnode audit --user mia --since 7d
+$ meshnode audit --action job.run --limit 20
+$ meshnode audit --output jsonl           # for a SIEM</code></pre>
+
+<h3 id="people-secrets">Secrets</h3>
+<p>A secret is a password, token or key that a job needs and nobody should see in a script, a log or a command line. A secret is encrypted on the computer you type it on, and opened only on the machine that runs the job that uses it, at the moment it starts. Only admins can set, change or remove secrets.</p>
+<pre class="g-code"><code>$ meshnode secrets set db-pass                        # type the value, then Ctrl-D
+$ meshnode secrets set tls-key --from-file ./server.key
+$ meshnode secrets ls                                 # names and who can use them, never values</code></pre>
+<p>Reading the value from the keyboard or a file keeps it out of your shell history. No machine stores it unencrypted, and nothing logs it.</p>
+
+<h3 id="people-secrets-use">Using a secret in a job or deployment</h3>
+<p>Refer to a secret by name in an <strong>environment variable</strong>:</p>
+<pre class="g-code"><code>$ meshnode run './backup.sh' --env 'PGPASSWORD={{secret:db-pass}}'</code></pre>
+<p>If the job prints the value, the output shows <code>[secret:db-pass]</code> instead (for values of four characters or more). That catches accidents, not intent. For a key or certificate, <code>{{secret_file:tls-key}}</code> gives the job the path of a file only it can read:</p>
+<pre class="g-code"><code>$ meshnode run 'curl --cert "$CERT" https://internal.example' --env 'CERT={{secret_file:tls-key}}'</code></pre>
+<p>A secret is never allowed in the command itself, only in the environment, because any user on a machine can read another process's command line. The same reference works in a deployment's environment:</p>
+<pre class="g-code" data-lang="yaml"><code>deployment:
+  name: api
+  container:
+    image: registry.example/api:2.1
+    env:
+      DATABASE_URL: "postgres://api@db-01/api"
+      DATABASE_PASSWORD: "{{secret:db-pass}}"</code></pre>
+
+<h3 id="people-secrets-scope">Deciding who can use a secret</h3>
+<p>Anyone who can run a job on a machine that holds a secret can make that job print it. So narrow each secret to the machines and the people that need it:</p>
+<pre class="g-code"><code>$ meshnode secrets set db-pass --on tag=db-clients --role developer
+$ meshnode secrets scope db-pass --on tag=db-clients --user ci-deploy --user mia
+$ meshnode secrets scope db-pass --clear              # back to the default</code></pre>
+<p>Without a scope, a secret goes to every machine that runs work, but not to quarantined machines or machines that run no work.</p>
+<aside class="g-note g-warn"><p><strong>Important.</strong> Narrowing a scope stops new machines receiving the secret, but cannot take it back from machines that already had it. After narrowing, set the value again so the old one is useless.</p></aside>
+<p>To rotate a secret, change it where it is used first (the database password, the API token), then set the new value under the same name with <code>meshnode secrets set</code>. Jobs that start afterwards get it. <code>meshnode secrets rm db-pass --yes</code> removes one. If your secrets already live in HashiCorp Vault or another store, a small provider program can fetch them when a job starts; see <a href="https://github.com/neuralpunk/meshware/blob/main/docs/reference/plugins.md">Plugin contracts</a>.</p>
+<p>More: <a href="https://github.com/neuralpunk/meshware/blob/main/docs/guides/people-and-access.md">People and access</a> · <a href="https://github.com/neuralpunk/meshware/blob/main/docs/guides/secrets.md">Secrets</a> · <a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/identity.md">People, machines and roles</a></p>
+</section>
+
+<section class="g-sec" id="director">
+<h2>Meshware Director</h2>
+<p class="g-intro">Director is the desktop app: every machine, job and person in your mesh, live, on one screen, and every action the <code>meshnode</code> command line has, as a button.</p>
+
+<h3 id="director-what">What Director is</h3>
+<p>Director is not a dashboard pointed at a server, and it is not a server either. It is a <strong>view onto this computer's node</strong>, and it talks to that node exactly the way the command line does, signing with the same key in <code>~/.meshware/identity/user.key</code>. Close Director and nothing changes: the node keeps running. Everything Director does, the command line can do, and the other way round.</p>
+<figure class="g-fig"><img src="assets/img/mesh-fleet-dark.webp" alt="Director's Mesh › Fleet screen for a mesh named hyacinth: a sidebar with Mesh, Run, Services, Access, Secrets and Settings; Health, Workload and Hardware cards showing 6 machines, 92 CPU cores, 360 GB of memory and 7 GPUs; and machine cards for director, anvil (quarantined) and edge-7 with their load, cores, memory and tags." width="2722" height="1732" loading="lazy"><figcaption>Mesh › Fleet: every machine, its health, load, hardware and tags, with the whole mesh added up across the top.</figcaption></figure>
+
+<h3 id="director-get">Getting Director</h3>
+<p>Director runs on Linux desktops. Until packaged installers are published, build it from the source tree as described in <a href="#install-director">Installing Director</a>. The finished binary is <code>target/director/meshware-director</code>; copy it anywhere and run it, and it adds itself to your application menu. <code>sudo make install-director</code> installs it to <code>/usr/local/bin/meshware-director</code>. <code>make director-package</code> builds a <code>.deb</code>, <code>.rpm</code> and AppImage instead.</p>
+
+<h3 id="director-node">Director and meshnode on the same computer</h3>
+<p>Every computer in a mesh runs one node, in <code>~/.meshware</code>. On a desktop it runs as your own systemd user service, <code>meshnode</code>, which Director installs and starts the first time it needs it (the binary goes to <code>~/.local/bin/meshnode</code>). It starts at every login and does not stop when Director does, so <code>meshnode status</code> in a terminal works whether Director is open or not. Settings Director changes are written to <code>~/.meshware/meshnode.toml</code> or signed into the mesh, so the two never disagree.</p>
+
+<h3 id="director-first-run">The first run</h3>
+<p>The first time Director starts, it asks what you want to do:</p>
+<figure class="g-fig"><img src="assets/img/first-run-dark.webp" alt="Director's welcome screen, titled Welcome to Meshware, with five numbered choices: Just show me, Create a new mesh, Join a mesh on this network, Join with an invite, and Restore from a backup. Your user key is shown at the bottom." width="2722" height="1732" loading="lazy"><figcaption>The welcome screen. Each choice says in one line when to use it.</figcaption></figure>
+<table class="g-table">
+<thead><tr><th>Choice</th><th>Use it when</th></tr></thead>
+<tbody>
+<tr><td><strong>Just show me</strong></td><td>You want to see it work without a second machine. Director starts a small, real mesh on this computer, runs a command across it, and removes every trace when you stop.</td></tr>
+<tr><td><strong>Create a new mesh</strong></td><td>This is the first machine. It founds a new mesh and you become its first administrator.</td></tr>
+<tr><td><strong>Join a mesh on this network</strong></td><td>A mesh already exists on your local network. Your machine appears on an admin's <strong>Access</strong> page within seconds, and they let you in after you both check the same six-digit code.</td></tr>
+<tr><td><strong>Join with an invite</strong></td><td>The mesh is somewhere you cannot see from here. Paste the invite token an admin sent you.</td></tr>
+<tr><td><strong>Restore from a backup</strong></td><td>You are bringing a machine back from a backup file (<code>.mwb</code>): its identity and the mesh's whole history.</td></tr>
+</tbody>
+</table>
+<p>When you join an existing mesh, Director asks for the <strong>name people will know you by</strong>, and an admin approves you with a role. <strong>Contribute compute</strong> decides whether this computer runs work for the mesh.</p>
+
+<h3 id="director-layout">Finding your way around</h3>
+<p>The sidebar on the left has three groups:</p>
+<table class="g-table">
+<thead><tr><th>Group</th><th>Sections</th><th>What you do there</th></tr></thead>
+<tbody>
+<tr><td><strong>Machines</strong></td><td><strong>Mesh</strong>: Fleet, Topology, Placement, Capacity, Updates</td><td>See your machines, add more, and keep them current</td></tr>
+<tr><td><strong>Work</strong></td><td><strong>Run</strong>: Scripts, New run, Activity · <strong>Services</strong>: Deployments, Schedules, Addresses</td><td>Run things once, keep things running, and find where they answer</td></tr>
+<tr><td><strong>System</strong></td><td><strong>Access</strong> · <strong>Secrets</strong> · <strong>Settings</strong></td><td>Let people in, keep secrets, and look after this computer and the mesh</td></tr>
+</tbody>
+</table>
+<p>The breadcrumb at the top reads section, then screen (<em>Services › Deployments</em>), which is how this guide writes locations too. A screen's main action is the button at the top right. <strong>Search</strong> (<kbd>Ctrl</kbd>+<kbd>K</kbd>) finds any screen or action by name and shows the <code>meshnode</code> command that does the same, which is a good way to learn the command line. <strong>The bell</strong> lights up when something is waiting on you, and <strong>the ?</strong> explains the screen you are on.</p>
+
+<h3 id="director-mesh">Mesh: Fleet, Topology, Placement and Capacity</h3>
+<p><strong>Mesh › Fleet</strong> lists every machine with its health, tags, hardware, load and running jobs; filters such as <em>Needs attention</em> and <em>Not replying</em> narrow a big fleet. Select a machine to <strong>Ping</strong>, <strong>Drain</strong>, toggle <strong>Contributing</strong>, <strong>Quarantine</strong>, edit its <strong>Tags</strong>, open a <strong>terminal</strong>, or <strong>Revoke</strong> it, or tick several to act on them together.</p>
+<p><strong>Mesh › Topology</strong> draws the machines as a network, which helps when some cannot reach others. <strong>Mesh › Placement</strong> shows every machine with the deployment copies on it. <strong>Mesh › Capacity</strong> is the first place to look when work will not start: what the mesh adds up to, what each machine can run, and the ports and volumes each one lends.</p>
+
+<h3 id="director-add-machines">Adding machines</h3>
+<p><strong>Mesh › Fleet › Add machines</strong> does what <code>meshnode adopt</code> does, without a terminal. Give it the machines (one or more SSH targets; ranges such as <code>rack-{1..10}</code> expand), the credentials (a user, and a password, key file or ssh-agent) and, optionally, tags to stamp on the new machines.</p>
+<figure class="g-fig"><img src="assets/img/add-machines-dark.webp" alt="The Add machines dialog in Director: a Machines box listing ops@rack-1, ops@rack-{2..8} and 10.0.0.5; SSH port 22; credentials with user root and a choice of Password, Key file or ssh-agent; a Remember in my keychain switch; a Tags field containing gpu, dc=east; and Cancel and Continue buttons with the note Nothing is sent until you review it." width="2722" height="1732" loading="lazy"><figcaption>Add machines: name the machines and a way in. Nothing is sent until you review it.</figcaption></figure>
+<p>A password is kept in memory for this run only, unless you choose to remember it in your desktop's keychain. Director then installs, pairs and starts each machine, showing you each confirmation code (<strong>Confirm all</strong> accepts them at once), and waits until the mesh sees each one alive.</p>
+
+<h3 id="director-updates">Mesh › Updates</h3>
+<p>Is every machine running the current version, and what to do if not. The number beside <em>Updates</em> in the sidebar is how many machines are behind.</p>
+<figure class="g-fig"><img src="assets/img/mesh-updates-dark.webp" alt="Director's Mesh › Updates screen: a ring showing 40 percent of nodes current, with 3 of 5 nodes behind the target version; Update 3 nodes and Check for updates buttons; three steps labelled Release channel, In the mesh and On the nodes; and below, the fleet grouped by build with an Update button on each group." width="2722" height="1732" loading="lazy"><figcaption>Mesh › Updates: read the three steps left to right and act on the one that is not done.</figcaption></figure>
+<ol class="g-steps">
+<li><strong>Release channel.</strong> <strong>Check for updates</strong> looks for a newer release on GitHub, and <strong>Get</strong> fetches it into the mesh. The download is checked against the release's <code>SHA256SUMS</code>, then signed with <em>your</em> release key.</li>
+<li><strong>In the mesh.</strong> The release the mesh holds, ready to install.</li>
+<li><strong>On the nodes.</strong> <strong>Update N nodes</strong> installs it on each machine that is behind, over SSH, a few at a time, and waits for the mesh to see each machine come back before moving on.</li>
+</ol>
+<p><strong>Group by</strong> build, rack, role or architecture to update one group at a time. Under <strong>Advanced</strong>, fleets set up for it can roll out through the mesh itself in health-checked waves, and you can manage release keys and publish a build of your own. <a href="#upgrades">Upgrading</a> explains the model.</p>
+
+<h3 id="director-run">Run: Scripts, New run and Activity</h3>
+<p><strong>Run › Scripts</strong> lists what this mesh can run by name; drop a file anywhere on the window to add one. <strong>Sources</strong> keeps scripts in step with a Git repository, and <strong>Build farm</strong> is the setup panel for <code>meshnode cc</code>, with the exact line to paste into a build.</p>
+<p><strong>Run › New run</strong> runs one thing, on the machine you choose or wherever the mesh finds room.</p>
+<figure class="g-fig"><img src="assets/img/new-run-dark.webp" alt="Director's Run › New run screen with tabs Once, Per item and Together; step 1, What do you want to run, offering A saved script or A one-off command, with scripts deploy, hello, pyhello and site; step 2, Where should it run, set to Anywhere and one of them, whichever is free, matching director, forge, anvil and edge-7; and Preview and Run buttons." width="2722" height="1732" loading="lazy"><figcaption>Run › New run: what to run, where, and Preview before you Run.</figcaption></figure>
+<p>Choose <strong>Once</strong>, <strong>Per item</strong> (once per line of a list) or <strong>Together</strong> (several machines starting at the same moment). Pick a saved script or a one-off command, then where: <em>one of them</em> runs it once on whichever is free, <em>all of them</em> on every match. <strong>Preview</strong> shows what would happen; <strong>Run</strong> starts it and streams the output live.</p>
+<p><strong>Run › Activity</strong> lists every job, live; a fan-out is one row you can expand into a row per machine. Open any job for its full output, where it ran and why, or to cancel it. <strong>History</strong> searches older jobs.</p>
+
+<h3 id="director-services">Services: Deployments, Schedules and Addresses</h3>
+<p><strong>Services › Deployments</strong> lists everything that is supposed to stay up, with tiles across the top for the whole mesh. <strong>New deployment</strong> opens a guided form that writes the deployment file as you type; <strong>File</strong>, beside the title, swaps the form for the raw file. Open a deployment to see what Meshware is doing with it and why.</p>
+<figure class="g-fig"><img src="assets/img/deployment-open-dark.webp" alt="A deployment named webapp opened in Director, marked active at generation 2, with tabs Overview, Activity, Versions and Definition. A Right now card says Everything is running: all 3 copies are healthy on 3 machines. Each copy on forge, anvil and edge-7 shows Placed, Started and Healthy with Logs, Shell and Restart links, and the bottom row has Scale, Restart, Roll out, Roll back, Pause, Edit and Delete." width="2722" height="1732" loading="lazy"><figcaption>An open deployment: what is happening right now, where each copy is, and every action along the bottom.</figcaption></figure>
+<p><strong>Right now</strong> says what is happening in one sentence, and when it needs you the button is on the same card: <em>Promote</em> a waiting canary, <em>Resume</em> a pause, <em>Roll back</em> a stuck change. <strong>Versions</strong> keeps the last ten versions, each with <strong>Roll back to this</strong>.</p>
+<p><strong>Services › Schedules</strong> leads with when each schedule last ran and when it runs next, and marks a schedule whose script has been removed as <strong>orphaned</strong>, in red. <strong>Services › Addresses</strong> lists where each copy of a service answers, with a checklist and a ready-to-paste nginx, HAProxy, Caddy or Traefik configuration.</p>
+
+<h3 id="director-access">Access</h3>
+<p>Who is in the mesh, and what each person may do. This is where you let machines and people in, give them roles, and take access away.</p>
+<figure class="g-fig"><img src="assets/img/access-dark.webp" alt="Director's Access screen: a banner saying 2 machines and 1 person want to join, listing Mia on mia-laptop and forge-2 as new machines and mia asking for an account, each with Not now and Let in buttons; below, tabs for People, Machines and History, buttons for What can each role do, Invite someone and Grant a role, and a list of people with their roles." width="2722" height="1732" loading="lazy"><figcaption>Access: machines and people waiting to join appear at the top, each with Let in….</figcaption></figure>
+<p>For a waiting machine, <strong>Let in…</strong> shows the confirmation code to check; for a person, it asks what role to give them. <strong>People</strong> lists everyone and what each can do. <strong>Grant a role</strong> asks where and for how long, and shows what the person will and will not be able to do before you save. <strong>Invite someone</strong> makes an invite, <strong>Machines</strong> lists service accounts and identity providers, and <strong>History</strong> is the audit log.</p>
+
+<h3 id="director-secrets">Secrets</h3>
+<figure class="g-fig"><img src="assets/img/secrets-dark.webp" alt="Director's Secrets screen: a Set a secret button and a table of two secrets, db-pass at version 2 decryptable on 5 of 5 machines and tls-key at version 1 decryptable on 4 of 5 machines, each with its reference such as {{secret:db-pass}} and Rotate and Remove buttons." width="2722" height="1732" loading="lazy"><figcaption>Secrets: names, versions, how many machines can open each one, and the reference to use in a job.</figcaption></figure>
+<p><strong>Set a secret</strong> takes a name and a value (or a file). <strong>Rotate</strong> sets a new value under the same name, and <strong>Remove</strong> deletes it. <strong>Decryptable</strong> shows how many machines can open each one. No role can read a secret's value back through Director.</p>
+
+<h3 id="director-settings">Settings</h3>
+<p>Settings has a pane for each question. The ones you will use most:</p>
+<ul>
+<li><strong>This machine</strong>: who this computer is in the mesh. Protect your key with a passphrase or a security key, choose whether it contributes compute, and set its tags.</li>
+<li><strong>Director</strong>: start at login, watching for machines that want to join, and where the log is.</li>
+<li><strong>Diagnostics</strong>: <strong>Run doctor</strong>, this machine's health end to end.</li>
+<li><strong>Retention &amp; export</strong> and <strong>Storage</strong>: how long the mesh keeps things, and what is on disk.</li>
+<li><strong>Backup &amp; stopping</strong>: back up this node, stop the whole mesh taking new work (<strong>Shed load</strong>), or <strong>Drain</strong> this machine.</li>
+</ul>
+<p><strong>Invites</strong>, <strong>Facts</strong> and <strong>About &amp; licence</strong> complete the list.</p>
+
+<h3 id="director-tray">Closing the window</h3>
+<p>Closing the window hides Director to the system tray; <strong>Quit Meshware</strong> in the tray menu stops it. Neither takes this computer out of the mesh: its node stops only when you drain it or run <code>systemctl --user stop meshnode</code>. On GNOME, the tray needs the <em>AppIndicator and KStatusNotifierItem Support</em> extension; without it, closing the window quits Director.</p>
+<p>More: <a href="https://github.com/neuralpunk/meshware/blob/main/docs/director.md">The Director guide</a>, including a table of every action both ways.</p>
+</section>
+
+<section class="g-sec" id="upgrades">
+<h2>Upgrading</h2>
+<p class="g-intro">Upgrading Meshware means replacing the binary. Upgrades travel through the mesh itself, with no release server and nothing to copy by hand, and every node checks the signature before it installs anything.</p>
+
+<h3 id="upgrades-trust">Your mesh is its own release authority</h3>
+<p>There is no project-wide signing key. Instead, your mesh installs a new <code>meshnode</code> only when one of <em>your</em> admins has signed it. Nobody outside your mesh, Meshware's maintainers included, can push a binary onto it, and nothing stops working if the project goes quiet.</p>
+<p>Every admin has a <strong>release key</strong>, derived from their own identity, so there is nothing new to store, back up or lose. Publishing a binary into the mesh signs it with that key and trusts the key mesh-wide the first time.</p>
+<pre class="g-code"><code>$ meshnode upgrade --my-release-key     # print your release key, as a minisign .pub
+$ meshnode upgrade --keys               # every release key this mesh trusts</code></pre>
+<p>The signatures are ordinary minisign, so <code>minisign -V</code> checks them too. A binary that already has a <code>.minisig</code> beside it, signed with a key of your own, is published with that instead.</p>
+
+<h3 id="upgrades-verify">Where the binary comes from</h3>
+<p>Before you publish a binary, you decide where it came from. Either build it yourself (<code>make STATIC=1</code>), or download it from the GitHub release and check it:</p>
+<pre class="g-code"><code>$ sha256sum --ignore-missing -c SHA256SUMS
+$ gh attestation verify meshnode-v1.1.0-x86_64-unknown-linux-musl.tar.gz --repo neuralpunk/meshware
+$ tar xzf meshnode-v1.1.0-x86_64-unknown-linux-musl.tar.gz</code></pre>
+<p>The attestation ties the file to the commit and release workflow in the Meshware repository that built it. GitHub signs it with the workflow's own short-lived identity, so nobody keeps a key for it. Each release also carries a CycloneDX SBOM.</p>
+
+<h3 id="upgrades-fleet">Publishing and rolling out in rings</h3>
+<p>Put the binary in the mesh once, then roll it out a ring at a time:</p>
+<pre class="g-code"><code>$ meshnode upgrade --publish ./meshnode --version 1.1.0     # signed with your release key
+$ meshnode upgrade --status --to 1.1.0                      # who is where
+$ meshnode upgrade --on tag=canary  --to 1.1.0              # a few boxes first, watch them
+$ meshnode upgrade --on tag=dc-east --to 1.1.0 --batch 32   # then the rest, 32 at a time</code></pre>
+<p>This stays safe in several ways:</p>
+<ul>
+<li>The binary travels as content-addressed chunks, pulled from whichever peer holds it. The peer is a delivery network, not an authority: the receiving node checks the release signature against the keys its own mesh trusts before the binary goes near its own. That check cannot be turned off.</li>
+<li><strong>Waves are health-gated.</strong> The next wave does not start until the previous one is wholly back, alive and caught up. A bad binary costs one wave, never the fleet. <code>--batch</code> sets how many nodes upgrade at once; the default is one.</li>
+<li><strong><code>--on any</code> is refused.</strong> A mesh that could be upgraded in one command could be broken in one command. Name a ring, such as <code>tag=canary</code>, and widen it.</li>
+</ul>
+<aside class="g-note"><p><strong>Tip.</strong> To roll a fleet through the mesh, nodes must be allowed to replace their own binary, which the shipped systemd unit deliberately forbids. Granting it is one opt-in drop-in, <code>packaging/systemd/meshnode-fleet-upgrade.conf</code>, with the reasoning written beside it. Package installs must not use it. Director's <em>Mesh › Updates</em> instead installs over SSH by default, which works on every machine.</p></aside>
+<p>For one machine, aim the same thing at it by name: <code>meshnode upgrade --on name=web-1 --to 1.1.0</code>. The node fetches the binary from its peers, verifies it, swaps it atomically, drains and exits cleanly, and systemd starts the new one.</p>
+
+<h3 id="upgrades-status">Checking a fleet's version</h3>
+<pre class="g-code"><code>$ meshnode upgrade --status
+VERSION       COUNT  NODES
+0.7.0             3  hq, forge, anvil            ← target
+0.6.12          412  edge-001, edge-002, …       ← outdated</code></pre>
+<p><code>meshnode --version</code> answers for one machine. <code>meshnode upgrade --releases</code> lists the releases the mesh holds, and <code>meshnode upgrade --plans</code> the rollout plans; <code>--cancel</code> withdraws one. Director's <em>Mesh › Updates</em> is the same thing with buttons.</p>
+
+<h3 id="upgrades-rollback">Rolling back</h3>
+<p>The binary an upgrade replaced is kept beside it as <code>meshnode.prev</code>, and the new one is on probation until it has run healthy for a minute. A version that fails to get there in three starts is swapped back by the node itself, and the failed one is kept as <code>meshnode.failed</code>. To go back by hand on one machine:</p>
+<pre class="g-code"><code>$ meshnode upgrade --rollback</code></pre>
+<p>For a fleet, roll the previous version out the same way as any other: <code>meshnode upgrade --on tag=dc-east --to &lt;previous version&gt; --batch 32</code>. The wave gate protects a downgrade exactly as it protects an upgrade. A deployment's own rollback is a different thing, covered under <a href="#deployments-rollouts">Rollouts</a>.</p>
+
+<h3 id="upgrades-packages">Package-manager installs and single machines</h3>
+<p>Machines installed from a <code>.deb</code> or <code>.rpm</code> upgrade through apt or dnf like everything else. <code>meshnode upgrade --self</code> deliberately refuses to replace a package-manager-owned binary, and names the tool to use instead.</p>
+<p><code>meshnode upgrade --self</code> upgrades from a release server, and only one you run and sign for, since Meshware's GitHub releases are not signed by any key your mesh trusts. On a single machine with no mesh, reinstalling with <code>install.sh</code>, a package or <code>make install</code> is the simple path.</p>
+
+<h3 id="upgrades-mixed">Mixed versions</h3>
+<p>Nodes of different releases work together, so a rolling upgrade needs no maintenance window. The supported range is two releases apart: a node on release N works with nodes on N-1 and N-2. The command line and the daemon on one machine should be the same release; on a packaged install they are one file. Only the latest release gets security fixes.</p>
+
+<h3 id="upgrades-from-10">Upgrading from 1.0 to 1.1</h3>
+<p>1.1.0 speaks the same protocol (2.x) as 1.0, so 1.0 and 1.1 nodes work together. Two things changed that you should know about:</p>
+<ul>
+<li><strong><code>meshnode upgrade --self</code> no longer upgrades from GitHub on its own</strong>, because there is no longer a key compiled into the binary. Publish the new version into the mesh and roll it out instead.</li>
+<li><strong>Publish with the 1.1.0 binary itself.</strong> It trusts your release key mesh-wide as it publishes, and 1.0 nodes read that list, so they accept the release:</li>
+</ul>
+<pre class="g-code"><code>$ ./meshnode-v1.1.0-x86_64-unknown-linux-musl upgrade --publish ./meshnode-v1.1.0-x86_64-unknown-linux-musl --version 1.1.0
+$ meshnode upgrade --on tag=canary --to 1.1.0</code></pre>
+<p>A mesh still running a release that speaks protocol 1.x cannot be upgraded in place; the <a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/compatibility.md">compatibility page</a> explains what to do.</p>
+<p>More: <a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/upgrade.md">Upgrading, and rolling back</a> · <a href="https://github.com/neuralpunk/meshware/blob/main/CHANGELOG.md">Changelog</a></p>
+</section>
+
+<section class="g-sec" id="operating">
+<h2>Operating a mesh</h2>
+<p class="g-intro">The day-to-day of looking after a mesh: which ports to open, what the security model means in practice, how to back up and restore, running with no internet, keeping an eye on things, and removing Meshware cleanly.</p>
+
+<h3 id="operating-ports">Network and ports</h3>
+<p>There is one required port, and it is UDP. Everything else is optional or loopback-only.</p>
+<table class="g-table">
+<thead><tr><th>Port</th><th>Protocol</th><th>Used for</th><th>Required</th></tr></thead>
+<tbody>
+<tr><td><strong>7777</strong></td><td><strong>UDP</strong> (QUIC)</td><td>The mesh, node to node, both ways</td><td><strong>Yes</strong></td></tr>
+<tr><td>5353</td><td>UDP (mDNS)</td><td>Pairing discovery on a LAN</td><td>No</td></tr>
+<tr><td>7778</td><td>UDP (broadcast)</td><td>The pairing beacon, for networks that drop multicast</td><td>No</td></tr>
+<tr><td>7776</td><td>TCP (HTTP)</td><td><code>/healthz</code> and <code>/metrics</code>, loopback only</td><td>No</td></tr>
+<tr><td>8600</td><td>UDP (DNS)</td><td>Answers <code>&lt;name&gt;.mesh</code>, loopback only</td><td>No</td></tr>
+<tr><td>20000–32000</td><td>whatever the job speaks</td><td>Ports given to service copies (<code>[network] dynamic_ports</code>)</td><td>Only for services reached from off the machine</td></tr>
+</tbody>
+</table>
+<p>A firewall that allows TCP 7777 and nothing else produces a mesh where every node looks permanently unreachable, and <code>meshnode doctor</code> says so. Every node needs to reach every other node on UDP 7777. Where that is not possible, such as behind NAT, nodes try to establish a direct path, and a node with a public address and <code>[wan] relay = "on"</code> can relay traffic for others; the relay sees only encrypted traffic. Meshware also works over Tailscale, WireGuard, ZeroTier and ordinary VPNs with no special configuration.</p>
+<p>A node makes <strong>no outbound connection you did not configure</strong>: no telemetry, no licence check and no update ping.</p>
+
+<h3 id="operating-security">The security model in practice</h3>
+<ul>
+<li><strong>Every connection</strong> is TLS 1.3 over QUIC in which both ends prove a key.</li>
+<li><strong>Every change</strong> to the mesh carries the signature of the person who made it, and every node checks that signature itself rather than trusting the peer that sent it.</li>
+<li><strong>A compromised node</strong> can read what jobs placed on it could read, including secrets sealed for it. It cannot forge signatures, create users or grants, rewrite audit history, decrypt other nodes' secrets, or put a binary on the fleet.</li>
+<li><strong>Jobs</strong> are confined by Landlock to their own directory, <code>/tmp</code> and the system paths their tools need, and held to their limits by a cgroup. There is no seccomp filter and no per-job user.</li>
+<li><strong>The service</strong> runs unprivileged, with an empty capability set and a hardened systemd unit.</li>
+</ul>
+<p>Some things are deliberately not claimed: a mesh admin can grant themselves anything (and the audit log records it), local root on a node is that node's identity, and revocation reaches a cut-off part of the mesh only when the link returns. Keep admins few, but more than one.</p>
+
+<h3 id="operating-backup">Backup and restore</h3>
+<p>"No control plane" does not mean "no state", but most of it is already copied to every node. The mesh's shared log is on every machine, so a mesh of forty nodes has forty copies of its own governance. What is unique to each node is its <strong>identity key</strong>, and that is the part a backup really protects.</p>
+<pre class="g-code"><code>$ meshnode backup                       # one restorable file: identity + genesis + full op-log</code></pre>
+<p>Take it from one node and you have the mesh's state; take it from each node and you also have each node's identity. Treat a backup file as sensitive: it contains a node's private key. A key protected with a passphrase stays protected in the backup. If you are the only admin, back up your own key too.</p>
+<p>To restore, into an empty data directory with the daemon stopped:</p>
+<pre class="g-code"><code>$ meshnode restore &lt;file&gt; --yes
+$ meshnode up
+$ meshnode sinks resume                 # only if you export history to a sink</code></pre>
+<p>A restored node catches up with its peers before it writes anything of its own. If every node is gone, restore any one backup and start it: the mesh exists again with one member. If every node is gone and there is no backup, the mesh is gone; there is no vendor-side copy. A node whose log file is damaged can be rebuilt from a peer without a backup, with <code>meshnode state rebuild --from &lt;address&gt; --yes</code>.</p>
+
+<h3 id="operating-retention">Keeping history and disk in check</h3>
+<pre class="g-code"><code>$ meshnode state                              # what the shared log costs here
+$ meshnode retention show
+$ meshnode retention set runs=90d audit=forever
+$ meshnode disk                               # free space on every node, worst first</code></pre>
+<p>Finished runs are kept for 90 days by default and the audit log forever; audit has an enforced floor of 365 days, so nobody can shorten it to nothing. Each job's log is capped per stream by <code>[disk] job_output_max_mb</code> (256 MiB by default). A node that runs out of disk stops taking work, says so, and recovers by itself once there is room.</p>
+
+<h3 id="operating-monitoring">Monitoring and history</h3>
+<p>Every node serves <code>GET /healthz</code> and Prometheus <code>GET /metrics</code> on <code>127.0.0.1:7776</code>. <code>/healthz</code> answers <code>503</code> with the reason when the node is unhealthy, so a load balancer or orchestrator without systemd sees it too.</p>
+<pre class="g-code"><code>$ curl -s localhost:7776/healthz
+$ curl -s localhost:7776/metrics | grep cgroup_enforcing</code></pre>
+<p>The mesh keeps its own history and answers its own questions: <code>meshnode history jobs</code>, <code>meshnode audit</code>, and <code>meshnode top</code> for live load. If you want history in a system you already own, sinks can send it to ClickHouse, VictoriaLogs, a webhook or a plugin of your own (<code>meshnode sinks add</code>, <code>meshnode sinks ls</code>). A failing sink is lossy rather than blocking, so an export destination going down can never stall the mesh. Logs go to the journal, with structured fields for each request and job.</p>
+
+<h3 id="operating-air-gap">Air-gapped meshes</h3>
+<p>An air-gapped mesh is a supported configuration, not a workaround. Meshware needs nothing from the internet: no account, no licence check, no telemetry and no update check.</p>
+<ul>
+<li><strong>Installing:</strong> verify the release where you have internet, then carry the binary (or the <code>.deb</code>/<code>.rpm</code>, for your internal repository) across.</li>
+<li><strong>Upgrading:</strong> carry the new binary in and publish it with <code>meshnode upgrade --publish &lt;file&gt; --version &lt;v&gt;</code>. Nodes fetch it from each other, with no release server and no key from outside your network. Alternatively, point <code>[release] base</code> at an internal URL.</li>
+<li><strong>Python environments</strong> are the one thing to plan for: with no package index reachable, pre-build the environment into what you push.</li>
+<li><strong>Identity</strong> works as usual, except single sign-on against a provider you cannot reach.</li>
+</ul>
+<p>Before you disconnect, run <code>meshnode doctor</code>, check <code>meshnode config show</code> for anything that would dial out, and confirm <code>meshnode sinks ls</code> is empty unless you meant it.</p>
+
+<h3 id="operating-uninstall">Uninstalling</h3>
+<p>Taking Meshware off a machine has two halves: tell the mesh the machine is leaving (see <a href="#machines-remove">Removing a machine</a>), then remove what was installed. Stop the service first:</p>
+<pre class="g-code"><code>$ sudo systemctl disable --now meshnode
+$ sudo apt purge meshnode          # Debian, Ubuntu
+$ sudo dnf remove meshnode         # Fedora, RHEL, Rocky, Alma</code></pre>
+<p>For a machine added with <code>meshnode adopt</code> or <em>Add machines</em>, remove <code>/usr/local/bin/meshnode</code> (and <code>meshnode.prev</code> and <code>meshnode.failed</code> if present), <code>/etc/systemd/system/meshnode.service</code> and <code>/etc/systemd/system/meshnode.service.d</code>, then run <code>sudo systemctl daemon-reload</code>. A source install has <code>sudo make uninstall</code> and <code>sudo make uninstall-service</code>.</p>
+<p>Packages do not remove what the node made. What is left: <code>/var/lib/meshware</code> (the node itself), <code>/etc/meshware</code>, the <code>meshnode</code> user, the <code>.mesh</code> resolver file <code>/etc/systemd/resolved.conf.d/meshware.conf</code>, and the firewall rule for UDP 7777.</p>
+<aside class="g-note g-warn"><p><strong>Important.</strong> Delete <code>/var/lib/meshware</code> last, and only once you are sure. It is the node: with it gone, the machine's identity is gone. Take a backup first if there is any chance you want this node back. On your own desktop, the same applies to <code>~/.meshware</code>, which holds your user key.</p></aside>
+<p>More: <a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/network.md">Network</a> · <a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/security.md">Security model</a> · <a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/backup.md">Backup and recovery</a> · <a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/air-gap.md">Air-gapped operation</a> · <a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/uninstall.md">Removing Meshware</a></p>
+</section>
+
+<section class="g-sec" id="troubleshooting">
+<h2>Troubleshooting</h2>
+<p class="g-intro">Start with three commands, then look up the message you see. Most first-hour problems are a firewall, a clock or running a command as the wrong account.</p>
+
+<h3 id="troubleshooting-start">Start with these three</h3>
+<pre class="g-code"><code>$ meshnode doctor          # connectivity, clock skew, disk, ports, sandbox, permissions
+$ meshnode status          # what this node thinks is true right now
+$ meshnode nodes           # what the mesh thinks is true</code></pre>
+<p><code>meshnode doctor --fix</code> applies the safe fixes it knows (creating the data directory, resuming sinks a restore held, restarting a daemon systemd manages so it runs this build) and says plainly which findings have no automatic fix and what to do instead. <code>--output json</code> gives the result to a script. In Director, it is <em>Settings › Diagnostics › Run doctor</em>.</p>
+
+<h3 id="troubleshooting-daemon">"cannot reach daemon … is meshnode up running?"</h3>
+<p>The command found no node to talk to on this machine.</p>
+<ul>
+<li><strong>No node is running.</strong> Start one: <code>meshnode up</code> in a terminal, or <code>sudo systemctl start meshnode</code> for a packaged node. <code>journalctl -u meshnode</code> says why one stopped.</li>
+<li><strong>The node runs from another home.</strong> If <code>MESHWARE_HOME</code> or <code>--data-dir</code> names somewhere else, unset it or point it at the node's home.</li>
+<li><strong>"(Connection refused)"</strong> at the end means a node was there and has stopped. Start it again.</li>
+</ul>
+
+<h3 id="troubleshooting-auth">"you are not authorized to use the meshware node on this machine"</h3>
+<p>A node <em>is</em> running: the packaged service, as its own <code>meshnode</code> account, and your login cannot use its socket. If you administer the machine, run commands as the node's account: <code>sudo -u meshnode meshnode status</code>. Otherwise, use your own key: <code>meshnode whoami</code>, then <code>meshnode enrol</code> to ask an admin to let it in.</p>
+
+<h3 id="troubleshooting-join">A machine will not join</h3>
+<p>In order of how often it is the answer:</p>
+<ol>
+<li><strong>UDP 7777 is blocked.</strong> The error looks like <code>join failed: transport error: dial 10.0.0.9:7777: timed out</code>. Open UDP, not TCP:
+<pre class="g-code"><code>$ sudo firewall-cmd --permanent --add-port=7777/udp &amp;&amp; sudo firewall-cmd --reload   # Fedora, RHEL
+$ sudo ufw allow 7777/udp                                                           # Ubuntu, Debian with ufw</code></pre></li>
+<li><strong>The invite expired.</strong> The default lifetime is 24 hours. Run <code>meshnode invite create</code> again.</li>
+<li><strong>Discovery does not cross the network segment.</strong> If pairing waits and no member sees the machine, allow mDNS (UDP 5353) and UDP 7778 on the LAN, or skip discovery with <code>meshnode invite approve --addr 10.0.0.9:7777</code> from a member.</li>
+<li><strong>The new machine is behind NAT with no reachable member.</strong> One node needs a public address, or a relay.</li>
+<li><strong>The clock is wrong.</strong> See below.</li>
+</ol>
+
+<h3 id="troubleshooting-clock">Clocks</h3>
+<p>Changes to the mesh are signed and timestamped. A machine whose clock runs more than five minutes ahead has its changes held by every other node until real time catches up, so its jobs and tags do not appear anywhere else, and requests signed on it are refused with <code>request timestamp outside the freshness window</code>. <code>doctor</code> on any machine names the culprit. Turn on time synchronisation there:</p>
+<pre class="g-code"><code>$ sudo timedatectl set-ntp true
+$ timedatectl status                      # "System clock synchronized: yes"</code></pre>
+
+<h3 id="troubleshooting-selinux">SELinux: "203/EXEC" on a binary that is plainly there</h3>
+<p>On a machine with SELinux enforcing, a binary <em>moved</em> into place from <code>/tmp</code> or a home directory keeps a label systemd may not execute. Relabel it:</p>
+<pre class="g-code"><code>$ ls -Z /usr/local/bin/meshnode          # user_tmp_t or user_home_t is the problem
+$ sudo restorecon -Fv /usr/local/bin/meshnode
+$ sudo systemctl restart meshnode</code></pre>
+
+<h3 id="troubleshooting-sandbox">"sandbox NOT applied — jobs run unconfined"</h3>
+<p>Jobs still run, but nothing confines their file access. Landlock needs a Linux 5.13 kernel or newer, built with it and with it enabled: <code>cat /sys/kernel/security/lsm</code> must include <code>landlock</code>. To refuse jobs rather than run them unconfined, set <code>[runtime] sandbox = "on"</code>.</p>
+
+<h3 id="troubleshooting-dead">A machine shows as dead but is fine</h3>
+<p>Detection across a silent packet drop takes 5 to 10 seconds to <em>suspect</em> and 10 to 13 seconds to <em>dead</em>, and recovery after the path returns takes about 51 milliseconds. Wait a few seconds. If it stays dead, the path is broken: <code>meshnode ping &lt;node&gt;</code> and check UDP. Dead is not removed; the machine rejoins by itself.</p>
+
+<h3 id="troubleshooting-schedule">A job will not schedule</h3>
+<pre class="g-code"><code>$ meshnode plan --on tag=gpu --gpus 2      # where would this land, and when
+$ meshnode queue                           # who is waiting here, behind whom, and why
+$ meshnode jobs explain &lt;job-id&gt;           # the top candidates and their scores</code></pre>
+<p>Common causes: no machine satisfies the request, every candidate is draining or held back from work, or the runtime it needs is not installed anywhere it may go (<code>meshnode runtimes</code>, or <em>Mesh › Capacity</em>).</p>
+
+<h3 id="troubleshooting-permission">Permission denied</h3>
+<table class="g-table">
+<thead><tr><th>Message</th><th>Means</th></tr></thead>
+<tbody>
+<tr><td><code>unknown user mwu1…</code></td><td>The key has never been enrolled. Run <code>meshnode enrol</code>.</td></tr>
+<tr><td><code>user … was revoked</code></td><td>Permanent. That key can never be re-enrolled; use a new identity.</td></tr>
+<tr><td><code>service account … expired</code></td><td>The service account's own lifetime ran out. Create a replacement.</td></tr>
+<tr><td><code>requires one of: …</code></td><td>Enrolled, but lacking the role. <code>meshnode whoami</code> shows what you have.</td></tr>
+</tbody>
+</table>
+
+<h3 id="troubleshooting-output">Missing output, and exit 137</h3>
+<p>If you cannot find a job's output, check <code>meshnode jobs</code> and <code>meshnode history jobs</code>. Output beyond 64 KiB spills to the object store, which is 15-minute transport, not storage; use <code>--outputs</code> or <code>--cache-outputs</code> to keep it. If the mesh says "output expired", retention removed it.</p>
+<p>A job that died with exit 137 was killed with SIGKILL. If it exceeded the memory it asked for, Meshware adds the reason to its stderr: <code>meshware: killed by the kernel — this job exceeded the 64 MB it asked for</code>. If that line is missing, something else killed it: a cancel, a drain, or the host's own OOM killer.</p>
+<p>A machine refusing everything, including terminals, is probably quarantined: <code>meshnode nodes</code> says so, and <code>meshnode nodes quarantine &lt;node&gt; --lift</code> undoes it.</p>
+
+<h3 id="troubleshooting-logs">Logs</h3>
+<pre class="g-code"><code>$ journalctl -u meshnode -f
+$ meshnode config show     # the configuration actually loaded</code></pre>
+<p>The log level reloads with <code>systemctl reload meshnode</code>. To follow one job across machines, select on its job id in the journal's structured fields, for example <code>journalctl -u meshnode -o json | jq -r 'select(.JOB=="7f3a1c") | .MESSAGE'</code>.</p>
+
+<h3 id="troubleshooting-report">Reporting a problem</h3>
+<p>One command collects what a support question needs:</p>
+<pre class="g-code"><code>$ meshnode support bundle
+Wrote meshware-support-1788861515.json (mode 0600)</code></pre>
+<p>It gathers the version and host, every <code>doctor</code> check, this node's status, each peer and what it is running, a tail of the audit log and a metrics snapshot into one JSON file. It works even when the node will not start. Credentials are redacted, but node names, addresses, user ids and the audit tail are not: <strong>read it before you send it</strong>.</p>
+<ul>
+<li><strong>Bugs and questions:</strong> open an issue at <a href="https://github.com/neuralpunk/meshware/issues">github.com/neuralpunk/meshware/issues</a>. Director's help menu has <em>Report a problem</em>, which opens the same page, and <em>Copy diagnostics</em>.</li>
+<li><strong>Security vulnerabilities:</strong> report them privately through <a href="https://github.com/neuralpunk/meshware/security/advisories/new">GitHub private vulnerability reporting</a>, never in a public issue.</li>
+</ul>
+<p>More: <a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/troubleshooting.md">Troubleshooting</a></p>
+</section>
+
+<section class="g-sec" id="reference">
+<h2>Reference</h2>
+<p class="g-intro">A cheat-sheet of the commands you will use most, where configuration lives, the limits worth knowing, and where the complete reference is.</p>
+
+<h3 id="reference-commands">Command cheat-sheet</h3>
+<p><code>meshnode help --all</code> lists every command, <code>meshnode help &lt;command&gt;</code> shows the full page for one, and the man pages are installed with the binary.</p>
+<table class="g-table">
+<thead><tr><th>Command</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>meshnode up</code></td><td>Start the node; on first run, create its identity and found a mesh. <code>--detach</code> runs it as a user service.</td></tr>
+<tr><td><code>meshnode demo</code></td><td>A real mesh of three nodes on loopback, gone when you stop it.</td></tr>
+<tr><td><code>meshnode pair</code></td><td>Join a mesh on the LAN, or let a waiting machine in, by comparing a six-digit code.</td></tr>
+<tr><td><code>meshnode invite create</code></td><td>Make an invite token for a machine on another network.</td></tr>
+<tr><td><code>meshnode join &lt;token&gt;</code></td><td>Join a mesh with an invite token (run before <code>up</code>).</td></tr>
+<tr><td><code>meshnode adopt &lt;user@host&gt;…</code></td><td>Install, set up, pair and start machines you can reach over SSH.</td></tr>
+<tr><td><code>meshnode status</code></td><td>This node's view of itself and the mesh.</td></tr>
+<tr><td><code>meshnode nodes</code></td><td>Every machine: alive or not, address, capacity, tags.</td></tr>
+<tr><td><code>meshnode nodes tag &lt;node&gt; --add &lt;tag&gt;</code></td><td>Label a machine.</td></tr>
+<tr><td><code>meshnode nodes drain &lt;node&gt;</code></td><td>Move a machine's deployment copies elsewhere, keeping it up.</td></tr>
+<tr><td><code>meshnode drain --until HH:MM</code></td><td>Take this machine out for a maintenance window.</td></tr>
+<tr><td><code>meshnode nodes revoke &lt;node&gt; --yes</code></td><td>Permanently expel a machine.</td></tr>
+<tr><td><code>meshnode doctor</code></td><td>Health checks for this machine; <code>--fix</code> applies safe fixes.</td></tr>
+<tr><td><code>meshnode run '&lt;cmd&gt;' --on &lt;selector&gt;</code></td><td>Run a command once, on the best matching machine; <code>--fanout all</code> for every one.</td></tr>
+<tr><td><code>meshnode parallel '&lt;cmd&gt; {}' ::: …</code></td><td>One command per item, spread across the mesh.</td></tr>
+<tr><td><code>meshnode map '&lt;cmd&gt; {}' ::: …</code></td><td>Like <code>parallel</code>, keeping each output where it was made.</td></tr>
+<tr><td><code>meshnode jobs</code></td><td>Recent jobs; <code>logs</code>, <code>wait</code>, <code>cancel</code> and <code>explain</code> act on one.</td></tr>
+<tr><td><code>meshnode history jobs</code></td><td>Search finished jobs; <code>history results</code> for a fan-out's rows.</td></tr>
+<tr><td><code>meshnode cc gcc …</code></td><td>Compile one file across the mesh, cached.</td></tr>
+<tr><td><code>meshnode runtimes</code></td><td>What this machine can run.</td></tr>
+<tr><td><code>meshnode deployment put &lt;file&gt;</code></td><td>Publish or update a deployment; <code>--dry-run</code> to preview.</td></tr>
+<tr><td><code>meshnode deployment status &lt;name&gt;</code></td><td>Desired, running and healthy copies, live.</td></tr>
+<tr><td><code>meshnode deployment rollback &lt;name&gt;</code></td><td>Go back one version.</td></tr>
+<tr><td><code>meshnode schedule put &lt;file&gt;</code></td><td>Publish a schedule.</td></tr>
+<tr><td><code>meshnode registry &lt;name&gt;</code></td><td>Where each copy of a service answers.</td></tr>
+<tr><td><code>meshnode enrol --as &lt;name&gt;</code></td><td>Ask the mesh to recognise your key.</td></tr>
+<tr><td><code>meshnode users approve &lt;code&gt; --role &lt;role&gt;</code></td><td>Let a person in with a role.</td></tr>
+<tr><td><code>meshnode grants add &lt;user&gt; --role &lt;role&gt;</code></td><td>Give a role, optionally for some machines and a limited time.</td></tr>
+<tr><td><code>meshnode whoami</code></td><td>Your key, your name and what you may do.</td></tr>
+<tr><td><code>meshnode secrets set &lt;name&gt;</code></td><td>Seal a secret for the mesh.</td></tr>
+<tr><td><code>meshnode shell &lt;node&gt; --reason "…"</code></td><td>An audited terminal on a machine, through the mesh.</td></tr>
+<tr><td><code>meshnode audit</code></td><td>The signed audit log.</td></tr>
+<tr><td><code>meshnode upgrade --publish &lt;file&gt; --version &lt;v&gt;</code></td><td>Put a binary in the mesh, signed with your release key.</td></tr>
+<tr><td><code>meshnode upgrade --on &lt;selector&gt; --to &lt;v&gt;</code></td><td>Roll a version out to a ring of machines.</td></tr>
+<tr><td><code>meshnode backup</code> / <code>restore</code></td><td>One restorable file per node, and bringing it back.</td></tr>
+<tr><td><code>meshnode support bundle</code></td><td>One file for a support request.</td></tr>
+</tbody>
+</table>
+
+<h3 id="reference-make">Make targets</h3>
+<p>From a clone of the repository, <code>make help</code> lists everything. The ones you are most likely to need:</p>
+<table class="g-table">
+<thead><tr><th>Target</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>make doctor</code></td><td>Check what this machine has, and what each build needs.</td></tr>
+<tr><td><code>make</code></td><td>Build <code>meshnode</code> and <code>meshware-archive</code>. <code>STATIC=1</code> for static musl binaries.</td></tr>
+<tr><td><code>make demo</code></td><td>A real mesh of <code>NODES=3</code> nodes on this machine; <code>make demo-stop</code> ends it.</td></tr>
+<tr><td><code>sudo make install</code></td><td>Install the binaries, man pages and shell completions.</td></tr>
+<tr><td><code>sudo make install-service</code></td><td>Install the systemd units and the <code>meshnode</code> account. Never starts it.</td></tr>
+<tr><td><code>make director</code></td><td>Build Director; <code>WITH_NODE=1</code> carries a <code>meshnode</code> inside it.</td></tr>
+<tr><td><code>sudo make install-director</code></td><td>Install Director.</td></tr>
+<tr><td><code>make director-package</code></td><td>Build Director's <code>.deb</code>, <code>.rpm</code> and AppImage.</td></tr>
+</tbody>
+</table>
+
+<h3 id="reference-config">Configuration</h3>
+<p>A node's configuration file, <code>meshnode.toml</code>, is optional, and so is every key in it: a node with no file runs on defaults, and that is how most nodes run.</p>
+<table class="g-table">
+<thead><tr><th>Node</th><th>Where the file is</th></tr></thead>
+<tbody>
+<tr><td>Started with <code>meshnode up</code></td><td><code>~/.meshware/meshnode.toml</code>, or <code>$MESHWARE_HOME/meshnode.toml</code></td></tr>
+<tr><td>Packaged (<code>.deb</code>, <code>.rpm</code>, <code>meshnode adopt</code>)</td><td><code>/etc/meshware/meshnode.toml</code></td></tr>
+<tr><td>The node Director drives</td><td><code>~/.meshware/meshnode.toml</code></td></tr>
+</tbody>
+</table>
+<p>An unknown key is refused rather than ignored, so a misspelling cannot silently do nothing. Check a file before a node reads it:</p>
+<pre class="g-code"><code>$ meshnode config check              # parse and validate this node's file
+$ meshnode config show               # the configuration after flags, environment and defaults
+$ meshnode config paths              # every path the node uses</code></pre>
+<p>A command-line flag wins over an environment variable, which wins over the file, which wins over the default. <code>systemctl reload meshnode</code> applies the keys that support reloading, and names anything that needs a restart.</p>
+
+<h3 id="reference-limits">Limits worth knowing</h3>
+<ul>
+<li><strong>Platforms:</strong> nodes and Director are Linux only, on <code>x86_64</code> and <code>aarch64</code>. Kernel 5.13 or newer for job sandboxing.</li>
+<li><strong>Scale:</strong> 1,000 nodes, simulated before every release; the design envelope is 1 to 1,000. Packet loss, high-latency WAN links, high churn and larger meshes are untested.</li>
+<li><strong>Failure detection:</strong> a silent machine is suspect in 5 to 10 seconds and dead in 10 to 13; recovery takes about 51 ms.</li>
+<li><strong>Jobs</strong> run at least once, not exactly once. A <code>--singleton</code> is unique within a connected mesh; two halves of a split mesh can each start one.</li>
+<li><strong>Isolation:</strong> Landlock and cgroups, but no seccomp and no per-job user. For trusted and semi-trusted work only.</li>
+<li><strong>Multi-tenancy:</strong> there are no namespaces. Groups that must not see each other's work should run separate meshes.</li>
+<li><strong>Versions:</strong> nodes up to two releases apart are supported together; the command line and daemon on one machine should match.</li>
+</ul>
+
+<h3 id="reference-docs">Where the full reference lives</h3>
+<p>The repository's documentation is the complete, exact answer. Much of the reference is generated from the code, and CI fails when it goes stale.</p>
+<ul>
+<li><a href="https://github.com/neuralpunk/meshware/blob/main/docs/reference/config.md">Configuration</a>: every key in <code>meshnode.toml</code>.</li>
+<li><a href="https://github.com/neuralpunk/meshware/blob/main/docs/reference/environment.md">Environment variables</a>: every <code>MESHWARE_*</code> variable.</li>
+<li><a href="https://github.com/neuralpunk/meshware/blob/main/docs/reference/metrics.md">Metrics</a>: every Prometheus series and <code>/healthz</code>.</li>
+<li><a href="https://github.com/neuralpunk/meshware/blob/main/docs/reference/deployment-file.md">Deployment file</a> and <a href="https://github.com/neuralpunk/meshware/blob/main/docs/reference/schedule-file.md">schedule file</a>.</li>
+<li><a href="https://github.com/neuralpunk/meshware/blob/main/docs/reference/script-definitions.md">Script definitions</a> and <a href="https://github.com/neuralpunk/meshware/blob/main/docs/reference/plugins.md">plugin contracts</a>.</li>
+<li><a href="https://github.com/neuralpunk/meshware/blob/main/docs/reference/by-design.md">By design</a>: what deployments, schedules and node surfaces deliberately do not do, with the reason on each.</li>
+<li><a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/limits.md">Limits</a>, <a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/compatibility.md">compatibility</a> and <a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/platforms.md">platforms</a>.</li>
+</ul>
+
+<h3 id="reference-links">Links</h3>
+<ul>
+<li>Repository: <a href="https://github.com/neuralpunk/meshware">github.com/neuralpunk/meshware</a></li>
+<li>Releases: <a href="https://github.com/neuralpunk/meshware/releases">github.com/neuralpunk/meshware/releases</a></li>
+<li>Changelog: <a href="https://github.com/neuralpunk/meshware/blob/main/CHANGELOG.md">CHANGELOG.md</a></li>
+<li>Security policy: <a href="https://github.com/neuralpunk/meshware/blob/main/SECURITY.md">SECURITY.md</a></li>
+<li>Issues: <a href="https://github.com/neuralpunk/meshware/issues">github.com/neuralpunk/meshware/issues</a></li>
+<li>Contributing: <a href="https://github.com/neuralpunk/meshware/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a></li>
+</ul>
+<p>Meshware 1.1.0 is free and open source, dual-licensed under the <a href="https://github.com/neuralpunk/meshware/blob/main/LICENSE-MIT">MIT</a> or <a href="https://github.com/neuralpunk/meshware/blob/main/LICENSE-APACHE">Apache 2.0</a> licence, at your option.</p>
+</section>
+    <div class="g-end">
+      <p>Something unclear or missing from this guide?</p>
+      <div class="actions">
+        <a class="btn btn-ghost" href="https://github.com/neuralpunk/meshware/issues">Open an issue</a>
+        <a class="btn btn-primary" href="https://github.com/neuralpunk/meshware/tree/main/docs">Browse the full docs</a>
+      </div>
+    </div>
+  </main>
+</div>
+
+<button class="to-top" type="button" aria-label="Back to top"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l5-5 5 5"/></svg></button>
+
+<footer class="footer">
+  <div class="wrap footer-cols">
+    <div><h2>Meshware</h2><p>Distributed compute for Linux, without a control plane. Open source under MIT or Apache 2.0.</p></div>
+    <div><h2>Learn</h2><ul>
+      <li><a href="./">Overview</a></li>
+      <li><a href="guide.html">User Guide</a></li>
+      <li><a href="https://github.com/neuralpunk/meshware/blob/main/docs/quickstart.md">Quickstart</a></li>
+      <li><a href="https://github.com/neuralpunk/meshware/tree/main/docs/reference">Reference</a></li>
+    </ul></div>
+    <div><h2>Project</h2><ul>
+      <li><a href="https://github.com/neuralpunk/meshware">GitHub</a></li>
+      <li><a href="https://github.com/neuralpunk/meshware/releases">Releases</a></li>
+      <li><a href="https://github.com/neuralpunk/meshware/blob/main/CHANGELOG.md">Changelog</a></li>
+      <li><a href="https://github.com/neuralpunk/meshware/blob/main/CONTRIBUTING.md">Contributing</a></li>
+    </ul></div>
+    <div><h2>Trust</h2><ul>
+      <li><a href="https://github.com/neuralpunk/meshware/blob/main/SECURITY.md">Security</a></li>
+      <li><a href="https://github.com/neuralpunk/meshware/blob/main/docs/operating/limits.md">Limits</a></li>
+      <li><a href="https://github.com/neuralpunk/meshware/blob/main/LICENSE-MIT">MIT License</a></li>
+      <li><a href="https://github.com/neuralpunk/meshware/blob/main/LICENSE-APACHE">Apache License 2.0</a></li>
+    </ul></div>
+  </div>
+  <div class="wrap footer-legal">
+    <span>Meshware 1.1.0 · Linux · x86_64 &amp; aarch64</span>
+    <span>Screenshots show a demonstration mesh with fictional host names</span>
+  </div>
+</footer>
+</body>
+</html>

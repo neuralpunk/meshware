@@ -375,7 +375,7 @@ Settings has a pane for each question, listed under it in the sidebar:
 | **Retention & export** | How long the mesh keeps runs, facts, job output and the audit log; exporting a copy to a system you already own |
 | **Storage** | What this computer keeps on disk, how long unused content stays, and room left on every machine |
 | **Backup & stopping** | Back up this node, see its configuration, stop the whole mesh taking new work (**Shed load**), or **Drain** this machine before maintenance |
-| **About & licence** | Which build this is, your plan and licence, and where to get help |
+| **About & licence** | Which build this is, its licence texts (MIT and Apache 2.0), and where to get help |
 
 ![Settings › This machine](img/director/settings-this-peer.webp)
 

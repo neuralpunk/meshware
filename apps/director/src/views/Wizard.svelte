@@ -375,7 +375,7 @@
       <!-- The product line, word for word (UX-19; GO-TO-MARKET's "feeling"
            line): the first sentence a stranger reads should be the one the
            site and the pitch open with. -->
-      <div class="mt-2 text-base text-ink-4">You have machines. Pair them. Now you have a computer.</div>
+      <div class="mt-2 text-base text-ink-4">Your Linux machines, working as one.</div>
     </div>
 
     {#if error}
