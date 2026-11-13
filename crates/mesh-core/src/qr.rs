@@ -366,12 +366,12 @@ fn gf_mul(a: u8, b: u8) -> u8 {
 fn generator(degree: usize) -> Vec<u8> {
     let g = gf();
     let mut poly = vec![1u8];
-    for i in 0..degree {
+    for &alpha_i in &g.exp[..degree] {
         // Multiply by (x - α^i).
         let mut next = vec![0u8; poly.len() + 1];
         for (j, c) in poly.iter().enumerate() {
             next[j] ^= *c;
-            next[j + 1] ^= gf_mul(*c, g.exp[i]);
+            next[j + 1] ^= gf_mul(*c, alpha_i);
         }
         poly = next;
     }

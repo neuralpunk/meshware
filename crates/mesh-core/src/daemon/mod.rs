@@ -10937,7 +10937,6 @@ impl Node {
     /// (a venv, an Ansible inventory) is content-hashed and reused across
     /// items and chunks alike.
     #[allow(clippy::too_many_arguments)]
-    #[allow(clippy::too_many_arguments)]
     async fn run_script_chunk(
         &self,
         plan: &mesh_proto::ParallelPlan,

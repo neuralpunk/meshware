@@ -191,10 +191,7 @@ impl Device {
         // Unknown device memory is neutral, the same rule an unprobed
         // `cap.mem_mb` gets: a node that could not read a figure is trusted
         // here and finds out at admission.
-        if req.vram_mb > 0 && self.mem_mb > 0 && self.mem_mb < req.vram_mb {
-            return false;
-        }
-        true
+        !(req.vram_mb > 0 && self.mem_mb > 0 && self.mem_mb < req.vram_mb)
     }
 
     /// One line for a table: `0 nvidia RTX 4090 24GB`. Carries the vendor
