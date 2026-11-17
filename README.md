@@ -10,7 +10,6 @@
 
 <p align="center">
   <a href="LICENSE-MIT"><img alt="License: MIT OR Apache-2.0" src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-12857a"></a>
-  <a href="https://github.com/neuralpunk/meshware/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/neuralpunk/meshware/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/neuralpunk/meshware/releases"><img alt="Release" src="https://img.shields.io/github/v/release/neuralpunk/meshware?color=12857a"></a>
   <img alt="Linux: x86_64, aarch64" src="https://img.shields.io/badge/linux-x86__64%2C%20aarch64-555">
 </p>
